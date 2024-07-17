@@ -44,14 +44,21 @@ class TextureGridItem(tk.Frame):
         texture_size.grid(row=2, column=1)
 
     def show_texture_type_picker(self, *args):
-        self.texture_type_frame = TextureTypeFrame(self, self.handle_texture_type_click)
-        self.texture_type_frame.grid(row=0, column=0, columnspan=2, sticky='nsew', ipadx=8, ipady=8)
+        self.border_frame = tk.Frame(self, bg='#A00')
+        self.border_frame.grid(row=0, column=0, columnspan=2, sticky='nsew', ipadx=8, ipady=8)
+
+        self.texture_type_frame = TextureTypeFrame(self.border_frame, self.handle_texture_type_click)
+        self.texture_type_frame.pack(fill='both', expand=True, padx=8, pady=8)
+        self.texture_type_frame.bind('<Leave>', lambda _: self.border_frame.destroy())
+        
+        self.border_frame.tkraise()
         self.texture_type_frame.tkraise()
 
     def handle_texture_type_click(self, texture_type: str, *args):
         self.get_ref().add_texture(self.saved_texture, texture_type)
-        self.texture_type_frame.lower()
-        self.texture_type_frame.destroy()
+        # self.texture_type_frame.lower()
+        # self.border_frame.lower()
+        self.border_frame.destroy()
 
 class TextureImageFrame(tk.Frame):
     def __init__(self, parent, saved_texture: SavedTexture, *args, **kwargs):
@@ -96,7 +103,7 @@ class TextureImageFrame(tk.Frame):
 
 class TextureTypeFrame(ScrollableFrame):
     def __init__(self, parent, handle_texture_type_click, *args, **kwargs):
-        ScrollableFrame.__init__(self, parent, scrollable_parent=parent.parent.parent, bg='#111', width=256, height=256)
+        ScrollableFrame.__init__(self, parent, scrollable_parent=parent.master.parent.parent, bg='#111', width=256-16, height=256-16)
         self.config(*args, **kwargs)
         self.parent = parent
 

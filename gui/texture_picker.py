@@ -1,5 +1,6 @@
 import tkinter as tk
 from functools import partial
+from pathlib import Path
 
 from config.config import Config
 from frame_analysis.frame_analysis import Component
@@ -312,7 +313,7 @@ class ComponentPartFrame(tk.Frame):
     def add_texture(self, saved_texture: SavedTexture, texture_type: str):
         self.clear_list_widgets()
         
-        c = ComponentPartTextureFrame(self, saved_texture, texture_type)
+        c = ComponentPartTextureFrame(self, saved_texture, texture_type, handle_remove=self.handle_remove)
         self.textures[saved_texture.slot] = c
         
         self.pack_list_widgets()
@@ -323,14 +324,20 @@ class ComponentPartFrame(tk.Frame):
             item[1].get_texture()
             for item in sorted_textures
         ]
+    
+    def handle_remove(self, slot, *args):
+        self.textures[slot].pack_forget()
+        del self.textures[slot]
 
 
 class ComponentPartTextureFrame(tk.Frame):
-    def __init__(self, parent, saved_texture: SavedTexture, texture_type: str, *args, **kwargs):
+    def __init__(self, parent, saved_texture: SavedTexture, texture_type: str, handle_remove, *args, **kwargs):
         tk.Frame.__init__(self, parent)
         self.config(*args, **kwargs)
         self.config(bg='#222')
         self.parent = parent
+
+        self.handle_remove = handle_remove
 
         self.saved_texture = saved_texture
         self.texture_type  = texture_type
@@ -346,6 +353,7 @@ class ComponentPartTextureFrame(tk.Frame):
         self.grid_columnconfigure(0, weight=0)
         self.grid_columnconfigure(1, weight=0)
         self.grid_columnconfigure(2, weight=1)
+        self.grid_columnconfigure(3, weight=0)
 
     def create_widgets(self):
         slot_label = tk.Label(self, text=self.saved_texture.slot, font=('Arial', 16, 'bold'), bg='#333',  fg='#e8eaed')
@@ -365,6 +373,14 @@ class ComponentPartTextureFrame(tk.Frame):
         
         hash_label = tk.Label(self, text=self.saved_texture.hash, font=('Arial', 12, 'bold'), bg='#333', fg='#e8eaed')
         hash_label.grid(row=1, column=2, sticky='nsew')
+
+        button_frame = tk.Frame(self, bg='#333')
+        button_frame.grid(row=0, rowspan=2, column=3, padx=(2,0), sticky='nsew')
+
+        img = tk.PhotoImage(file=Path('./resources/images/buttons/close.256.png').absolute()).subsample(8)
+        remove_btn = FlatButton(button_frame, width=32, height=32, img_width=32, img_height=32, bg='#b92424', image=img)
+        remove_btn.bind('<Button-1>', lambda _: self.handle_remove(self.saved_texture.slot))
+        remove_btn.pack(fill='both')
 
     def get_texture(self):
         return (self.saved_texture, self.texture_type)
