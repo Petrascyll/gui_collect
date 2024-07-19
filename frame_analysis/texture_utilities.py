@@ -143,7 +143,17 @@ def get_texdiag_info(filepath: str):
     if completed_process.returncode != 0:
         return {}
 
-    out = completed_process.stdout.decode('utf-8').strip()
+    out = completed_process.stdout
+    try:
+        out = out.decode('utf-8').strip()
+
+    # I am not entirely sure why the decode fails, but I suspect its
+    # related to the usage of non-english characters in the user name
+    # or a non-english language being the language of the computer
+    # causing the shell to use odd characters
+    # UnicodeDecodeError: 'utf-8' codec can't decode byte 0xce in position 9: invalid continuation byte
+    except UnicodeDecodeError:
+        out = out.decode('latin-1').strip()
 
     # Split each line, and discard the first.
     out = [l.strip() for l in out.splitlines()][1:]
