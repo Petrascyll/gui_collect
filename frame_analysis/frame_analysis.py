@@ -92,12 +92,12 @@ def export(export_name, components: list[Component], collected_textures = None):
         json_builder.add_component(component, textures)
 
         position, position_format = collect_buffer_data(component.position_path)
-        texcoord, texcoord_format = collect_buffer_data(component.texcoord_path)
         blend,    blend_format    = collect_buffer_data(component.blend_path)
+        texcoord, texcoord_format = collect_buffer_data(component.texcoord_path)
 
         handle_no_weight_blend(blend, blend_format)
 
-        vb_merged = merge_buffers((position, texcoord, blend), (position_format, texcoord_format, blend_format))
+        vb_merged = merge_buffers((position, blend, texcoord), (position_format, blend_format, texcoord_format))
         export_component(export_name, component, vb_merged, textures)
 
     json_out = json.dumps(json_builder.build(), indent=4)
