@@ -262,6 +262,15 @@ def set_relevant_data(components: list[Component], files: list[Path]):
         component.backup_position_path = position_vb_path
         component.backup_texcoord_path = texcoord_vb_path
 
+        sorted_component_ib_paths = [
+            ib_path for ib_path, _ in sorted(
+                zip(component.ib_paths, component.object_indices),
+                key=lambda item: item[1]
+            )
+        ]
+        component.ib_paths       = sorted_component_ib_paths
+        component.object_indices = sorted(component.object_indices)
+
         print('\tComponent {} ({})'.format(component.name, get_resource_hash(component.ib_paths[0].name)))
         print('\t\tIB Data:')
         for i, object_index in enumerate(component.object_indices):
