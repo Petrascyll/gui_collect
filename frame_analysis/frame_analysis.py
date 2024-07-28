@@ -231,11 +231,17 @@ def set_relevant_data(components: list[Component], files: list[Path]):
 
             component      .ib_paths.append(ib_path)
             component.object_indices.append(first_index)
-            component.texture_data[first_index] = [
-                f for f in id_files
-                if f.name.startswith(f'{id}-ps-t')
-                and f.suffix in ['.dds', '.jpg']
-            ]
+            component.texture_data[first_index] = sorted([
+                    f for f in id_files
+                    if f.name.startswith(f'{id}-ps-t')
+                    and f.suffix in ['.dds', '.jpg']
+                ],
+                # Sort Textures by slot numerically to avoid 0 -> 1 -> 10 -> 2 -> 3
+                # Accounts for both
+                # - 000032-ps-t3=cc114f4f-vs=9185fb857b322583-ps=a625f3801205dcbb.dds
+                # - 000032-ps-t5-vs=9185fb857b322583-ps=a625f3801205dcbb.dds
+                key=lambda filepath: int(filepath.name.split('ps-t')[1].split('=')[0].split('-')[0])
+            )
 
             texcoord_vb_candidate = [f for f in id_files if "-vb1=" in f.name]
             if len(texcoord_vb_candidate) == 1:

@@ -57,7 +57,7 @@ class JsonBuilder():
             blend_hash = parse_buffer_file_name(component.blend_path.name)[2]
             json_component.blend_vb = blend_hash
 
-        json_component.object_indexes = sorted([int(d) for d in component.object_indices])
+        json_component.object_indexes = component.object_indices
         json_component.object_classifications = component.object_classification[:len(component.object_indices)]
 
         if textures:
