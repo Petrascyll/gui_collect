@@ -7,7 +7,7 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter.font import Font
 
-from .xtk.FlatButton import FlatButton
+from .xtk.FlatImageButton import FlatImageButton
 
 
 class AddressFrame(tk.Frame):
@@ -29,11 +29,11 @@ class AddressFrame(tk.Frame):
             self.folder_path_label.config(text=self.path)
 
         img = tk.PhotoImage(file=Path('./resources/images/buttons/folder_open.256.png').absolute()).subsample(8)
-        pick_folder_btn = FlatButton(self, width=40, height=40, img_width=32, img_height=32, bg='#3fb76b', image=img)
+        pick_folder_btn = FlatImageButton(self, width=40, height=40, img_width=32, img_height=32, bg='#3fb76b', image=img)
         pick_folder_btn.bind('<Button-1>', lambda _: self.handle_frame_dump_pick())
 
         img = tk.PhotoImage(file=Path('./resources/images/buttons/history.256.png').absolute()).subsample(8)
-        pick_latest_dump_btn = FlatButton(self, width=40, height=40, img_width=32, img_height=32, bg='#244eb9', image=img)
+        pick_latest_dump_btn = FlatImageButton(self, width=40, height=40, img_width=32, img_height=32, bg='#244eb9', image=img)
         pick_latest_dump_btn.bind('<Button-1>', lambda _: self.load_latest_frame_analysis())
 
         # img = tk.PhotoImage(file=Path('./resources/images/buttons/close.256.png').absolute()).subsample(8)

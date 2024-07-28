@@ -6,6 +6,7 @@ from .pages.main_page import MainPageT
 from .style import APP_STYLE
 from .sidebar import Sidebar
 from .main import Main
+from .state import State
 
 from config.config import Config
 
@@ -16,6 +17,7 @@ class App(tk.Tk):
         self.config(background=APP_STYLE['app_background'])
 
         self.cfg = Config.get_instance().data
+        self.state = State()
 
         self.title('GUI Collect')
         self.geometry('1650x800')

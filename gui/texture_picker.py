@@ -9,6 +9,7 @@ from frame_analysis.texture_utilities import prepare_textures, SavedTexture
 
 from .texture_grid import TextureGrid
 from .xtk.ScrollableFrame import ScrollableFrame
+from .xtk.FlatImageButton import FlatImageButton
 from .xtk.FlatButton import FlatButton
 
 
@@ -27,13 +28,17 @@ class TexturePicker(tk.Frame):
         self.texture_bar = TextureBar(self)
         self.texture_bar.grid(row=0, column=0, sticky='nsew')
 
+        self.middle_bar = tk.Frame(self, width=74, bg='#0aa')
+        self.middle_bar.grid(row=0, column=1, sticky='nsew')
+
         self.texture_grid = TextureGrid(self, get_ref=self.texture_bar.get_component_part_frame)
-        self.texture_grid.grid(row=0, column=1, sticky='nsew')
+        self.texture_grid.grid(row=0, column=2, sticky='nsew')
 
     def configure_grid(self):
         self   .grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=0)
-        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(1, weight=0)
+        self.grid_columnconfigure(2, weight=1)
 
     def load(self, export_name, components: list[Component], callback):
         print('Texture picker loaded')
@@ -109,28 +114,32 @@ class TextureBar(tk.Frame):
         self   .grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
-        self.grid_columnconfigure(2, weight=1)
 
     def create_widgets(self):
         self.component_summary = ScrollableFrame(self, bg='#222')
-        self.component_summary.grid(sticky="nsew", row=0, column=0, columnspan=3)
+        self.component_summary.grid(sticky="nsew", row=0, column=0, columnspan=2)
 
-        self.go_back = tk.Label(self, text='Back',)
-        self.go_back.bind('<Button-1>', lambda _: self.go_to_prev())
+        self.cancel = FlatButton(self, text='Cancel', bg='#444', hover_bg='#A00')
+        self.cancel.bind('<Button-1>', lambda _: self.cancel_texture_collection())
+        self.cancel.grid(sticky='nsew', row=1, column=0, padx=(0, 2), ipadx=56, ipady=16)
 
-        self.go_next = tk.Label(self, text='Next')
-        self.go_next.bind('<Button-1>', lambda _: self.go_to_next())
+        # self.go_back = tk.Label(self, text='Back')
+        # self.go_back.bind('<Button-1>', lambda _: self.go_to_prev())
 
-        self.done = tk.Label(self, text='Done')
+        # self.go_next = tk.Label(self, text='Next')
+        # self.go_next.bind('<Button-1>', lambda _: self.go_to_next())
+
+        self.done = FlatButton(self, text='Done', bg='#444', hover_bg='#A00')
         self.done.bind('<Button-1>', lambda _: self.done_texture_collection())
+        self.done.grid(sticky='nsew', row=1, column=1, padx=(0, 0), ipadx=56, ipady=16)
 
-        for i, w in enumerate((self.go_back, self.go_next, self.done)):
-            w.config(fg='#e8eaed', bg='#444', font=('Arial', 16, 'bold'), cursor='hand2')
-            w.bind('<Enter>', func=lambda e: e.widget.config(bg='#A00'))
-            w.bind('<Leave>', func=lambda e: e.widget.config(bg='#444'))
+        # for i, w in enumerate((self.cancel, self.done)):
+        #     w.config(fg='#e8eaed', bg='#444', font=('Arial', 16, 'bold'), cursor='hand2')
+        #     w.bind('<Enter>', func=lambda e: e.widget.config(bg='#A00'))
+        #     w.bind('<Leave>', func=lambda e: e.widget.config(bg='#444'))
 
-            padx = (0, 2) if i != 2 else None
-            w.grid(sticky='nsew', row=1, column=i, padx=padx, ipadx=32, ipady=16)
+        #     padx = (0, 2) if i != 3 else None
+        #     w.grid(sticky='nsew', row=1, column=i, padx=padx, ipadx=32, ipady=16)
 
 
 
@@ -261,6 +270,10 @@ class TextureBar(tk.Frame):
                 # t.textures
             #     for a in self.component_textures[i][component_index].
 
+    def cancel_texture_collection(self):
+        self.parent.unload()
+        self.parent.parent.extract_form.cancel_extraction()
+
 class ComponentPartFrame(tk.Frame):
     def __init__(self, parent, header_text, active=False, *args, **kwargs):
         tk.Frame.__init__(self, parent)
@@ -378,7 +391,7 @@ class ComponentPartTextureFrame(tk.Frame):
         button_frame.grid(row=0, rowspan=2, column=3, padx=(2,0), sticky='nsew')
 
         img = tk.PhotoImage(file=Path('./resources/images/buttons/close.256.png').absolute()).subsample(8)
-        remove_btn = FlatButton(button_frame, width=32, height=32, img_width=32, img_height=32, bg='#b92424', image=img)
+        remove_btn = FlatImageButton(button_frame, width=32, height=32, img_width=32, img_height=32, bg='#b92424', image=img)
         remove_btn.bind('<Button-1>', lambda _: self.handle_remove(self.saved_texture.slot))
         remove_btn.pack(fill='both')
 
