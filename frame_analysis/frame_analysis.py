@@ -53,14 +53,7 @@ class FrameAnalysisException(Exception):
         self.message = message
 
 
-# class FrameAnalysis():
-#     def __init__(self, frame_analysis_path, export_name: str, ib_hashes: tuple[str], component_names: tuple[str]):
-#         self.frame_analysis_path = frame_analysis_path
-#         self.ib_hashes           = ib_hashes
-#         self.export_name         = export_name
-#         self.component_names     = component_names
-
-def extract(frame_analysis_path, ib_hashes, component_names) -> list[Component]:
+def extract(frame_analysis_path, ib_hashes, component_names, game='zzz') -> list[Component]:
     print(frame_analysis_path)
 
     path = Path(frame_analysis_path)
@@ -82,6 +75,7 @@ def extract(frame_analysis_path, ib_hashes, component_names) -> list[Component]:
 
     return components
 
+
 def export(export_name, components: list[Component], collected_textures = None):
     json_builder = JsonBuilder()
     for i, component in enumerate(components):
@@ -91,13 +85,18 @@ def export(export_name, components: list[Component], collected_textures = None):
 
         json_builder.add_component(component, textures)
 
-        position, position_format = collect_buffer_data(component.position_path)
-        blend,    blend_format    = collect_buffer_data(component.blend_path)
-        texcoord, texcoord_format = collect_buffer_data(component.texcoord_path)
+        if component.position_path:
+            position, position_format = collect_buffer_data(component.position_path)
+            blend,    blend_format    = collect_buffer_data(component.blend_path)
+            texcoord, texcoord_format = collect_buffer_data(component.texcoord_path)
 
-        handle_no_weight_blend(blend, blend_format)
+            handle_no_weight_blend(blend, blend_format)
 
-        vb_merged = merge_buffers((position, blend, texcoord), (position_format, blend_format, texcoord_format))
+            vb_merged = merge_buffers((position, blend, texcoord), (position_format, blend_format, texcoord_format))
+        else:
+            data, data_format = collect_buffer_data(component.backup_position_path)
+            vb_merged = merge_buffers((data,), (data_format,))
+
         export_component(export_name, component, vb_merged, textures)
 
     json_out = json.dumps(json_builder.build(), indent=4)
@@ -109,7 +108,7 @@ def export_component(export_name: str, component: Component, vb_merged, textures
 
     for i, ib_path in enumerate(component.ib_paths):
         prefix = export_name + component.name + object_classification[i]
-        vb0_file_name = '{}-vb0={}.txt'.format(prefix, get_resource_hash(component.position_path.name))
+        vb0_file_name = '{}-vb0={}.txt'.format(prefix, get_resource_hash(component.position_path.name if component.position_path else component.backup_position_path.name))
         ib_file_name  = '{}-ib={}.txt' .format(prefix, get_resource_hash(ib_path.name))
 
         vb0_file_path = Path('_Extracted', export_name, vb0_file_name)
@@ -148,7 +147,7 @@ def set_unposed_data(components: list[Component], file_paths: list[Path]):
     if len(pose_ids) == 0:
         raise FrameAnalysisException('No pose calls found.')
 
-    in_progress_components = [*components]
+    posed_components = [*components]
 
     for pose_id in pose_ids:
         id_file_paths = [file_path for file_path in file_paths if file_path.name.startswith(pose_id)]
@@ -157,7 +156,10 @@ def set_unposed_data(components: list[Component], file_paths: list[Path]):
         vb1_path = [file_path for file_path in id_file_paths if '-vb1' in file_path.name][0]
         vb2_path = [file_path for file_path in id_file_paths if '-vb2' in file_path.name][0]
 
-        for component in in_progress_components:
+        for component in posed_components:
+            if not component.backup_texcoord_path:
+                continue
+
             texcoord_hash = get_resource_hash(component.backup_texcoord_path.name)
             if texcoord_hash in vb1_path.name:
                 component.position_path = vb0_path
@@ -170,14 +172,14 @@ def set_unposed_data(components: list[Component], file_paths: list[Path]):
                 print('\t\tFound blend    data file path: ' + vb2_path.name)
                 print()
 
-                in_progress_components.remove(component)
+                posed_components.remove(component)
                 continue
 
-    if len(in_progress_components) != 0:
-        raise FrameAnalysisException('Failed to find unposed data for {} ({})'.format(
-            in_progress_components[0].name,
-            get_resource_hash(in_progress_components[0].ib_paths[0].name),
-        ))
+    # if len(in_progress_components) != 0:
+    #     raise FrameAnalysisException('Failed to find unposed data for {} ({})'.format(
+    #         in_progress_components[0].name,
+    #         get_resource_hash(in_progress_components[0].ib_paths[0].name),
+    #     ))
     
     return
 
@@ -197,14 +199,6 @@ def set_relevant_ids(components: list[Component], files: list[Path], ib_hashes: 
             ids_with_textures.append(id)
 
         components[i].ids = ids_with_textures
-
-
-# def set_texture_data(components: list[Component], files: list[Path]):
-#     for component in components:
-#         component.texture_data = [
-#             [f for f in files if f.name.startswith(f'{id}-ps-t') and f.suffix in ['.dds', '.jpg']]
-#             for id in component.ids
-#         ]
 
 
 def set_relevant_data(components: list[Component], files: list[Path]):
@@ -276,7 +270,7 @@ def set_relevant_data(components: list[Component], files: list[Path]):
         for i, object_index in enumerate(component.object_indices):
             print('\t\t\t{}\t{}'.format(object_index, component.ib_paths[i].name))
         print('\t\tBackup position data file path: ' + position_vb_path.name)
-        print('\t\tBackup texcoord data file path: ' + texcoord_vb_path.name)
+        print('\t\tBackup texcoord data file path: ' + texcoord_vb_path.name if texcoord_vb_path else '')
         print()
     
     return
