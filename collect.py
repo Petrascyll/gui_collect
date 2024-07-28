@@ -5,7 +5,7 @@ from config.config import Config
 from gui.app import App
 
 def main():
-    print('ZZZ 3dmigoto collect script')
+    print('3dmigoto GUI collect script')
     cfg = Config()
     with tempfile.TemporaryDirectory() as temp_dir:
         cfg.temp_data['temp_dir'] = temp_dir
