@@ -14,6 +14,7 @@ from .style import darker, APP_STYLE
 
 # from frame_analysis.frame_analysis import FrameAnalysis, FrameAnalysisException
 from frame_analysis import frame_analysis
+from frame_analysis.buffer_utilities import is_valid_hash
 
 FILEBROWSER_PATH = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
 
@@ -56,6 +57,11 @@ class ExtractForm(tk.Frame):
         for input_component_data in input_components_data:
             h = input_component_data.input_component_entry_data.hash
             n = input_component_data.input_component_entry_data.name
+
+            if not is_valid_hash(h):
+                print('Invalid hash: {}'.format(h))
+                return None, None, None, None
+
             ib_hashes.append(h)
             component_names.append(n)
 

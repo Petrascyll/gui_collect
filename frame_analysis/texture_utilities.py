@@ -6,7 +6,7 @@ from pathlib import Path
 from dataclasses import dataclass
 
 from .frame_analysis import Component
-from .buffer_utilities import parse_buffer_file_name
+from .buffer_utilities import parse_buffer_file_name, is_valid_hash
 
 FILEBROWSER_PATH = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
 
@@ -27,7 +27,7 @@ class SavedTexture():
 
 
 def prepare_textures(components: list[Component], temp_dir: str):
-    print('Preparing textures for preview', end='')
+    print('Preparing textures for preview')
     st = time.time()
 
     processed_hashes       : dict[str, str] = {}
@@ -39,10 +39,9 @@ def prepare_textures(components: list[Component], temp_dir: str):
         for component_part_texture_data in component.texture_data.values():
             for texture_file_path in component_part_texture_data:
 
-                print('.', end='', flush=True)
-
                 texture_name      = texture_file_path.name
                 temp_texture_name = texture_file_path.with_suffix('.png').name
+                print('\t' + texture_name)
 
                 temp_texture_file_path = Path(temp_dir, temp_texture_name)
                 # if temp_texture_file_path.exists():
@@ -52,25 +51,29 @@ def prepare_textures(components: list[Component], temp_dir: str):
 
                 filesize = os.path.getsize(texture_file_path)
                 _, texture, texture_hash, is_contaminated, _ = parse_buffer_file_name(texture_name)
+                if not is_valid_hash(texture_hash):
+                    print('\t\tAborting. Invalid Texture Hash detected.')
+                    print('\t\tWarning: You may have dumped while mods are active!')
+                    skipped_texture_file_paths.append(texture_file_path.name)
+                    continue
+
                 if (
                     texture_hash in processed_hashes
                     and filesize > 128 * 1024 and not is_contaminated
                 ):
-                    print(',', end='', flush=True)
-                    # print('Skipping duplicate texture ', texture_file_path.name)
+                    print('\t\tSkipping. Duplicate texture.')
                     original_texture_file_path = processed_hashes[texture_hash]
                     map_texture_file_paths[texture_file_path.name] = original_texture_file_path
                     continue
 
                 if filesize < 64 * 1024:
-                    print('_', end='', flush=True)
+                    print('\t\tAborting. Small File Size: {}KB'.format(filesize//1024))
                     skipped_texture_file_paths.append(texture_file_path.name)
                     continue
 
                 info = get_texdiag_info(texture_file_path)
                 if not info:
-                    print('x', end='', flush=True)
-                    # print('Failed to analyze {}'.format(texture_name))
+                    print('\t\tAborting. Failed to analyze.')
                     skipped_texture_file_paths.append(texture_file_path.name)
                     continue
                 
@@ -80,8 +83,7 @@ def prepare_textures(components: list[Component], temp_dir: str):
 
                 result = create_temp_texture(texture_file_path, temp_dir, width, height)
                 if result == 1:
-                    print('x', end='', flush=True)
-                    # print('Failed to convert {}'.format(texture_name))
+                    print('\t\tAborting. Failed to convert texture from dds to png.')
                     skipped_texture_file_paths.append(texture_file_path.name)
                     continue
 

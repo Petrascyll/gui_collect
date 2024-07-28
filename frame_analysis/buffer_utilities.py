@@ -8,11 +8,14 @@ def extract_from_txt(key, filepath) -> int:
     # Scyll: readline() is **extremely** fast compared to readlines() with early loop break
     with open(filepath, "r") as f:
         pattern = re.compile(r'^{}: (\d+)$'.format(key))
+        i = 0
         line = f.readline()
         while line:
             m = pattern.match(line)
             if m: return int(m.group(1))
+            if i >= 6: break
             line = f.readline()
+            i += 1
 
     return -1
 
@@ -223,3 +226,16 @@ def parse_buffer_file_name(file_name: str):
         shaders[shader_match.group(1)] = shader_match.group(2)
 
     return draw_id, resource, resource_hash, is_contaminated, shaders
+
+
+def is_valid_hash(resource_hash, expected_hash_length=8):
+    if len(resource_hash) != expected_hash_length:
+        return False
+    
+    # Try convert str resource_hash of base 16 to an int
+    # If this fails, then the resource_hash is not base 16
+    # and is invalid
+    try: int(resource_hash, 16)
+    except: return False
+
+    return True
