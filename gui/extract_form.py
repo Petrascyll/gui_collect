@@ -48,15 +48,15 @@ class ExtractForm(tk.Frame):
         zzz.pack()
 
     def collect_input(self):
-        export_name = self.export_name.get()
+        extract_name = self.extract_name.get().strip().replace(' ', '')
         ib_hashes = []
         component_names = []
         path = self.parent.address_frame.path
 
         input_components_data = self.input_component_list.get_data()
         for input_component_data in input_components_data:
-            h = input_component_data.input_component_entry_data.hash
-            n = input_component_data.input_component_entry_data.name
+            h = input_component_data.input_component_entry_data.hash.strip()
+            n = input_component_data.input_component_entry_data.name.strip().replace(' ', '')
 
             if not is_valid_hash(h):
                 print('Invalid hash: {}'.format(h))
@@ -65,16 +65,8 @@ class ExtractForm(tk.Frame):
             ib_hashes.append(h)
             component_names.append(n)
 
-        # Ellen ----
-        # export_name     = 'Ellen'
-        # ib_hashes       = ['7f89a2b3', '9c7fac5a', 'a72cfb34', '569f47ac']
-        # component_names = ['Hair'    , 'Head'    , 'Body',       'Weapon']
+        return extract_name, ib_hashes, component_names, path
 
-        # # Casual Ellen ----
-        # export_name     = 'CasualEllen'
-        # ib_hashes       = ['4450d7e1', 'c306ef25', '61320025',   '8bbdab33']
-        # component_names = ['Hair'    , 'Head'    , 'UpperBody', 'LowerBody']
-        # ----------
 
         return export_name, ib_hashes, component_names, path
 
