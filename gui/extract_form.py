@@ -12,6 +12,7 @@ from .xtk.EntryWithPlaceholder import EntryWithPlaceholder
 from .xtk.InputComponentList import InputComponentList
 from .state import State
 
+from config.config import Config
 from frame_analysis import frame_analysis
 from frame_analysis.buffer_utilities import is_valid_hash
 from targeted_dump import targeted_dump
@@ -25,42 +26,49 @@ class ExtractForm(tk.Frame):
         self.config(*args, **kwargs)
         self.config(bg='#111')
         self.parent = parent
+        
+        self.cfg = Config.get_instance()
+        self.state = State.get_instance()
+        self.state.register_extract_form(self)
+
         self.configure_grid()
         self.create_widgets()
-
-        self.state = State.get_instance()
+        self.grid_widgets()
 
     def configure_grid(self):
-        self   .grid_rowconfigure(0, weight=1)
-        self   .grid_rowconfigure(1, weight=1)
-        self   .grid_rowconfigure(2, weight=0)
+        self   .grid_rowconfigure(0, weight=0)
+        self   .grid_rowconfigure(1, weight=0)
+        self   .grid_rowconfigure(2, weight=1)
 
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(1, weight=0)
 
     def create_widgets(self):
-        self.component_options_frame = tk.Frame(self, bg='#600')
-        self.extract_options_frame   = tk.Frame(self, bg='#060')
-        self.targeted_dump           = tk.Frame(self, bg='#006')
-        self.extract_frame           = tk.Frame(self, bg='#066')
+        self.component_options_frame = tk.Frame(self, bg='#222', width=600)
+        self.extract_options_frame   = tk.Frame(self, bg='#222', padx=16, pady=16)
+        self.targeted_dump           = tk.Frame(self, bg='#222', padx=16, pady=16)
+        self.extract_frame           = tk.Frame(self, bg='#111')
 
         self.input_component_list = InputComponentList(self.component_options_frame)
-        self.input_component_list.pack(fill='x')
+        self.input_component_list.pack(anchor='w', fill='x')
 
         self.extract_name = EntryWithPlaceholder(
-            self.extract_options_frame, placeholder='Export Name',
+            self.extract_options_frame, placeholder='Extract Name',
             color='#555', font=('Arial', '24', 'bold'),
             bg='#333', relief='flat', width=32
         )
-        self.extract_name.pack(pady=(20, 10))
-        checkbox_0 = LabeledCheckbox(self.extract_options_frame, text='Clean Extracted Folder', initial_state=True, font=('Arial', 20, 'bold'))
-        checkbox_1 = LabeledCheckbox(self.extract_options_frame, text='Skip All Textures',      initial_state=False, font=('Arial', 20, 'bold'))
-        checkbox_2 = LabeledCheckbox(self.extract_options_frame, text='Skip Small Textures',    initial_state=True, font=('Arial', 20, 'bold'))
-        checkbox_3 = LabeledCheckbox(self.extract_options_frame, text='Open Extracted Folder after Completion', initial_state=True, font=('Arial', 20, 'bold'))
-        checkbox_0.pack(side='top', anchor='w')
-        checkbox_1.pack(side='top', anchor='w')
-        checkbox_2.pack(side='top', anchor='w')
-        checkbox_3.pack(side='top', anchor='w')
+        self.extract_name.pack(fill='x', pady=(0, 12))
+        checkbox_0 = LabeledCheckbox(self.extract_options_frame, disabled=True, initial_state=False, font=('Arial', 20, 'bold'), text='Clean Extracted Folder')
+        checkbox_1 = LabeledCheckbox(self.extract_options_frame, disabled=True, initial_state=False, font=('Arial', 20, 'bold'), text='Skip All Textures')
+        checkbox_2 = LabeledCheckbox(self.extract_options_frame, disabled=True, initial_state=True,  font=('Arial', 20, 'bold'), text='Skip Small Textures')
+        checkbox_3 = LabeledCheckbox(self.extract_options_frame, disabled=True, initial_state=True,  font=('Arial', 20, 'bold'), text='Open Extracted Folder after Completion')
+        checkbox_0.pack(side='top', pady=(4, 0), anchor='w')
+        checkbox_1.pack(side='top', pady=(4, 0), anchor='w')
+        checkbox_2.pack(side='top', pady=(4, 0), anchor='w')
+        checkbox_3.pack(side='top', pady=(4, 0), anchor='w')
+
+        targeted_dump_frame_title = tk.Label(self.targeted_dump, text='Targeted Frame Analysis', bg='#222', fg='#555', anchor='center', font=('Arial', '20', 'bold'))
+        targeted_dump_frame_title.pack(fill='x', pady=(0, 8))
 
         clear_targeted_button = FlatButton(self.targeted_dump, text='Clear', bg='#0A0', hover_bg='#F00')
         clear_targeted_button.bind('<Button-1>', lambda _: self.clear_targeted_dump_ini())
@@ -72,12 +80,21 @@ class ExtractForm(tk.Frame):
 
         extract_button = FlatButton(self.extract_frame, text='Extract', bg='#A00', hover_bg='#F00')
         extract_button.bind('<Button-1>', lambda _: self.start_extraction())
-        extract_button.pack(ipadx=16, ipady=16)
+        extract_button.pack(fill='x', side='bottom', anchor='e', ipadx=16, ipady=16)
 
+    def grid_forget_widgets(self):
+        for child in self.winfo_children():
+            child.grid_forget()
+            # print('Forgot {}'.format(child))
+
+    def grid_widgets(self):
         self.component_options_frame .grid(column=0, row=0, padx=(16, 0), pady=16, sticky='nsew', rowspan=3)
         self.extract_options_frame   .grid(column=1, row=0, padx=16, pady=(16, 0), sticky='nsew')
-        self.targeted_dump           .grid(column=1, row=1, padx=16, pady=(16, 0), sticky='nsew')
-        self.extract_frame           .grid(column=1, row=2, padx=16, pady=16, sticky='nsew')
+        if self.cfg.data.targeted_analysis_enabled:
+            self.targeted_dump.grid(column=1, row=1, padx=16, pady=(16, 0), sticky='nsew')
+            self.extract_frame.grid(column=1, row=2, padx=16, pady=16, sticky='nsew')
+        else:
+            self.extract_frame.grid(column=1, row=1, rowspan=2, padx=16, pady=16, sticky='nsew')
 
     def collect_input(self):
         extract_name = self.extract_name.get().strip().replace(' ', '')

@@ -12,7 +12,7 @@ class InputComponentList(tk.Frame):
 
     def create_widgets(self):
         self.components: list[InputComponent] = []
-        for _ in range(3):
+        for _ in range(4):
             self.add_input_component()
 
     def get_data(self):
@@ -36,7 +36,8 @@ class InputComponentList(tk.Frame):
     def add_input_component(self):
         i = len(self.components)
         self.components.append(InputComponent(self, index=i))
-        self.components[-1].pack(side='top', pady=4)
+        pady = (16, 4) if i == 0 else (4, 4) 
+        self.components[-1].pack(side='top', padx=16, anchor='w', pady=pady)
 
         self.components[-1].component_entry.component_hash.bind(
             '<KeyRelease>',

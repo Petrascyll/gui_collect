@@ -20,8 +20,8 @@ class App(tk.Tk):
         self.state = State()
 
         self.title('GUI Collect')
-        self.geometry('1650x800')
-        # self.geometry('800x800')
+        self.geometry('1368x800')
+        # self.geometry('1650x800')
         self.configure_style()
         self.configure_grid()
         self.create_widgets()

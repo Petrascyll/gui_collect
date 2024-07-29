@@ -1,8 +1,8 @@
 from pathlib import Path
 
 
-_filepath      = Path('targeted_dump', 'auto_generated.ini')
-_text_filepath = Path('targeted_dump', 'auto_generated_text.txt')
+_filepath      = Path('targeted_dump', 'include', 'auto_generated.ini')
+_text_filepath = Path('targeted_dump', 'include', 'auto_generated_text.txt')
 
 def get_status():
     exists = _filepath.exists()

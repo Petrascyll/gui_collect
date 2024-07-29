@@ -1,5 +1,5 @@
 __pycache__
 _Extracted
 config.json
-targeted_dump/auto_generated.ini
-targeted_dump/auto_generated_text.txt
+targeted_dump/include/*
+!targeted_dump/include/.gitkeep

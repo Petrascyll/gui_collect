@@ -14,6 +14,7 @@ class State():
         State.__instance = self
 
         self.sidebar = None
+        self.extract_forms = []
 
     @staticmethod
     def get_instance():
@@ -35,3 +36,12 @@ class State():
         if not self.sidebar:
             raise Exception('Sidebar not registered')
         self.sidebar.unlock()
+
+    def register_extract_form(self, extract_form):
+        self.extract_forms.append(extract_form)
+    
+    def refresh_all_extract_forms(self):
+        # print('Refreshing {}'.format(self.extract_forms))
+        for extract_form in self.extract_forms:
+            extract_form.grid_forget_widgets()
+            extract_form.grid_widgets()

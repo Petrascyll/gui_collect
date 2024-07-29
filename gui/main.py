@@ -2,6 +2,7 @@ import tkinter as tk
 
 from .style import APP_STYLE
 from .pages.main_page import MainPage, MainPageT
+from .pages.settings_page import SettingsPage
 
 class Main(tk.Frame):
     def __init__(self, parent, active_page: MainPageT, *args, **kwargs):
@@ -21,7 +22,7 @@ class Main(tk.Frame):
             MainPageT.zzz      : MainPage(parent=self, variant=MainPageT.zzz),
             MainPageT.hsr      : MainPage(parent=self, variant=MainPageT.hsr),
             MainPageT.gi       : MainPage(parent=self, variant=MainPageT.gi),
-            MainPageT.settings : MainPage(parent=self, variant=MainPageT.settings)
+            MainPageT.settings : SettingsPage(parent=self)
         }
 
     def pack_widgets(self):
