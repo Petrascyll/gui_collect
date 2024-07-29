@@ -13,7 +13,4 @@ Used to extract model data from 3dmigoto generated frame dumps for certain anime
 
 ## How to run
 
-Dowload zip and extract. Releases will be available later... Launch cmd/powershell
-```
-python collect.py
-```
+Dowload zip and extract. Either double click `launch.bat` to automatically find the latest python version available and run the app using it or manually run `collect.py` with python. Releases will be available later... 
