@@ -28,8 +28,31 @@ class TexturePicker(tk.Frame):
         self.texture_bar = TextureBar(self)
         self.texture_bar.grid(row=0, column=0, sticky='nsew')
 
-        self.middle_bar = tk.Frame(self, width=74, bg='#0aa')
-        self.middle_bar.grid(row=0, column=1, sticky='nsew')
+        self.middle_bar = tk.Frame(self, width=74, bg='#333')
+        self.middle_bar.grid(row=0, column=1, padx=(1,0), sticky='nsew')
+        
+        # There's no built in anti aliasing AHHHHHHHHHHHHHHHHHH
+        # TODO replace with images from photoshop later
+        prev_canvas = tk.Canvas(self.middle_bar, bg=self.middle_bar['bg'], width=64, height=64, cursor='hand2', relief='flat', highlightthickness=0)
+        self.prev_canvas = prev_canvas
+        item_id = prev_canvas.create_polygon([8,56, 32,8, 56,56], fill='#444')
+        prev_canvas.bind('<Button-1>', self.texture_bar.go_to_prev)
+        prev_canvas.bind('<Enter>', lambda _: prev_canvas.itemconfigure(item_id, fill='#e8eaed'))
+        prev_canvas.bind('<Leave>', lambda _: prev_canvas.itemconfigure(item_id, fill='#444'))
+        prev_canvas.bind('<Enter>', lambda _: prev_canvas.config(bg='#A00'), add='+')
+        prev_canvas.bind('<Leave>', lambda _: prev_canvas.config(bg='#333'), add='+')
+        prev_canvas.pack()
+
+        next_canvas = tk.Canvas(self.middle_bar, bg=self.middle_bar['bg'], width=64, height=64, cursor='hand2', relief='flat', highlightthickness=0)
+        self.next_canvas = next_canvas
+        item_id = next_canvas.create_polygon([8,8, 56,8, 32,56], fill='#444')
+        next_canvas.bind('<Button-1>', self.texture_bar.go_to_next)
+        next_canvas.bind('<Enter>', lambda _: next_canvas.itemconfigure(item_id, fill='#e8eaed'))
+        next_canvas.bind('<Leave>', lambda _: next_canvas.itemconfigure(item_id, fill='#444'))
+        next_canvas.bind('<Enter>', lambda _: next_canvas.config(bg='#A00'), add='+')
+        next_canvas.bind('<Leave>', lambda _: next_canvas.config(bg='#333'), add='+')
+        next_canvas.pack()
+
 
         self.texture_grid = TextureGrid(self, get_ref=self.texture_bar.get_component_part_frame)
         self.texture_grid.grid(row=0, column=2, sticky='nsew')
@@ -55,14 +78,20 @@ class TexturePicker(tk.Frame):
         self.load_texture_grid(component_index, first_index)
         self.texture_bar.load(component_index, first_index, self.components)
 
-        self.bind_all('<s>', func=partial(self.texture_bar.go_to_next))
-        self.bind_all('<w>', func=partial(self.texture_bar.go_to_prev))
+        self.bind_all('<s>', lambda _: self.do_fake_click(self.next_canvas))
+        self.bind_all('<w>', lambda _: self.do_fake_click(self.prev_canvas))
 
         # self.temp_texture_file_paths    = ret[0]
         # self.skipped_texture_file_paths = ret[1]
         # self.map_texture_file_paths     = ret[2]
 
         # callback(export_name, extracted_components)
+    
+    # TODO improve later
+    def do_fake_click(self, widget, *args):
+        widget.event_generate('<Button-1>')
+        widget.event_generate('<Enter>')
+        widget.after(100, lambda: widget.event_generate('<Leave>'))
 
     def load_texture_grid(self, component_index, first_index):
         self.texture_grid.load(component_index, first_index, self.ret[0], self.ret[1], self.ret[2])
