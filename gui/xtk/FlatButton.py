@@ -1,22 +1,14 @@
 import tkinter as tk
-from ..style import brighter
 
 
-class FlatButton(tk.Canvas):
-    def __init__(self, parent, image, img_width, img_height, width, height, *args, **kwargs):
-        tk.Canvas.__init__(self, parent, width=width, height=height, cursor='hand2', relief='flat', highlightthickness=0, *args, **kwargs)
+class FlatButton(tk.Label):
+    def __init__(self, parent, hover_bg, *args, **kwargs):
+        tk.Label.__init__(self, parent)
+        self.parent = parent
+        self.config(fg='#e8eaed', font=('Arial', 18, 'bold'), cursor='hand2')
+        self.config(*args, **kwargs)
 
-        self.image = image
-        padx = (width - img_width) // 2
-        pady = (height - img_height) // 2
-        self.create_image(padx, pady, anchor='nw', image=self.image)
+        bg = self['bg']
 
-        if 'bg' in kwargs:
-            self.refresh_bg_binds()
-
-    def refresh_bg_binds(self):
-        default_color = self['bg']
-        hover_over_color = brighter(default_color)
-
-        self.bind('<Enter>', func=lambda e: e.widget.config(bg=hover_over_color))
-        self.bind('<Leave>', func=lambda e: e.widget.config(bg=default_color))
+        self.bind('<Enter>', lambda e: e.widget.config(bg=hover_bg))
+        self.bind('<Leave>', lambda e: e.widget.config(bg=bg))

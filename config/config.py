@@ -93,6 +93,7 @@ class _GameConfigData():
 class _ConfigData():
     first_launch: bool = True
     active_game: str = 'zzz'
+    targeted_analysis_enabled: bool = False
     game: dict[str, _GameConfigData] = field(
         default_factory= lambda: {
             'zzz': _GameConfigData(),

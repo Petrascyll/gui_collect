@@ -6,6 +6,7 @@ from .pages.main_page import MainPageT
 from .style import APP_STYLE
 from .sidebar import Sidebar
 from .main import Main
+from .state import State
 
 from config.config import Config
 
@@ -16,10 +17,11 @@ class App(tk.Tk):
         self.config(background=APP_STYLE['app_background'])
 
         self.cfg = Config.get_instance().data
-    
-        self.title('zzz_3dmigoto_collect.py')
-        self.geometry('1400x800')
-        # self.geometry('800x800')
+        self.state = State()
+
+        self.title('GUI Collect')
+        self.geometry('1368x800')
+        # self.geometry('1650x800')
         self.configure_style()
         self.configure_grid()
         self.create_widgets()
