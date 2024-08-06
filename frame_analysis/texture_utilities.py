@@ -176,9 +176,10 @@ def create_temp_texture(texture_file_path, temp_dir, width, height):
             str(Path('modules', 'texconv.exe')),
             texture_file_path,
             "-y",               # ovewrite existing
-            "-sepalpha", 		# useful if we're resizing in this step
+            "-sepalpha",        # useful if we're resizing in this step
             "-swizzle", "rgb1", # Set alpha channel to 1
-            "-m", "1", 			# Remove mip aps
+            "-m", "1",          # No mip maps
+            "-if", "POINT",     # Image filter used for resizing
             "-w", str(width),
             "-h", str(height),
             "-ft", "png",
