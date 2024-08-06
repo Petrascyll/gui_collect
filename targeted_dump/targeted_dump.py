@@ -135,13 +135,13 @@ analyse_options = dump_vb txt
 
 ;----------PRESET COMMANDS----------
 [CommandListModel]
-analyse_options = dump_ib dump_vb dump_tex dds txt
+analyse_options = dump_ib dump_vb txt
 
 [CommandListRT]
 analyse_options = dump_rt jps_dds
 
 [CommandListTexture]
-analyse_options = dump_tex dds
+analyse_options = dump_tex
 
 
 '''
