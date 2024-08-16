@@ -9,7 +9,7 @@ import frame_analysis.frame_analysis
 from .xtk.FlatButton import FlatButton
 from .xtk.Checkbox import LabeledCheckbox
 from .xtk.EntryWithPlaceholder import EntryWithPlaceholder
-from .xtk.InputComponentList import InputComponentList
+from .xtk.InputComponentList import InputComponentFrameList
 from .state import State
 
 from config.config import Config
@@ -49,7 +49,7 @@ class ExtractForm(tk.Frame):
         self.targeted_dump           = tk.Frame(self, bg='#222', padx=16, pady=16)
         self.extract_frame           = tk.Frame(self, bg='#111')
 
-        self.input_component_list = InputComponentList(self.component_options_frame)
+        self.input_component_list = InputComponentFrameList(self.component_options_frame)
         self.input_component_list.pack(anchor='w', fill='x')
 
         self.extract_name = EntryWithPlaceholder(
@@ -97,30 +97,29 @@ class ExtractForm(tk.Frame):
             self.extract_frame.grid(column=1, row=1, rowspan=2, padx=16, pady=16, sticky='nsew')
 
     def collect_input(self):
+        path = Path(self.parent.address_frame.path)
         extract_name = self.extract_name.get().strip().replace(' ', '')
-        ib_hashes = []
-        component_names = []
-        path = self.parent.address_frame.path
 
-        input_components_data = self.input_component_list.get_data()
-        for input_component_data in input_components_data:
-            h = input_component_data.input_component_entry_data.hash.strip()
-            n = input_component_data.input_component_entry_data.name.strip().replace(' ', '')
-
-            if not is_valid_hash(h):
-                print('Invalid hash: {}'.format(h))
-                return None, None, None, None
-
-            ib_hashes.append(h)
-            component_names.append(n)
+        input_component_hashes   = []
+        input_component_names    = []
+        input_components_options = []
+        for input_component in self.input_component_list.get():
+            if not input_component.hash: continue
+            if not is_valid_hash(input_component.hash):
+                print('Invalid hash: {}'.format(input_component.hash))
+                return None, None, None, None, None
+            
+            input_component_hashes .append(input_component.hash)
+            input_component_names  .append(input_component.name)
+            input_components_options.append(input_component.options)
 
         # return 'Rina', ['2825da1e'], ['Dress'], path
-        return extract_name, ib_hashes, component_names, path
+        return extract_name, input_component_hashes, input_component_names, input_components_options, path
 
     def generated_targeted_dump_ini(self):
-        extract_name, ib_hashes, component_names, _ = self.collect_input()
-        if not ib_hashes: return
-        targeted_dump.generate(extract_name, ib_hashes, component_names)
+        extract_name, input_component_hashes, input_component_names, _, _ = self.collect_input()
+        if not input_component_hashes: return
+        targeted_dump.generate(extract_name, input_component_hashes, input_component_names)
 
     def clear_targeted_dump_ini(self):
         targeted_dump.clear()
@@ -128,12 +127,19 @@ class ExtractForm(tk.Frame):
     def start_extraction(self):
         self.state.lock_sidebar()
 
-        extract_name, ib_hashes, component_names, path = self.collect_input()
-        if not extract_name:    return
-        if len(ib_hashes) == 0: return
+        extract_name, input_component_hashes, input_component_names, input_components_options, path = self.collect_input()
+        if not input_component_hashes:
+            print('Frame Analysis Aborted! No valid hashes provided.')
+            return
+        if not extract_name:
+            print('Frame Analysis Aborted! You must provided a name for the extracted model.')
+            return
+        if not (path/'log.txt').exists():
+            print('Frame Analysis Aborted! Invalid frame analysis path: "{}".'.format(str(path)))
+            return
 
         try:
-            extracted_components = frame_analysis.extract(path, ib_hashes, component_names)
+            extracted_components = frame_analysis.extract(path, input_component_hashes, input_component_names, input_components_options)
         except frame_analysis.FrameAnalysisException as X:
             print(X.message)
             print('Frame Analysis Failed!')

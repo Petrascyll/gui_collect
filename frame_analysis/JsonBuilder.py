@@ -33,32 +33,28 @@ class JsonBuilder():
     def jsonify_component(self, component, textures=None):
         json_component = JsonComponent(component_name=component.name)
 
-        draw_hash = parse_buffer_file_name(component.backup_position_path.name)[2]
-        ib_hash   = parse_buffer_file_name(component.ib_paths[0].name)[2]
+        json_component.ib      = parse_buffer_file_name(component.ib_paths[0].name)[2] if component.ib_paths else ''
+        if not ('textures_only' in component.options and component.options['textures_only']):
+            json_component.draw_vb = parse_buffer_file_name(component.backup_position_path.name)[2] if component.backup_position_path else ''
 
-        json_component.draw_vb = draw_hash
-        json_component.ib      = ib_hash
+            if component.position_path:
+                parsed = parse_buffer_file_name(component.position_path.name)
+                json_component.root_vs     = parsed[4]['vs']
+                json_component.position_vb = parsed[2]
+            elif component.backup_position_path:
+                json_component.position_vb = json_component.draw_vb
 
-        if component.position_path:
-            parsed = parse_buffer_file_name(component.position_path.name)
-            position_hash = parsed[2]
-            root_vs_hash  = parsed[4]['vs']
-            json_component.root_vs     = root_vs_hash
-            json_component.position_vb = position_hash
-        else:
-            json_component.position_vb = draw_hash
+            texcoord_path = component.texcoord_path if component.texcoord_path else component.backup_texcoord_path            
+            if texcoord_path:
+                texcoord_hash = parse_buffer_file_name(texcoord_path.name)[2]
+                json_component.texcoord_vb = texcoord_hash
 
-        texcoord_path = component.texcoord_path if component.texcoord_path else component.backup_texcoord_path            
-        if texcoord_path:
-            texcoord_hash = parse_buffer_file_name(texcoord_path.name)[2]
-            json_component.texcoord_vb = texcoord_hash
+            if component.blend_path:
+                blend_hash = parse_buffer_file_name(component.blend_path.name)[2]
+                json_component.blend_vb = blend_hash
 
-        if component.blend_path:
-            blend_hash = parse_buffer_file_name(component.blend_path.name)[2]
-            json_component.blend_vb = blend_hash
-
-        json_component.object_indexes = component.object_indices
-        json_component.object_classifications = component.object_classification[:len(component.object_indices)]
+            json_component.object_indexes         = component.object_indices
+            json_component.object_classifications = component.object_classification[:len(component.object_indices)]
 
         if textures:
             json_component.texture_hashes = [

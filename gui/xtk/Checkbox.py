@@ -85,3 +85,6 @@ class LabeledCheckbox(tk.Frame):
         self._disabled = False
         self.label.bind('<Button-1>', lambda _: self.checkbox.toggle())
         self.label.config(cursor='hand2', fg='#e8eaed')
+
+    def get(self):
+        return self.checkbox._active

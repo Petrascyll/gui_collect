@@ -10,6 +10,7 @@ from .JsonBuilder import JsonBuilder
 @dataclass
 class Component():
     name: str = ''
+    options: list[dict[str, any]] = None
 
     position_path: Path = None
     blend_path   : Path = None
@@ -20,8 +21,8 @@ class Component():
     object_indices       : list[str]  = field(default_factory=lambda:[])
     object_classification: list[str]  = field(default_factory=lambda:[])
     
-    backup_position_path = None
-    backup_texcoord_path = None
+    backup_position_path: Path = None
+    backup_texcoord_path: Path = None
 
     texture_data: dict[int, list[Path]] = field(default_factory=lambda:{})
 
@@ -53,39 +54,35 @@ class FrameAnalysisException(Exception):
         self.message = message
 
 
-def extract(frame_analysis_path, ib_hashes, component_names, game='zzz') -> list[Component]:
+def extract(frame_analysis_path: Path, input_component_hashes, input_component_names, input_components_options, game='zzz') -> list[Component]:
     print(frame_analysis_path)
 
-    path = Path(frame_analysis_path)
-    files: list[Path] = [f for f in path.iterdir() if f.suffix in ['.txt', '.dds', '.jpg']]
+    files: list[Path] = [f for f in frame_analysis_path.iterdir() if f.suffix in ['.txt', '.dds', '.jpg']]
     
-    if 'FrameAnalysis' not in path.name:
-        raise FrameAnalysisException('Invalid frame analysis path: "{}"'.format(frame_analysis_path))
-
     components: list[Component] = []
-    for component_name in component_names:
+    for name, options in zip(input_component_names, input_components_options):
         c = Component()
-        c.name = component_name
+        c.name    = name
+        c.options = options
         c.object_classification = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
         components.append(c)
 
-    set_relevant_ids (components, files, ib_hashes)
+    set_relevant_ids (components, files, input_component_hashes)
     set_relevant_data(components, files)
     set_unposed_data (components, files)
 
     return components
 
-
-def export(export_name, components: list[Component], collected_textures = None):
+def export(export_name, components: list[Component], textures = None):
     json_builder = JsonBuilder()
     for i, component in enumerate(components):
-        textures = None
-        if collected_textures:
-            textures = collected_textures[i]
 
-        json_builder.add_component(component, textures)
+        json_builder.add_component(component, textures[i])
 
-        if component.position_path:
+        if 'textures_only' in component.options and component.options['textures_only']:
+            vb_merged = None
+
+        elif component.position_path:
             position, position_format = collect_buffer_data(component.position_path)
             blend,    blend_format    = collect_buffer_data(component.blend_path)
             texcoord, texcoord_format = collect_buffer_data(component.texcoord_path)
@@ -93,17 +90,19 @@ def export(export_name, components: list[Component], collected_textures = None):
             handle_no_weight_blend(blend, blend_format)
 
             vb_merged = merge_buffers((position, blend, texcoord), (position_format, blend_format, texcoord_format))
-        else:
+        
+        elif component.backup_position_path:
             data, data_format = collect_buffer_data(component.backup_position_path)
             vb_merged = merge_buffers((data,), (data_format,))
 
-        export_component(export_name, component, vb_merged, textures)
+        if vb_merged  :  export_component_buffers(export_name, component, vb_merged)
+        if textures[i]: export_component_textures(export_name, component, textures[i])
 
     json_out = json.dumps(json_builder.build(), indent=4)
     Path('_Extracted', export_name, 'hash.json').write_text(json_out)
 
 
-def export_component(export_name: str, component: Component, vb_merged, textures=None):
+def export_component_buffers(export_name: str, component: Component, vb_merged):
     object_classification = component.object_classification
 
     for i, ib_path in enumerate(component.ib_paths):
@@ -119,12 +118,14 @@ def export_component(export_name: str, component: Component, vb_merged, textures
         ib_file_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ib_path, ib_file_path)
 
-    if textures:
-        for i, first_index in enumerate(textures):
-            base_texture_file_name = '{}{}{}'.format(export_name, component.name, object_classification[i])
-            for (saved_texture, texture_type) in textures[first_index]:
-                texture_file_name = base_texture_file_name + texture_type + saved_texture.real_path.suffix
-                shutil.copyfile(saved_texture.real_path, Path('_Extracted', export_name, texture_file_name))
+
+def export_component_textures(export_name: str, component: Component, textures):
+    object_classification = component.object_classification
+    for i, first_index in enumerate(textures):
+        base_texture_file_name = '{}{}{}'.format(export_name, component.name, object_classification[i])
+        for (saved_texture, texture_type) in textures[first_index]:
+            texture_file_name = base_texture_file_name + texture_type + saved_texture.real_path.suffix
+            shutil.copyfile(saved_texture.real_path, Path('_Extracted', export_name, texture_file_name))
 
 
 def set_unposed_data(components: list[Component], file_paths: list[Path]):
@@ -145,10 +146,10 @@ def set_unposed_data(components: list[Component], file_paths: list[Path]):
                 continue
 
     if len(pose_ids) == 0:
-        raise FrameAnalysisException('No pose calls found.')
+        print('No pose calls found.')
+        return
 
-    posed_components = [*components]
-
+    processed_components = set()
     for pose_id in pose_ids:
         id_file_paths = [file_path for file_path in file_paths if file_path.name.startswith(pose_id)]
         
@@ -156,23 +157,32 @@ def set_unposed_data(components: list[Component], file_paths: list[Path]):
         vb1_path = [file_path for file_path in id_file_paths if '-vb1' in file_path.name][0]
         vb2_path = [file_path for file_path in id_file_paths if '-vb2' in file_path.name][0]
 
-        for component in posed_components:
-            if not component.backup_texcoord_path:
+        for i in range(len(components)):
+            if i in processed_components:
+                continue
+            if 'textures_only' in components[i].options and components[i].options['textures_only']:
+                print('\tComponent {} ({})'.format(components[i].name, get_resource_hash(components[i].ib_paths[0].name)))
+                print('\t\tSkipping posing data')
+                processed_components.add(i)
+                continue
+            if not components[i].backup_texcoord_path:
+                print('\tComponent {} ({})'.format(components[i].name, get_resource_hash(components[i].ib_paths[0].name)))
+                print('\t\tCannot identify posing data with no texcoord hash')
+                processed_components.add(i)
                 continue
 
-            texcoord_hash = get_resource_hash(component.backup_texcoord_path.name)
+            texcoord_hash = get_resource_hash(components[i].backup_texcoord_path.name)
             if texcoord_hash in vb1_path.name:
-                component.position_path = vb0_path
-                component.texcoord_path = vb1_path
-                component.blend_path    = vb2_path
+                components[i].position_path = vb0_path
+                components[i].texcoord_path = vb1_path
+                components[i].blend_path    = vb2_path
 
-                print('\tComponent {} ({})'.format(component.name, get_resource_hash(component.ib_paths[0].name)))
+                print('\tComponent {} ({})'.format(components[i].name, get_resource_hash(components[i].ib_paths[0].name)))
                 print('\t\tFound position data file path: ' + vb0_path.name)
                 print('\t\tFound texcoord data file path: ' + vb1_path.name)
                 print('\t\tFound blend    data file path: ' + vb2_path.name)
-                print()
 
-                posed_components.remove(component)
+                processed_components.add(i)
                 continue
 
     # if len(in_progress_components) != 0:
@@ -275,7 +285,7 @@ def set_relevant_data(components: list[Component], files: list[Path]):
         print('\t\tIB Data:')
         for i, object_index in enumerate(component.object_indices):
             print('\t\t\t{}\t{}'.format(object_index, component.ib_paths[i].name))
-        print('\t\tBackup position data file path: ' + position_vb_path.name)
+        print('\t\tBackup position data file path: ' + position_vb_path.name if position_vb_path else '')
         print('\t\tBackup texcoord data file path: ' + texcoord_vb_path.name if texcoord_vb_path else '')
         print()
     
