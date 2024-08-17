@@ -107,7 +107,7 @@ array = 1
 data = R32_FLOAT  -0.99 -0 +1 +1   1.00 0.00 0 1   0 0 0 0.75   0.00 0.00   1 2   0   1.0
 
 
-;----------TARGET ROOT VS-----------
+;----------TARGET SHADERS-----------
 [ShaderOverridePose]
 ; GI+HI Pose Shader One
 hash = 653c63ba4a73ca8b
@@ -132,6 +132,11 @@ hash = 9684c4091fc9e35a
 allow_duplicate_hash = overrule
 analyse_options = dump_vb txt
 
+[ShaderOverrideShapekey]
+; ZZZ+SR ShapeKey Compute Shader
+hash = 743108cc03f39cbf
+allow_duplicate_hash = overrule
+analyse_options = dump_rt dump_tex dump_cb buf txt
 
 ;----------PRESET COMMANDS----------
 [CommandListModel]
