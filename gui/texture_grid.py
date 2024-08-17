@@ -22,20 +22,18 @@ class TextureGrid(tk.Frame):
         self.component_index = -1
         self.first_index     = -1
 
-    def load(self, component_index, first_index, temp_texture_file_paths, skipped_texture_file_paths, map_texture_file_paths):
+    def load(self, component_index, first_index, component):
         self.first_index     = first_index
         self.component_index = component_index
 
-        self.temp_texture_file_paths    = temp_texture_file_paths
-        self.skipped_texture_file_paths = skipped_texture_file_paths
-        self.map_texture_file_paths     = map_texture_file_paths
+        self.textures = component.texture_data[first_index]
 
         temp_frame = ScrollableFrame(self, bg='#111')
         temp_frame.lower()
         temp_frame.grid(row=0, column=0, sticky='nsew')
 
         self.create_widgets(temp_frame)
-        self  .grid_widgets()
+        self.grid_widgets()
 
         temp_frame.bind("<Configure>", self._on_frame_configure)
         temp_frame.update_idletasks()
@@ -56,30 +54,16 @@ class TextureGrid(tk.Frame):
         self.active_frame.grid(row=0, column=0, sticky='nsew')
         self.active_frame.tkraise()
 
-        self.temp_texture_file_paths = None
-        self.skipped_texture_file_paths = None
-        self.map_texture_file_paths = None
+        self.textures  = None
 
 
     def create_widgets(self, scrollable_frame):
         self.grid_items = []
-        component = self.parent.components[self.component_index]
-        for texture_filepath in component.texture_data[self.first_index]:
-
-            if texture_filepath.name in self.skipped_texture_file_paths:
-                continue
-            if texture_filepath.name in self.map_texture_file_paths:
-                original_texture_name = self.map_texture_file_paths[texture_filepath.name]
-                saved_texture = self.temp_texture_file_paths[original_texture_name]
-            elif texture_filepath.name in self.temp_texture_file_paths:
-                saved_texture = self.temp_texture_file_paths[texture_filepath.name]
-            else:
-                raise Exception('Failed to find converted ' + texture_filepath.name)
+        for texture in self.textures:
 
             texture_grid_item = TextureGridItem(
                 scrollable_frame.interior,
-                saved_texture,
-                width=256, height=256,
+                texture, width=256, height=256,
                 get_ref=lambda: self.get_ref(self.component_index, self.first_index)
             )
             self.grid_items.append(texture_grid_item)

@@ -1,17 +1,22 @@
 import tkinter as tk
+from config.config import Config
 
 from functools import partial
+from pathlib import Path
 
-from frame_analysis.texture_utilities import SavedTexture
+from texture_utilities.TextureManager import TextureManager
+from texture_utilities.Texture import Texture
+
 from .xtk.ScrollableFrame import ScrollableFrame
 
+
 class TextureGridItem(tk.Frame):
-    def __init__(self, parent, saved_texture: SavedTexture, get_ref, *args, **kwargs):
+    def __init__(self, parent, texture: Texture, get_ref, *args, **kwargs):
         tk.Frame.__init__(self, parent)
         self.config(*args, **kwargs, bg='#222')
         self.parent = parent
 
-        self.saved_texture = saved_texture
+        self.texture = texture
         self.get_ref = get_ref
         self.configure_grid()
         self.create_widgets()
@@ -24,9 +29,8 @@ class TextureGridItem(tk.Frame):
         self.grid_columnconfigure(1, weight=1)
 
     def create_widgets(self):
-        texture_image_frame = TextureImageFrame(self, saved_texture=self.saved_texture, width=256, height=256)
+        texture_image_frame = TextureImageFrame(self, self.texture, width=256, height=256)
         texture_image_frame.image_canvas.bind('<Button-1>', self.show_texture_type_picker)
-        # texture_image_frame.image_canvas.bind('<Button-1>', lambda _: self.get_ref().add_texture(self.saved_texture, 'MaterialMap'))
         texture_image_frame.grid(row=0, column=0, columnspan=2, sticky='nsew', ipadx=8, ipady=8)
 
         shared = {
@@ -34,13 +38,13 @@ class TextureGridItem(tk.Frame):
             'bg': '#222', 'fg': '#e8eaed',
             'anchor': 'center',
         }
-        texture_hash = tk.Label(self, text=self.saved_texture.hash, **shared)
+        texture_hash = tk.Label(self, text=self.texture.hash, **shared)
         texture_hash.grid(row=1, column=1, stick='nsew')
         
-        texture_slot = tk.Label(self, text=self.saved_texture.slot, **shared)
+        texture_slot = tk.Label(self, text=self.texture.slot, **shared)
         texture_slot.grid(row=1, column=0)
 
-        texture_size = tk.Label(self, text=self.saved_texture.size, **shared)
+        texture_size = tk.Label(self, text='0', **shared)
         texture_size.grid(row=2, column=1)
 
     def show_texture_type_picker(self, *args):
@@ -55,48 +59,49 @@ class TextureGridItem(tk.Frame):
         self.texture_type_frame.tkraise()
 
     def handle_texture_type_click(self, texture_type: str, *args):
-        self.get_ref().add_texture(self.saved_texture, texture_type)
+        self.get_ref().add_texture(self.texture, texture_type)
         # self.texture_type_frame.lower()
         # self.border_frame.lower()
         self.border_frame.destroy()
 
 class TextureImageFrame(tk.Frame):
-    def __init__(self, parent, saved_texture: SavedTexture, *args, **kwargs):
+    def __init__(self, parent, texture: Texture, *args, **kwargs):
         tk.Frame.__init__(self, parent)
         self.config(*args, **kwargs)
         self.parent = parent
 
         self.config(cursor='hand2', bg='#333')
 
-        self.image        = tk.PhotoImage(file=str(saved_texture.path))
-        self.image_width  = saved_texture._width
-        self.image_height = saved_texture._height
-        self.max_side     = 256
-
-        self.texture_width  = saved_texture.width
-        self.texture_height = saved_texture.height
-        self.texture_format = saved_texture.type
+        self.max_side = 256
+        self.texture  = texture
 
         self.create_widgets()
+        TextureManager.get_instance().get_image(self.texture, 256, self.callback)
         self.bind('<Enter>', lambda e: e.widget.config(bg='#A00'))
         self.bind('<Leave>', lambda e: e.widget.config(bg='#333'))
 
-    def create_widgets(self):
-        self.image_canvas = tk.Canvas(self, width=self.max_side, height=self.max_side, bg='#111', highlightthickness=0)
+    def callback(self, filepath, width, height):
+        self.image        = tk.PhotoImage(file=str(filepath))
+        self.image_width  = width
+        self.image_height = height
+        # print('Called {} {}'.format(self.winfo_name(), self.texture_hash))
         self.image_canvas.create_image(
             int(self['width'])  // 2 - self.image_width  // 2,
             int(self['height']) // 2 - self.image_height // 2,
             anchor='nw',
             image=self.image
         )
+
+    def create_widgets(self):
+        self.image_canvas = tk.Canvas(self, width=self.max_side, height=self.max_side, bg='#111', highlightthickness=0)
         self.image_canvas.place(x=8, y=8)
 
         font = ('Arial', 10, 'bold')
-        text = f'{self.texture_format}'
+        text = f'{self.texture.format}'
         texture_format_label = tk.Label(self, text=text, font=font, padx=4, pady=4, bg='#222', fg='#e8eaed')
         texture_format_label.place(x=8, y=8)
 
-        text = f'{self.texture_width}x{self.texture_height}'
+        text = f'{self.texture.width}x{self.texture.height}'
         texture_resolution_label = tk.Label(self, text=text, font=font, padx=4, pady=4, bg='#222', fg='#e8eaed')
         texture_resolution_label.place(x=8, y=35)
 
@@ -124,6 +129,3 @@ class TextureTypeFrame(ScrollableFrame):
                 '<Button-1>',
                 partial(self.handle_texture_type_click, texture_type)
             )
-
-    def add_texture(self):
-        self.parent.parent

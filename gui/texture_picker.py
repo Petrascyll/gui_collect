@@ -4,13 +4,14 @@ from pathlib import Path
 
 from config.config import Config
 from frame_analysis.frame_analysis import Component
-from frame_analysis.buffer_utilities import parse_buffer_file_name
-from frame_analysis.texture_utilities import prepare_textures, SavedTexture
 
 from .texture_grid import TextureGrid
 from .xtk.ScrollableFrame import ScrollableFrame
 from .xtk.FlatImageButton import FlatImageButton
 from .xtk.FlatButton import FlatButton
+
+from texture_utilities.Texture import Texture
+from texture_utilities.TextureManager import TextureManager
 
 
 class TexturePicker(tk.Frame):
@@ -74,18 +75,11 @@ class TexturePicker(tk.Frame):
         component_index = 0
         first_index = 0
 
-        self.ret = prepare_textures(components, self.temp_dir)
         self.load_texture_grid(component_index, first_index)
         self.texture_bar.load(component_index, first_index, self.components)
 
         self.bind_all('<s>', lambda _: self.do_fake_click(self.next_canvas))
         self.bind_all('<w>', lambda _: self.do_fake_click(self.prev_canvas))
-
-        # self.temp_texture_file_paths    = ret[0]
-        # self.skipped_texture_file_paths = ret[1]
-        # self.map_texture_file_paths     = ret[2]
-
-        # callback(export_name, extracted_components)
     
     # TODO improve later
     def do_fake_click(self, widget, *args):
@@ -94,7 +88,7 @@ class TexturePicker(tk.Frame):
         widget.after(100, lambda: widget.event_generate('<Leave>'))
 
     def load_texture_grid(self, component_index, first_index):
-        self.texture_grid.load(component_index, first_index, self.ret[0], self.ret[1], self.ret[2])
+        self.texture_grid.load(component_index, first_index, self.components[component_index])
 
     def done(self, collected_textures):
         self.callback(self.export_name, self.components, collected_textures)
@@ -197,10 +191,7 @@ class TextureBar(tk.Frame):
         self.component_index = component_index
         self.first_index     = first_index
         self.component_sequence = [
-            [
-                first_index
-                for first_index in sorted(component.object_indices)
-            ]
+            component.object_indices
             for component in self.components
         ]
         
@@ -285,7 +276,7 @@ class TextureBar(tk.Frame):
         self.handle_jump(component_index, first_index)
 
     def done_texture_collection(self):
-        textures: list[dict[int, (SavedTexture, str)]] = [
+        textures: list[dict[int, (Texture, str)]] = [
             {
                 first_index: single_component_textures[first_index].get_textures()
                 for first_index in single_component_textures
@@ -312,7 +303,7 @@ class ComponentPartFrame(tk.Frame):
 
         self.header_text = header_text
         self.active = active
-        self.textures: dict[int, ComponentPartTextureFrame] = {
+        self.texture_frames: dict[int, ComponentPartTextureFrame] = {
             # slot: {
             #    file_path: texture.file_path
             #    add_to_json: False
@@ -345,35 +336,34 @@ class ComponentPartFrame(tk.Frame):
         self.header.pack(fill='both', expand=True)
 
     def clear_list_widgets(self):
-        for c in self.textures.values():
+        for c in self.texture_frames.values():
             c.pack_forget()
 
     def pack_list_widgets(self):
-        for _, c in sorted(self.textures.items(), key=lambda item: item[0]):
+        for _, c in sorted(self.texture_frames.items(), key=lambda item: item[0]):
             c.pack(fill='both', expand=True, pady=(2, 0))
 
-    def add_texture(self, saved_texture: SavedTexture, texture_type: str):
+    def add_texture(self, texture: Texture, texture_type: str):
+        c = ComponentPartTextureFrame(self, texture, texture_type, handle_remove=self.handle_remove)
+        
         self.clear_list_widgets()
-        
-        c = ComponentPartTextureFrame(self, saved_texture, texture_type, handle_remove=self.handle_remove)
-        self.textures[saved_texture.slot] = c
-        
+        self.texture_frames[texture.slot] = c
         self.pack_list_widgets()
 
     def get_textures(self):
-        sorted_textures = sorted(self.textures.items(), key=lambda item: item[0])
+        sorted_textures = sorted(self.texture_frames.items(), key=lambda item: item[0])
         return [
             item[1].get_texture()
             for item in sorted_textures
         ]
     
     def handle_remove(self, slot, *args):
-        self.textures[slot].pack_forget()
-        del self.textures[slot]
+        self.texture_frames[slot].pack_forget()
+        del self.texture_frames[slot]
 
 
 class ComponentPartTextureFrame(tk.Frame):
-    def __init__(self, parent, saved_texture: SavedTexture, texture_type: str, handle_remove, *args, **kwargs):
+    def __init__(self, parent, texture: Texture, texture_type: str, handle_remove, *args, **kwargs):
         tk.Frame.__init__(self, parent)
         self.config(*args, **kwargs)
         self.config(bg='#222')
@@ -381,13 +371,13 @@ class ComponentPartTextureFrame(tk.Frame):
 
         self.handle_remove = handle_remove
 
-        self.saved_texture = saved_texture
-        self.texture_type  = texture_type
-        self.sub_level = 4 # TODO: future config option
-        self.thumbnail_image = tk.PhotoImage(file=str(saved_texture.path)).subsample(self.sub_level)
+        self.texture      = texture
+        self.texture_type = texture_type
+        self.sub_level    = 4 # TODO: future config option
 
         self.configure_grid()
         self.create_widgets()
+        TextureManager.get_instance().get_image(self.texture, max_width=256, callback=self.set_thumbnail_image)
 
     def configure_grid(self):
         self   .grid_rowconfigure(0, weight=1)
@@ -397,23 +387,26 @@ class ComponentPartTextureFrame(tk.Frame):
         self.grid_columnconfigure(2, weight=1)
         self.grid_columnconfigure(3, weight=0)
 
-    def create_widgets(self):
-        slot_label = tk.Label(self, text=self.saved_texture.slot, font=('Arial', 16, 'bold'), bg='#333',  fg='#e8eaed')
-        slot_label.grid(row=0, column=0, ipadx=4, padx=(0, 2), rowspan=2, sticky='nsew')
-
-        self.thumbnail_canvas = tk.Canvas(self, width=256//self.sub_level, height=256//self.sub_level, bg='#111', highlightthickness=0)
+    def set_thumbnail_image(self, image_filepath, width, height):
+        self.thumbnail_image = tk.PhotoImage(file=str(image_filepath.absolute())).subsample(self.sub_level)
         self.thumbnail_canvas.create_image(
-            int(self.thumbnail_canvas['width'])  // 2 - self.saved_texture._width  // self.sub_level // 2,
-            int(self.thumbnail_canvas['height']) // 2 - self.saved_texture._height // self.sub_level // 2,
+            int(self.thumbnail_canvas['width'])  // 2 - width  // self.sub_level // 2,
+            int(self.thumbnail_canvas['height']) // 2 - height // self.sub_level // 2,
             anchor='nw',
             image=self.thumbnail_image
         )
+
+    def create_widgets(self):
+        slot_label = tk.Label(self, text=self.texture.slot, font=('Arial', 16, 'bold'), bg='#333',  fg='#e8eaed')
+        slot_label.grid(row=0, column=0, ipadx=4, padx=(0, 2), rowspan=2, sticky='nsew')
+
+        self.thumbnail_canvas = tk.Canvas(self, width=256//self.sub_level, height=256//self.sub_level, bg='#111', highlightthickness=0)
         self.thumbnail_canvas.grid(row=0, column=1, rowspan=2, sticky='nsew')
 
         texture_type_label = tk.Label(self, text=self.texture_type, font=('Arial', 20, 'bold'), bg='#333', fg='#e8eaed')
         texture_type_label.grid(row=0, column=2, sticky='nsew')
         
-        hash_label = tk.Label(self, text=self.saved_texture.hash, font=('Arial', 12, 'bold'), bg='#333', fg='#e8eaed')
+        hash_label = tk.Label(self, text=self.texture.hash, font=('Arial', 12, 'bold'), bg='#333', fg='#e8eaed')
         hash_label.grid(row=1, column=2, sticky='nsew')
 
         button_frame = tk.Frame(self, bg='#333')
@@ -421,8 +414,8 @@ class ComponentPartTextureFrame(tk.Frame):
 
         img = tk.PhotoImage(file=Path('./resources/images/buttons/close.256.png').absolute()).subsample(8)
         remove_btn = FlatImageButton(button_frame, width=32, height=32, img_width=32, img_height=32, bg='#b92424', image=img)
-        remove_btn.bind('<Button-1>', lambda _: self.handle_remove(self.saved_texture.slot))
+        remove_btn.bind('<Button-1>', lambda _: self.handle_remove(self.texture.slot))
         remove_btn.pack(fill='both')
 
     def get_texture(self):
-        return (self.saved_texture, self.texture_type)
+        return (self.texture, self.texture_type)

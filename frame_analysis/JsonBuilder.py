@@ -61,10 +61,10 @@ class JsonBuilder():
                 [
                     [
                         texture_type,
-                        saved_texture.real_path.suffix,
-                        saved_texture.hash
+                        texture.path.suffix,
+                        texture.hash
                     ]
-                    for (saved_texture, texture_type) in textures[first_index]
+                    for (texture, texture_type) in textures[first_index]
                 ]
                 for first_index in textures
             ]

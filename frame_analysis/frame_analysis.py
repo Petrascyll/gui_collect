@@ -1,11 +1,15 @@
+import re
 import json
 import shutil
 from pathlib import Path
 from dataclasses import dataclass, field
 
-
 from .buffer_utilities import extract_from_txt, collect_buffer_data, merge_buffers, handle_no_weight_blend
 from .JsonBuilder import JsonBuilder
+
+from texture_utilities.TextureManager import TextureManager
+from texture_utilities.Texture import Texture
+
 
 @dataclass
 class Component():
@@ -24,7 +28,7 @@ class Component():
     backup_position_path: Path = None
     backup_texcoord_path: Path = None
 
-    texture_data: dict[int, list[Path]] = field(default_factory=lambda:{})
+    texture_data : dict[int, list[Texture]] = field(default_factory=lambda:{})
 
     # For debugging only for now, optimize later 
     def __str__(self):
@@ -36,10 +40,6 @@ class Component():
         s += 'IBs:\n'
         for ib_path in self.ib_paths:
             s += '\t{}\n'.format(ib_path.name)
-
-        s += 'Texture Data:\n'
-        for first_index in self.texture_data:
-            s += '\n'.join(['\t' + f.name for f in self.texture_data[first_index]]) + '\n\n'
 
         s += 'Position Path: {}\n'.format(self.position_path.name)
         s += 'Texcoord Path: {}\n'.format(self.texcoord_path.name)
@@ -67,14 +67,26 @@ def extract(frame_analysis_path: Path, input_component_hashes, input_component_n
         c.object_classification = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
         components.append(c)
 
+    p = re.compile(r'<Register orig_hash=([a-f0-9]{8}) type=Texture2D width=(\d*?) height=(\d*?) .*? format="(.*?)"')
+    all_texture_usage = {
+        hash: {'width' : w, 'height': h, 'format': f}
+        for (hash, w, h, f) in p.findall((frame_analysis_path/'ShaderUsage.txt').read_text(encoding='utf-8'))
+    }
+
     set_relevant_ids (components, files, input_component_hashes)
-    set_relevant_data(components, files)
+    set_relevant_data(components, files, all_texture_usage)
     set_unposed_data (components, files)
 
     return components
 
 def export(export_name, components: list[Component], textures = None):
     json_builder = JsonBuilder()
+
+    extract_path = Path('_Extracted', export_name)
+    if extract_path.exists():
+        shutil.rmtree(extract_path)
+    extract_path.mkdir()
+
     for i, component in enumerate(components):
 
         json_builder.add_component(component, textures[i])
@@ -111,11 +123,9 @@ def export_component_buffers(export_name: str, component: Component, vb_merged):
         ib_file_name  = '{}-ib={}.txt' .format(prefix, get_resource_hash(ib_path.name))
 
         vb0_file_path = Path('_Extracted', export_name, vb0_file_name)
-        vb0_file_path.parent.mkdir(parents=True, exist_ok=True)
         vb0_file_path.write_text(vb_merged)
 
         ib_file_path = Path('_Extracted', export_name, ib_file_name)
-        ib_file_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ib_path, ib_file_path)
 
 
@@ -123,9 +133,9 @@ def export_component_textures(export_name: str, component: Component, textures):
     object_classification = component.object_classification
     for i, first_index in enumerate(textures):
         base_texture_file_name = '{}{}{}'.format(export_name, component.name, object_classification[i])
-        for (saved_texture, texture_type) in textures[first_index]:
-            texture_file_name = base_texture_file_name + texture_type + saved_texture.real_path.suffix
-            shutil.copyfile(saved_texture.real_path, Path('_Extracted', export_name, texture_file_name))
+        for (texture, texture_type) in textures[first_index]:
+            texture_file_name = base_texture_file_name + texture_type + texture.path.suffix
+            shutil.copyfile(texture.path, Path('_Extracted', export_name, texture_file_name))
 
 
 def set_unposed_data(components: list[Component], file_paths: list[Path]):
@@ -211,7 +221,7 @@ def set_relevant_ids(components: list[Component], files: list[Path], ib_hashes: 
         components[i].ids = ids_with_textures
 
 
-def set_relevant_data(components: list[Component], files: list[Path]):
+def set_relevant_data(components: list[Component], files: list[Path], all_texture_usage):
     '''
         - Index Buffer
         - Backup Positional Data
@@ -242,16 +252,19 @@ def set_relevant_data(components: list[Component], files: list[Path]):
             component      .ib_paths.append(ib_path)
             component.object_indices.append(first_index)
             component.texture_data[first_index] = sorted([
-                    f for f in id_files
+                    Texture(f, all_texture_usage)
+                    for f in id_files
                     if f.name.startswith(f'{id}-ps-t')
                     and f.suffix in ['.dds', '.jpg']
                 ],
                 # Sort Textures by slot numerically to avoid 0 -> 1 -> 10 -> 2 -> 3
-                # Accounts for both
-                # - 000032-ps-t3=cc114f4f-vs=9185fb857b322583-ps=a625f3801205dcbb.dds
-                # - 000032-ps-t5-vs=9185fb857b322583-ps=a625f3801205dcbb.dds
-                key=lambda filepath: int(filepath.name.split('ps-t')[1].split('=')[0].split('-')[0])
+                key=lambda texture: texture.slot
             )
+
+            # Preload images
+            image_manager = TextureManager.get_instance()
+            for texture in component.texture_data[first_index]:
+                image_manager.get_image(texture, 256, callback=lambda *args: None)
 
             texcoord_vb_candidate = [f for f in id_files if "-vb1=" in f.name]
             if len(texcoord_vb_candidate) == 1:
@@ -285,6 +298,8 @@ def set_relevant_data(components: list[Component], files: list[Path]):
         print('\t\tIB Data:')
         for i, object_index in enumerate(component.object_indices):
             print('\t\t\t{}\t{}'.format(object_index, component.ib_paths[i].name))
+            for texture in component.texture_data[object_index]:
+                print('\t\t\t\t{} [{}x{}] [{}]'.format(texture.path.name, texture.width, texture.height, texture.format))
         print('\t\tBackup position data file path: ' + position_vb_path.name if position_vb_path else '')
         print('\t\tBackup texcoord data file path: ' + texcoord_vb_path.name if texcoord_vb_path else '')
         print()
