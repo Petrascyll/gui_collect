@@ -128,7 +128,6 @@ class ExtractForm(tk.Frame):
         targeted_dump.clear()
 
     def start_extraction(self):
-        self.state.lock_sidebar()
 
         extract_name, input_component_hashes, input_component_names, input_components_options, path = self.collect_input()
         if not input_component_hashes:
@@ -146,11 +145,11 @@ class ExtractForm(tk.Frame):
         extracted_components = frame_analysis.extract(input_component_hashes, input_component_names, input_components_options, game=self.variant.value)
         if extracted_components is None:
             print('Frame Analysis Failed!')
-            self.cancel_extraction()
             return
         
         skip_textures = False
         if not skip_textures:
+            self.state.lock_sidebar()
             self.parent.texture_picker.load(extract_name, extracted_components, callback=self.finish_extraction)
             self.update_idletasks()
             self.parent.show_texture_picker()
