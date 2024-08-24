@@ -78,7 +78,7 @@ class FrameAnalysis():
 
         extract_path = Path('_Extracted', export_name)
         # if extract_path.exists(): shutil.rmtree(extract_path) # TODO Should be optional
-        extract_path.mkdir(exist_ok=True)
+        extract_path.mkdir(parents=True, exist_ok=True)
 
         for i, component in enumerate(components):
             json_builder.add_component(component, textures[i] if textures else None, game)
