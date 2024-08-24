@@ -52,7 +52,7 @@ class FrameAnalysis():
                     print('\t\tFile Analysis Failed [{}] - {}'.format(target_hash, X))
                     return
 
-            self.texture_analysis.set_preferred_texture_id(c)
+            self.texture_analysis.set_preferred_texture_id(c, game)
             components.append(c)
         return components
 

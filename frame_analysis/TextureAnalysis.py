@@ -38,18 +38,22 @@ class TextureAnalysis():
             },
         }
 
-    def set_preferred_texture_id(self, component: Component):
+    def set_preferred_texture_id(self, component: Component, game):
         for first_index in component.index_ids:
             ids = component.index_ids[first_index]
             for id in ids:
-                has_o0 = 0 != len([
+                if game == 'gi' and int(id) < 10: continue
+
+                no_o0 = 0 == len([
                     f for f in self.texture_filepaths
                     if f.name.startswith(f'{id}-o0')
                     and f.suffix in ['.dds', '.jpg']
                 ])
-                if has_o0:
-                    component.tex_index_id[first_index] = id
-                    break
+                if game != 'gi' and no_o0: continue
+
+                component.tex_index_id[first_index] = id
+                break
+
             else:
                 component.tex_index_id[first_index] = ids[0]
 
