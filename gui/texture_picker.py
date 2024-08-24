@@ -3,7 +3,7 @@ from functools import partial
 from pathlib import Path
 
 from config.config import Config
-from frame_analysis.frame_analysis import Component
+from frame_analysis.structs import Component
 
 from .texture_grid import TextureGrid
 from .xtk.ScrollableFrame import ScrollableFrame
@@ -66,17 +66,14 @@ class TexturePicker(tk.Frame):
 
     def load(self, export_name, components: list[Component], callback):
         print('Texture picker loaded')
-        print(export_name)
 
         self.export_name = export_name
         self.components  = components
         self.callback    = callback
 
-        component_index = 0
-        first_index = 0
-
-        self.load_texture_grid(component_index, first_index)
-        self.texture_bar.load(component_index, first_index, self.components)
+        self.update_idletasks()
+        self.texture_grid.load(component_index=0, first_index=0, components=self.components)
+        self.texture_bar .load(component_index=0, first_index=0, components=self.components)
 
         self.bind_all('<s>', lambda _: self.do_fake_click(self.next_canvas))
         self.bind_all('<w>', lambda _: self.do_fake_click(self.prev_canvas))
@@ -87,8 +84,8 @@ class TexturePicker(tk.Frame):
         widget.event_generate('<Enter>')
         widget.after(100, lambda: widget.event_generate('<Leave>'))
 
-    def load_texture_grid(self, component_index, first_index):
-        self.texture_grid.load(component_index, first_index, self.components[component_index])
+    def set_active_texture_grid(self, component_index, first_index):
+        self.texture_grid.set_active_grid(component_index, first_index)
 
     def done(self, collected_textures):
         self.callback(self.export_name, self.components, collected_textures)
@@ -101,7 +98,6 @@ class TexturePicker(tk.Frame):
         self.components  = None
         self.callback    = None
 
-        self.ret = None
         self.texture_grid.unload()
         self.texture_bar .unload()
 
@@ -224,15 +220,12 @@ class TextureBar(tk.Frame):
         self.first_index     = first_index
         
         self.component_textures[self.component_index][self.first_index].set_active()
-        self.parent.load_texture_grid(self.component_index, self.first_index)
+        self.parent.set_active_texture_grid(self.component_index, self.first_index)
 
     def go_to_next(self, *args):
         
         first_index     = self.first_index 
         component_index = self.component_index
-
-        # print(self)
-        # print(self.components)
 
         # Last Index of Component
         if first_index == self.component_sequence[component_index][-1]:
@@ -387,8 +380,9 @@ class ComponentPartTextureFrame(tk.Frame):
         self.grid_columnconfigure(2, weight=1)
         self.grid_columnconfigure(3, weight=0)
 
-    def set_thumbnail_image(self, image_filepath, width, height):
-        self.thumbnail_image = tk.PhotoImage(file=str(image_filepath.absolute())).subsample(self.sub_level)
+    def set_thumbnail_image(self, thumbnail_image: tk.PhotoImage, width, height):
+        self.thumbnail_image = thumbnail_image.subsample(self.sub_level)
+        self.thumbnail_canvas.delete('all')
         self.thumbnail_canvas.create_image(
             int(self.thumbnail_canvas['width'])  // 2 - width  // self.sub_level // 2,
             int(self.thumbnail_canvas['height']) // 2 - height // self.sub_level // 2,
@@ -401,7 +395,7 @@ class ComponentPartTextureFrame(tk.Frame):
         slot_label.grid(row=0, column=0, ipadx=4, padx=(0, 2), rowspan=2, sticky='nsew')
 
         self.thumbnail_canvas = tk.Canvas(self, width=256//self.sub_level, height=256//self.sub_level, bg='#111', highlightthickness=0)
-        self.thumbnail_canvas.grid(row=0, column=1, rowspan=2, sticky='nsew')
+        self.thumbnail_canvas.grid(row=0, column=1, padx=(0, 2), rowspan=2, sticky='nsew')
 
         texture_type_label = tk.Label(self, text=self.texture_type, font=('Arial', 20, 'bold'), bg='#333', fg='#e8eaed')
         texture_type_label.grid(row=0, column=2, sticky='nsew')

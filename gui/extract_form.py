@@ -4,8 +4,6 @@ import subprocess
 
 import tkinter as tk
 
-import frame_analysis.frame_analysis
-
 from .xtk.FlatButton import FlatButton
 from .xtk.Checkbox import LabeledCheckbox
 from .xtk.EntryWithPlaceholder import EntryWithPlaceholder
@@ -13,7 +11,7 @@ from .xtk.InputComponentList import InputComponentFrameList
 from .state import State
 
 from config.config import Config
-from frame_analysis import frame_analysis
+from frame_analysis.FrameAnalysis import FrameAnalysis
 from frame_analysis.buffer_utilities import is_valid_hash
 from targeted_dump import targeted_dump
 
@@ -21,11 +19,12 @@ FILEBROWSER_PATH = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
 
 
 class ExtractForm(tk.Frame):
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, variant, *args, **kwargs):
         tk.Frame.__init__(self, parent)
         self.config(*args, **kwargs)
         self.config(bg='#111')
         self.parent = parent
+        self.variant = variant
         
         self.cfg = Config.get_instance()
         self.state = State.get_instance()
@@ -109,11 +108,15 @@ class ExtractForm(tk.Frame):
                 print('Invalid hash: {}'.format(input_component.hash))
                 return None, None, None, None, None
             
-            input_component_hashes .append(input_component.hash)
-            input_component_names  .append(input_component.name)
+            input_component_hashes  .append(input_component.hash)
+            input_component_names   .append(input_component.name)
             input_components_options.append(input_component.options)
 
         # return 'Rina', ['2825da1e'], ['Dress'], path
+        # return 'Jane', ['e2c0144e', 'ef86fc9f'], ['Hair', 'Body'], [{'textures_only': False}, {'textures_only': False}], path
+        # return 'Arle', ['e811d2a1'], [''], [{'textures_only': False}], path
+        # return 'Lingsha', ['49b55fac', 'a016d09a', '6dca71bc'], ['Hair', 'Head', 'Body'], [{'textures_only': False}, {'textures_only': False}, {'textures_only': False}], path
+        # return 'Amber', ['b03c7e30', '032456e6', '78b033ca', '91f05866'], ['', 'Mouth', 'EyeBrows', 'Face'], [{'textures_only': False}, {'textures_only': True}, {'textures_only': True},  {'textures_only': True}], path
         return extract_name, input_component_hashes, input_component_names, input_components_options, path
 
     def generated_targeted_dump_ini(self):
@@ -138,30 +141,32 @@ class ExtractForm(tk.Frame):
             print('Frame Analysis Aborted! Invalid frame analysis path: "{}".'.format(str(path)))
             return
 
-        try:
-            extracted_components = frame_analysis.extract(path, input_component_hashes, input_component_names, input_components_options)
-        except frame_analysis.FrameAnalysisException as X:
-            print(X.message)
+        frame_analysis = FrameAnalysis(path)
+        self.state.set_var(State.K.FRAME_ANALYSIS, frame_analysis)
+        extracted_components = frame_analysis.extract(input_component_hashes, input_component_names, input_components_options, game=self.variant.value)
+        if extracted_components is None:
             print('Frame Analysis Failed!')
+            self.cancel_extraction()
             return
         
         skip_textures = False
         if not skip_textures:
-            self.parent.show_texture_picker()
             self.parent.texture_picker.load(extract_name, extracted_components, callback=self.finish_extraction)
+            self.update_idletasks()
+            self.parent.show_texture_picker()
         else:
             self.finish_extraction(extract_name, extracted_components)
 
     def finish_extraction(self, extract_name, extracted_components, collected_textures=None):
         try:
-            frame_analysis.export(extract_name, extracted_components, collected_textures)
+            frame_analysis = self.state.get_var(State.K.FRAME_ANALYSIS)
+            frame_analysis.export(extract_name, extracted_components, collected_textures, game=self.variant.value)
+            self.state.del_var(State.K.FRAME_ANALYSIS)
             subprocess.run([FILEBROWSER_PATH, Path('_Extracted', extract_name)])
             print('Extraction done')
-            # print('Extraction done {:.3}s'.format(time.time() - st))
-        except frame_analysis.FrameAnalysisException as X:
-            print(X.message)
+        except Exception as X:
+            print(X)
             print('Frame Analysis Failed!')
-            return
         self.state.unlock_sidebar()
 
     def cancel_extraction(self):

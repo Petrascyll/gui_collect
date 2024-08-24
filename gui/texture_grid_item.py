@@ -1,8 +1,6 @@
 import tkinter as tk
-from config.config import Config
 
 from functools import partial
-from pathlib import Path
 
 from texture_utilities.TextureManager import TextureManager
 from texture_utilities.Texture import Texture
@@ -15,7 +13,6 @@ class TextureGridItem(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.config(*args, **kwargs, bg='#222')
         self.parent = parent
-
         self.texture = texture
         self.get_ref = get_ref
         self.configure_grid()
@@ -35,17 +32,39 @@ class TextureGridItem(tk.Frame):
 
         shared = {
             'font': ('Arial', 16, 'bold'),
-            'bg': '#222', 'fg': '#e8eaed',
+            'bg': '#222',
+            'borderwidth': 0,
             'anchor': 'center',
         }
-        texture_hash = tk.Label(self, text=self.texture.hash, **shared)
-        texture_hash.grid(row=1, column=1, stick='nsew')
-        
-        texture_slot = tk.Label(self, text=self.texture.slot, **shared)
-        texture_slot.grid(row=1, column=0)
 
-        texture_size = tk.Label(self, text='0', **shared)
-        texture_size.grid(row=2, column=1)
+        text_frame = tk.Frame(self, bg=self['bg'])
+        text_frame.grid(row=1, column=0, columnspan=2)
+        split_text = (
+            ('ps-t',                     '#e8eaed'),
+            (str(self.texture.slot),     '#0FF'   ),
+            ('=',                        '#e8eaed') if self.texture.is_contaminated() else ('', ''),
+            (self.texture.contamination, '#FF0'   ) if self.texture.is_contaminated() else ('', ''),
+            ('=',                        '#e8eaed'),
+            (str(self.texture.hash),     '#0FF'   ),
+        )
+
+        for (text, color) in split_text:
+            if not text: continue
+            label = tk.Label(text_frame, text=text, **shared, fg=color)
+            label.pack(side='left', padx=0, pady=0)
+
+        texture_size = self.texture.get_size()
+        if texture_size < 1_000:
+            texture_size_unit = 'B'
+        elif texture_size < 1_000_000:
+            texture_size = texture_size / 1024
+            texture_size_unit = 'KiB'
+        else:
+            texture_size = texture_size / (1024*1024)
+            texture_size_unit = 'MiB'
+
+        texture_size_label = tk.Label(self, text='{:.3f} {}'.format(texture_size, texture_size_unit), **shared, fg='#e8eaed')
+        texture_size_label.grid(row=2, column=1)
 
     def show_texture_type_picker(self, *args):
         self.border_frame = tk.Frame(self, bg='#A00')
@@ -80,16 +99,18 @@ class TextureImageFrame(tk.Frame):
         self.bind('<Enter>', lambda e: e.widget.config(bg='#A00'))
         self.bind('<Leave>', lambda e: e.widget.config(bg='#333'))
 
-    def callback(self, filepath, width, height):
-        self.image        = tk.PhotoImage(file=str(filepath))
+    def callback(self, image, width, height):
+        self.update_idletasks()
+        self.after_idle(self.load_image, image, width, height)
+
+    def load_image(self, image, width, height):
         self.image_width  = width
         self.image_height = height
-        # print('Called {} {}'.format(self.winfo_name(), self.texture_hash))
         self.image_canvas.create_image(
             int(self['width'])  // 2 - self.image_width  // 2,
             int(self['height']) // 2 - self.image_height // 2,
             anchor='nw',
-            image=self.image
+            image=image
         )
 
     def create_widgets(self):
@@ -113,7 +134,6 @@ class TextureTypeFrame(ScrollableFrame):
         self.parent = parent
 
         self.handle_texture_type_click = handle_texture_type_click
-        # self.config()
 
         self.create_widgets()
 

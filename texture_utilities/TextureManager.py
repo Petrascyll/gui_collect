@@ -1,18 +1,21 @@
 import subprocess
 import threading
+
+from tkinter import PhotoImage
 from pathlib import Path
 
 from .Texture import Texture
-
 
 class TextureManager():
     __instance = None
 
     temp_dir_filepath    = None
-    ready_temp_filenames = set()
 
     callbacks: dict[str, list] = {}
     callbacks_lock = threading.Lock()
+
+    cached_images: dict[str, PhotoImage] = {}
+    invalid_textures = set()
 
     def __init__(self, temp_dir: str):
         if TextureManager.__instance != None:
@@ -20,6 +23,8 @@ class TextureManager():
         TextureManager.__instance = self
         self.temp_dir_filepath = Path(temp_dir)
         # subprocess.run([FILEBROWSER_PATH, Path(temp_dir)])
+
+        self.no_preview_image = PhotoImage(file=str(Path('./resources/images/textures/NoPreview.256.png').absolute()))
 
     @staticmethod
     def get_instance():
@@ -36,17 +41,27 @@ class TextureManager():
                 stderr = subprocess.DEVNULL,
             )
             proc.wait()
+            image = None
+            if proc.returncode == 0:
+                image = PhotoImage(file=str(temp_filepath.absolute()))
+            else:
+                image = self.no_preview_image
+                width, height = 256, 256
 
             self.callbacks_lock.acquire(blocking=True)
 
-            self.ready_temp_filenames.add(temp_filepath.name)
+            if proc.returncode == 0:
+                self.cached_images[temp_filepath.name] = image
+            else:
+                self.invalid_textures.add(temp_filepath.name)
+            
             callbacks = [*self.callbacks[temp_filepath.name]]
             del self.callbacks[temp_filepath.name]
 
             self.callbacks_lock.release()
 
             for callback in callbacks:
-                callback(temp_filepath, width, height)
+                callback(image, width, height)
 
         thread = threading.Thread(target=run_in_thread, args=(temp_filepath, width, height, popen_args))
         thread.start()
@@ -57,16 +72,21 @@ class TextureManager():
         temp_filepath = self.temp_dir_filepath / '{}.{}.png'.format(texture.path.with_suffix('').name, max_width)
         width, height = get_max_fit(texture.width, texture.height, max_width)
 
-        if temp_filepath.name in self.ready_temp_filenames:
-            callback(temp_filepath, width, height)
+        if temp_filepath.name in self.cached_images:
+            callback(self.cached_images[temp_filepath.name], width, height)
+        elif temp_filepath.name in self.invalid_textures:
+            callback(self.no_preview_image, 256, 256)
+
         else:
             self.callbacks_lock.acquire(blocking=True)
 
             # Check again if the texture already exists after we acquire the lock
             # in case the texture being requested is the same as the one that was
             # holding the lock
-            if temp_filepath.name in self.ready_temp_filenames:
-                callback(temp_filepath, width, height)
+            if temp_filepath.name in self.cached_images:
+                callback(self.cached_images[temp_filepath.name], width, height)
+            elif temp_filepath.name in self.invalid_textures:
+                callback(self.no_preview_image, 256, 256)
             # Checking if the temp filepath alone exists is not enough to guarantee that
             # its safe to use as texconv may still be in the middle of writing to it
             # if temp_filepath.exists() and temp_filepath.name not in self.callbacks:

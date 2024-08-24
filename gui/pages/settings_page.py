@@ -35,3 +35,39 @@ class SettingsPage(tk.Frame):
         self.cfg.data.__setattr__(key, value)
         self.state.refresh_all_extract_forms()
 
+# class PathPicker(tk.Frame):
+#     def __init__(self, parent, placeholder='Path', dialog_title='Select path', *args, **kwargs):
+#         tk.Frame.__init__(self, parent)
+#         self.config(*args, **kwargs)
+#         self.parent = parent
+        
+#         self.font = Font(family='Arial', size=20, weight='bold')
+#         self.placeholder  = placeholder
+#         self.dialog_title = dialog_title
+#         self.path = ''
+
+#         self.create_widgets()
+
+#     def create_widgets(self):
+#         self.folder_path_label = tk.Label(self, text=self.placeholder, fg='#555', font=self.font)
+#         if self.path:
+#             self.folder_path_label.config(text=self.path)
+
+#         img = tk.PhotoImage(file=Path('./resources/images/buttons/folder_open.256.png').absolute()).subsample(8)
+#         pick_folder_btn = FlatImageButton(self, width=40, height=40, img_width=32, img_height=32, bg='#3fb76b', image=img)
+#         pick_folder_btn.bind('<Button-1>', lambda _: self.handle_pick_path())
+
+#         self.folder_path_label .pack(side='left')
+#         pick_folder_btn        .pack(side='right', padx=0, pady=0)
+
+#     def handle_pick_path(self):
+#         path_text = filedialog.askdirectory(mustexist=True, title=self.dialog_title)
+#         if path_text:
+#             self.set_path(path_text)
+    
+#     def set_path(self, text: str):
+#         self.path = str(Path(text).resolve())
+#         print('Set frame analysis path: {}'.format(str(self.path)))
+        
+#         self.folder_path_label.config(text=self.path)
+#         # self.parent.on_address_change(text=self.path)

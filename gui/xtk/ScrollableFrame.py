@@ -48,7 +48,7 @@ class ScrollableFrame(tk.Frame):
 
         # The scrollable area, placed into the canvas
         # All widgets to be scrolled have to use this Frame as parent
-        self.interior = tk.Frame(self._canvas, bg=self['bg'], width=20, height=20)
+        self.interior = tk.Frame(self._canvas, bg=self['bg'])
         self.interior.parent = self
         
         self._canvas_frame = self._canvas.create_window(

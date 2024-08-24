@@ -1,3 +1,8 @@
+from enum import Enum, auto
+
+from config.config import Config
+
+from .data import Page
 
 
 class State():
@@ -7,11 +12,18 @@ class State():
     multiple nested levels
     '''
     __instance = None
+    K = Enum('K', 'FRAME_ANALYSIS')
 
     def __init__(self):
         if State.__instance != None:
             raise Exception('State has already been intialized.')
         State.__instance = self
+
+        self._cfg = Config.get_instance().data
+        self.registered = {}
+
+        self.active_page = Page[self._cfg.active_game] if self._cfg.active_game else Page.zzz
+        self._active_page_callbacks = []
 
         self.sidebar = None
         self.extract_forms = []
@@ -45,3 +57,21 @@ class State():
         for extract_form in self.extract_forms:
             extract_form.grid_forget_widgets()
             extract_form.grid_widgets()
+
+    def update_active_page(self, active_page: Page):
+        self.active_page = active_page
+        self._cfg.active_game = active_page.value
+        for callback in self._active_page_callbacks:
+            callback(active_page)
+        
+    def subscribe_active_page_updates(self, callback):
+        self._active_page_callbacks.append(callback)
+    
+    def set_var(self, key, value):
+        self.registered[key] = value
+    
+    def get_var(self, key):
+        return self.registered[key]
+    
+    def del_var(self, key):
+        del self.registered[key]

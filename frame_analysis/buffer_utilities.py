@@ -211,21 +211,21 @@ def handle_no_weight_blend(blend, blend_format):
 def parse_buffer_file_name(file_name: str):
     draw_id, file_name = file_name.split('-', maxsplit=1)
 
-    resource_pattern = re.compile(r'^(.*?)(=!.!)?=(.*?)-')
+    resource_pattern = re.compile(r'^(.*?)=?(!.!)?=(.*?)-')
     m = re.search(resource_pattern, file_name)
     if not m: raise Exception('Unexpected file name format ' + file_name)
     file_name = re.sub(resource_pattern, '', file_name)
 
-    resource        = m.group(1)
-    is_contaminated = m.group(2) is not None
-    resource_hash   = m.group(3)
+    resource      = m.group(1)
+    contamination = m.group(2)
+    resource_hash = m.group(3)
 
     shaders = {}
     shader_pattern = re.compile(r'(.*?)=(.*?)[-\.]')
     for shader_match in shader_pattern.finditer(file_name):
         shaders[shader_match.group(1)] = shader_match.group(2)
 
-    return draw_id, resource, resource_hash, is_contaminated, shaders
+    return draw_id, resource, resource_hash, contamination, shaders
 
 
 def is_valid_hash(resource_hash, expected_hash_length=8):

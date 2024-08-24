@@ -2,20 +2,15 @@ from enum import Enum
 import tkinter as tk
 from pathlib import Path
 
+from ..data import Page
 from ..extract_form import ExtractForm
 from ..address_frame import AddressFrame
 from ..texture_picker import TexturePicker
 from config.config import Config
 
 
-class MainPageT(Enum):
-    zzz = 'zzz'
-    hsr = 'hsr'
-    gi  = 'gi'
-    settings = 'settings'
-
 class MainPage(tk.Frame):
-    def __init__(self, parent, variant: MainPageT, *args, **kwargs):
+    def __init__(self, parent, variant: Page, *args, **kwargs):
         tk.Frame.__init__(self, parent)
         self.config(*args, **kwargs)
         self.config(bg='#111')
@@ -36,8 +31,8 @@ class MainPage(tk.Frame):
         self   .rowconfigure(1, weight=1)
 
     def create_widgets(self):
-        self.address_frame  =  AddressFrame(self)
-        self.extract_form   =   ExtractForm(self)
+        self.address_frame  =  AddressFrame(self, self.variant)
+        self.extract_form   =   ExtractForm(self, self.variant)
         self.texture_picker = TexturePicker(self)
         self.texture_picker.lower()
 
@@ -64,17 +59,15 @@ class MainPage(tk.Frame):
         # self.grid_widgets()
 
     def on_address_change(self, text: str):
-        # TODO: hard coded to zzz for now
         # Update 3dm parent folder in config when user picks a frame dump
-        # path = Path(self.address_frame.path)
         path = Path(text)
         
         # Check if current directory is a frame analysis in which case the parent is 3dm's
-        if 'FrameAnalysis' in path.name:
-            self.cfg.game['zzz']['frame_analysis_parent_path'] = str(path.parent)
+        if 'FrameAnalysis' in path.name and (path/'log.txt').exists():
+            self.cfg.game[self.variant.value]['frame_analysis_parent_path'] = str(path.parent)
             return
 
         # Check if the current directory is that of 3dm
-        has_d3dx = len([p for p in path.iterdir() if 'd3dx.ini' == p.name]) == 1
+        has_d3dx = (path/'d3dx.ini').exists()
         if has_d3dx:
-            self.cfg.game['zzz']['frame_analysis_parent_path'] = str(path)
+            self.cfg.game[self.variant.value]['frame_analysis_parent_path'] = str(path)

@@ -1,23 +1,27 @@
 import os
 from pathlib import Path
 
-from config.config import Config
-
 import tkinter as tk
 from tkinter import filedialog
 from tkinter.font import Font
 
+from .data import Page
+from .state import State
+from config.config import Config
 from .xtk.FlatImageButton import FlatImageButton
 
 
 class AddressFrame(tk.Frame):
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, target: Page, *args, **kwargs):
         tk.Frame.__init__(self, parent)
         self.config(*args, **kwargs)
         self.parent = parent
+
+        self._state = State.get_instance()
         
         self.font = Font(family='Arial', size=20, weight='bold')
         self.address_max_width = 400
+        self.target = target
         self.path: str = ''
         
         self.create_widgets()
@@ -93,8 +97,7 @@ class AddressFrame(tk.Frame):
         self.set_path(path.parent.absolute())
 
     def load_latest_frame_analysis(self):
-        # TODO hard coded to zzz
-        saved_path = Config.get_instance().data.game['zzz']['frame_analysis_parent_path']
+        saved_path = Config.get_instance().data.game[self.target.value]['frame_analysis_parent_path']
         if not saved_path:
             return
         frame_analysis_parent_path = Path(saved_path)
@@ -103,8 +106,11 @@ class AddressFrame(tk.Frame):
 
         print('Looking for latest frame analysis in {}'.format(str(frame_analysis_parent_path)))
         frame_analysis_paths = sorted(
-            [f for f in frame_analysis_parent_path.iterdir() if 'FrameAnalysis' in f.name],
-            key=os.path.getctime
+            [
+                f for f in frame_analysis_parent_path.iterdir()
+                if 'FrameAnalysis' in f.name
+                and (f/'log.txt').exists()
+            ], key=os.path.getctime
         )
         if len(frame_analysis_paths) > 0:
             self.set_path(str(frame_analysis_paths[-1]))
