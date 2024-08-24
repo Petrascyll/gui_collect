@@ -1,4 +1,5 @@
 import json
+import time
 import shutil
 
 from pathlib import Path
@@ -9,7 +10,7 @@ from .TextureAnalysis import TextureAnalysis
 
 from .structs import Component
 from .JsonBuilder import JsonBuilder
-from .buffer_utilities import collect_buffer_data, merge_buffers, handle_no_weight_blend
+from .buffer_utilities import collect_buffer_data, extract_from_txt, merge_buffers, handle_no_weight_blend
 
 
 class FrameAnalysis():
@@ -36,19 +37,40 @@ class FrameAnalysis():
                 'U', 'V', 'W', 'X', 'Y', 'Z'
             ] if game != 'gi' else ['Head', 'Body', 'Dress', 'Extra']
             
+            print('\tExtracting model data of [{}]{}'.format(target_hash, f' - {name}' if name else ''))
             try:
                 self.log_analysis.extract(c, target_hash)
+                self.check_extraction_sanity(c)
+                c.print(tabs=2)
             except Exception as X:
-                print('Log Analysis  Failed [{}] - {}'.format(target_hash, X))
+                print('\t\tLog Analysis  Failed [{}] - {}'.format(target_hash, X))
                 try:
                     self.file_analysis.extract(c, target_hash)
+                    self.check_extraction_sanity(c)
+                    c.print(tabs=2)
                 except Exception as X:
-                    print('File Analysis Failed [{}] - {}'.format(target_hash, X))
+                    print('\t\tFile Analysis Failed [{}] - {}'.format(target_hash, X))
                     return
 
             self.texture_analysis.set_preferred_texture_id(c)
             components.append(c)
         return components
+
+    @staticmethod
+    def check_extraction_sanity(component: Component):
+        st = time.time()
+        paths = (
+            component.backup_position_path,
+            component.backup_texcoord_path,
+            component.position_path,
+            component.texcoord_path,
+            component.blend_path
+        )
+        vcount = None
+        for path in paths:
+            if not vcount: vcount = extract_from_txt('vertex count', path)
+            if path: assert(vcount == extract_from_txt('vertex count', path))
+        print('\t\tSanity Checks Done: {:.6}s'.format(time.time() - st))
 
     @staticmethod
     def export(export_name, components: list[Component], textures = None, game='zzz'):

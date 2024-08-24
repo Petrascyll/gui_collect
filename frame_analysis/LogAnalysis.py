@@ -14,6 +14,7 @@ class LogAnalysis():
 
 
     def extract(self, extract_component: Component, component_hash: str, component_hash_type: str = None) -> None:
+        st = time.time()
         if not component_hash_type:
             component_hash_type = self.guess_hash_type(component_hash)
             if not component_hash_type:
@@ -25,6 +26,7 @@ class LogAnalysis():
         self.set_draw_data    (extract_component)
         self.set_prepose_data (extract_component)
         # self.set_shapekey_data(extract_component)
+        print('\t\tLog Based Extraction Done: {:.6}s'.format(time.time() - st))
 
 
     def guess_hash_type(self, target_hash):

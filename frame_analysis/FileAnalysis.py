@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 from .structs import BufferType
@@ -17,6 +18,7 @@ class FileAnalysis():
         self.files: list[Path] = [f for f in frame_analysis_path.iterdir() if f.suffix in ['.txt']]
 
     def extract(self, extract_component: Component, component_hash: str, component_hash_type: str = None) -> None:
+        st = time.time()
         if not component_hash_type:
             component_hash_type = self.guess_hash_type(component_hash)
             if not component_hash_type:
@@ -28,6 +30,7 @@ class FileAnalysis():
         self.set_draw_data    (extract_component)
         self.set_prepose_data (extract_component)
         # self.set_shapekey_data(extract_component)
+        print('\t\tFile Based Extraction Done: {:.6}s'.format(time.time() - st))
 
     def guess_hash_type(self, target_hash):
         for file in self.files:
@@ -117,11 +120,8 @@ class FileAnalysis():
                     continue
 
         if len(pose_ids) == 0:
-            print('No pose calls found.')
             return
         if not component.backup_texcoord_path:
-            print('\tComponent {} ({})'.format(component.name, component.ib_hash))
-            print('\t\tCannot identify posing data with no texcoord hash')
             return
 
         any_pose_id = next(iter(pose_ids))
@@ -145,9 +145,6 @@ class FileAnalysis():
                     component.position_path = position_path
                     component.blend_path    = blend_path
 
-                    print('\tComponent {} ({})'.format(component.name, component.ib_hash))
-                    print('\t\tFound position data file path: ' + component.position_path.name)
-                    print('\t\tFound blend    data file path: ' + component.blend_path.name)
                     return
 
             else:
@@ -160,10 +157,6 @@ class FileAnalysis():
                     component.texcoord_path = texcoord_path
                     component.blend_path    = blend_path
 
-                    print('\tComponent {} ({})'.format(component.name, component.ib_hash))
-                    print('\t\tFound position data file path: ' + component.position_path.name)
-                    print('\t\tFound texcoord data file path: ' + component.texcoord_path.name)
-                    print('\t\tFound blend    data file path: ' + component.blend_path.name)
                     return
         
         return

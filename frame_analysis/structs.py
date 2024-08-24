@@ -48,19 +48,19 @@ class Component():
     texcoord_hash : str = None
     ib_hash       : str = None
 
-    # For debugging only for now, optimize later 
-    def __str__(self):
-        s = ''
-        s += 'IDs: {}\n'.format(self.ids)
-        s += 'Object Indices: {}\n'.format(self.object_indices)
-        s += 'Backup Position Path: {}\n'.format(self.backup_position_path.name)
-        s += 'Backup Texcoord Path: {}\n'.format(self.backup_texcoord_path.name)
-        s += 'IBs:\n'
-        for ib_path in self.ib_paths:
-            s += '\t{}\n'.format(ib_path.name)
-
-        s += 'Position Path: {}\n'.format(self.position_path.name)
-        s += 'Texcoord Path: {}\n'.format(self.texcoord_path.name)
-        s += 'Blend Path: {}\n'   .format(self.blend_path.name)
-
-        return s + '\n'
+    def print(self, tabs=0):
+        s = '\n'.join([
+            # '{}Relevant IDs: {}'        .format('\t'*tabs, self.ids),
+            '{}Index Buffer Paths:'          .format('\t'*tabs),
+            *[
+                '{}   {:8} - {}'.format('\t'*(tabs+1), first_index, ib_path.name)
+                for ib_path, first_index in zip(self.ib_paths, self.object_indices)
+            ],
+            '{}Backup Position Path: {}'.format('\t'*tabs, self.backup_position_path.name if self.backup_position_path else ''),
+            '{}Backup Texcoord Path: {}'.format('\t'*tabs, self.backup_texcoord_path.name if self.backup_texcoord_path else ''),
+            '',
+            '{} Position Path: {}'.format('\t'*tabs, self.position_path.name if self.position_path else ''),
+            '{} Texcoord Path: {}'.format('\t'*tabs, self.texcoord_path.name if self.texcoord_path else ''),
+            '{}    Blend Path: {}   '.format('\t'*tabs, self.blend_path.name if self.blend_path else ''),
+        ])
+        print(s)
