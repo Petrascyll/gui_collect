@@ -1,6 +1,7 @@
 import json
 import time
 import shutil
+import traceback
 
 from pathlib import Path
 
@@ -43,13 +44,15 @@ class FrameAnalysis():
                 self.check_extraction_sanity(c)
                 c.print(tabs=2)
             except Exception as X:
-                print('\t\tLog Analysis  Failed [{}] - {}'.format(target_hash, X))
+                print('\t\tLog Analysis Failed: {}'.format(X))
+                traceback.print_exc()
                 try:
                     self.file_analysis.extract(c, target_hash)
                     self.check_extraction_sanity(c)
                     c.print(tabs=2)
                 except Exception as X:
-                    print('\t\tFile Analysis Failed [{}] - {}'.format(target_hash, X))
+                    print('\t\tFile Analysis Failed: {}'.format(X))
+                    traceback.print_exc()
                     return
 
             self.texture_analysis.set_preferred_texture_id(c, game)

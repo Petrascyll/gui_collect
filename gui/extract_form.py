@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import traceback
 import subprocess
 
 import tkinter as tk
@@ -165,6 +166,7 @@ class ExtractForm(tk.Frame):
             print('Extraction done')
         except Exception as X:
             print(X)
+            traceback.print_exc()
             print('Frame Analysis Failed!')
         self.state.unlock_sidebar()
 
