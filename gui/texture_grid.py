@@ -1,4 +1,5 @@
 import tkinter as tk
+from functools import partial
 
 from .xtk.ScrollableFrame import ScrollableFrame
 from .texture_grid_item import TextureGridItem
@@ -9,28 +10,37 @@ from .state import State
 class TextureGrid(tk.Frame):
     def __init__(self, parent, get_ref, *args, **kwargs):
         tk.Frame.__init__(self, parent)
-        self.config(*args, **kwargs)
+        self.config(*args, **kwargs, bg='#111')
 
         self   .grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         
         self.parent = parent
-        self.grid_items = []
         self.get_ref = get_ref
 
         self.component_index = -1
         self.first_index     = -1
 
-        self.frames: dict[int, dict[int, ScrollableFrame]] = {
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=1)
+        self.id_picker = tk.Frame(self, width=74, bg='#333')
+        self.id_picker.grid(row=0, column=0, padx=(1,0), sticky='nsew')
+        self.id_picker.pack_propagate(False)
+
+        self.frames: dict[int, dict[int, dict[str, ScrollableFrame]]] = {
             # component_index: {
-            #   first_index: scrollable_frame
-            # }
+            #     first_index: {
+            #         id: scrollable_frame
+            #     },
+            #  },
         }
 
 
     def load(self, components: list[Component], component_index, first_index):
         self.component_index = component_index
         self.first_index     = first_index
+        self.active_id       = components[component_index].tex_index_id[first_index]
+
         frame_analysis = State.get_instance().get_var(State.K.FRAME_ANALYSIS)
         self.grid_refresh()
         
@@ -38,35 +48,87 @@ class TextureGrid(tk.Frame):
             if i not in self.frames: self.frames[i] = {}
             for first_index in component.object_indices:
                 frame = ScrollableFrame(self, bg='#111')
-                frame.grid(row=0, column=0, sticky='nsew')
+                frame.grid(row=0, column=1, sticky='nsew')
                 frame.lower()
 
-                textures = frame_analysis.get_textures(component.tex_index_id[first_index])
+                initial_id = component.tex_index_id[first_index]
+                textures = frame_analysis.get_textures(initial_id)
                 self.create_widgets(frame, textures, i, first_index)
                 self.grid_widgets(frame)
 
-                self.frames[i][first_index] = frame
+                self.frames[i][first_index] = {
+                    id: None
+                    for id in component.index_ids[first_index]
+                }
+                self.frames[i][first_index][initial_id] = frame
+                self.frames[i][first_index]['active_id'] = initial_id
 
-        self.frames[self.component_index][self.first_index].bind("<Configure>", self._on_frame_configure)
-        self.frames[self.component_index][self.first_index].tkraise()
+        self.frames[self.component_index][self.first_index][self.active_id].bind("<Configure>", self._on_frame_configure)
+        self.frames[self.component_index][self.first_index][self.active_id].tkraise()
+        self.refresh_id_picker(self.component_index, self.first_index)
+
+    def refresh_id_picker(self, component_index: int, first_index: int):
+        for child in self.id_picker.winfo_children():
+            child.destroy()
+
+        header = tk.Label(self.id_picker, text='ID', font=('Arial', '24', 'bold'))
+        header.config(bg='#333', fg='#e8eaed')
+        header.pack(side='top', pady='4', anchor='center')
+
+        for id in self.frames[component_index][first_index]:
+            if id == 'active_id': continue
+            active_id = self.frames[component_index][first_index]['active_id']
+
+            id_label = tk.Label(self.id_picker, text=str(id), cursor='hand2', font=('Arial', '10', 'bold'))
+            if id == active_id:
+                id_label.config(bg='#A00', fg='#e8eaed')
+            else:
+                id_label.config(bg='#444', fg='#e8eaed')
+                id_label.bind('<Enter>', func=lambda e: e.widget.config(bg='#A00'))
+                id_label.bind('<Leave>', func=lambda e: e.widget.config(bg='#444'))
+                id_label.bind('<Button-1>', partial(self.set_active_grid_id, component_index, first_index, id))
+            id_label.pack(side='top', pady='2', ipady='4', ipadx='8', anchor='center')
+
+    def set_active_grid_id(self, component_index, first_index, id, event):
+        if self.frames[component_index][first_index][id] is not None:
+            self.frames[component_index][first_index]['active_id'] = id
+            self.set_active_grid(component_index, first_index)
+            return
+        
+        frame = ScrollableFrame(self, bg='#111')
+        frame.grid(row=0, column=1, sticky='nsew')
+        frame.lower()
     
+        frame_analysis = State.get_instance().get_var(State.K.FRAME_ANALYSIS)
+        self.create_widgets(frame, frame_analysis.get_textures(id), component_index, first_index)
+        self.grid_widgets(frame)
+
+        self.frames[component_index][first_index][id] = frame
+        self.frames[component_index][first_index]['active_id'] = id
+        self.set_active_grid(component_index, first_index)
+
     def set_active_grid(self, component_index, first_index):
-        self.frames[self.component_index][self.first_index].lower()
-        self.frames[self.component_index][self.first_index].unbind_all("<Configure>")
+        self.frames[self.component_index][self.first_index][self.active_id].lower()
+        self.frames[self.component_index][self.first_index][self.active_id].unbind_all("<Configure>")
+
         self.component_index = component_index
         self.first_index     = first_index
-        self.frames[self.component_index][self.first_index]._canvas.yview_moveto(0)
-        self.frames[self.component_index][self.first_index].bind("<Configure>", self._on_frame_configure)
-        self.frames[self.component_index][self.first_index].tkraise()
+        self.active_id       = self.frames[component_index][first_index]['active_id']
+
+        self.frames[self.component_index][self.first_index][self.active_id]._canvas.yview_moveto(0)
+        self.frames[self.component_index][self.first_index][self.active_id].bind("<Configure>", self._on_frame_configure)
+        self.frames[self.component_index][self.first_index][self.active_id].event_generate('<Configure>')
+        self.frames[self.component_index][self.first_index][self.active_id].tkraise()
+        self.refresh_id_picker(self.component_index, self.first_index)
 
     def unload(self):
         for component_index in self.frames:
             for first_index in self.frames[component_index]:
-                self.frames[component_index][first_index].destroy()
+                for id in self.frames[component_index][first_index]:
+                    if id == 'active_id': continue
+                    if self.frames[component_index][first_index][id]:
+                        self.frames[component_index][first_index][id].destroy()
         self.frames = {}
-
-        self.textures   = None
-        self.grid_items = None
 
     def create_widgets(self, scrollable_frame, textures, component_index, first_index):
         for texture in textures:
@@ -110,9 +172,10 @@ class TextureGrid(tk.Frame):
         self.min_padx  = 4
 
         # 272 is the width of a single grid item
+        # 74  is the width of the id picker
         # 14  is the width of the scrollbar
         for column_count in range(1, 6):
-            empty_space = self.winfo_width() - (272 * column_count) - 14
+            empty_space = self.winfo_width() - (272 * column_count) - 14 - 74
             min_empty_space = ((column_count - 1) * self.min_padx) + self.min_padx*2
             if min_empty_space <= empty_space <= 272 + min_empty_space:
                 break

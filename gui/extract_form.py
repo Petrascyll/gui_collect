@@ -152,8 +152,9 @@ class ExtractForm(tk.Frame):
         if not skip_textures:
             self.state.lock_sidebar()
             self.parent.texture_picker.load(extract_name, extracted_components, callback=self.finish_extraction)
-            self.update_idletasks()
+            self.parent.texture_picker.focus_set()
             self.parent.show_texture_picker()
+            self.update_idletasks()
         else:
             self.finish_extraction(extract_name, extracted_components)
 
