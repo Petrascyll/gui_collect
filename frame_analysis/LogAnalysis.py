@@ -87,10 +87,12 @@ class LogAnalysis():
 
             if int(ib_first_index) > highest_ib_first_index:
                 highest_ib_first_index = int(ib_first_index)
-                largest_position_filepath = self.compile_vb_filepath(id, self.get_vb_hash(id, 0), 0, vs_hash, ps_hash)
-                largest_texcoord_filepath = self.compile_vb_filepath(id, self.get_vb_hash(id, 1), 1, vs_hash, ps_hash)
-                if not largest_position_filepath.exists(): raise Exception()
-                if not largest_texcoord_filepath.exists(): raise Exception()
+                if draw_hash := self.get_vb_hash(id, 0):
+                    largest_position_filepath = self.compile_vb_filepath(id, draw_hash, 0, vs_hash, ps_hash)
+                    if not largest_position_filepath.exists(): raise Exception()
+                if texcoord_hash := self.get_vb_hash(id, 1):
+                    largest_texcoord_filepath = self.compile_vb_filepath(id, texcoord_hash, 1, vs_hash, ps_hash)
+                    if not largest_texcoord_filepath.exists(): raise Exception()
 
             object_indices.append(ib_first_index)
             ib_filepaths  .append(ib_filepath)
@@ -179,7 +181,9 @@ class LogAnalysis():
         return self.log_data[draw_id]['PSSetShader']
 
     def get_vb_hash(self, draw_id: str, slot: int):
-        return self.log_data[draw_id]['IASetVertexBuffers'][str(slot)]
+        if str(slot) in self.log_data[draw_id]['IASetVertexBuffers']:
+            return self.log_data[draw_id]['IASetVertexBuffers'][str(slot)]
+        return None
 
     def get_ib_hash(self, draw_id: str):
         return self.log_data[draw_id]['IASetIndexBuffer']

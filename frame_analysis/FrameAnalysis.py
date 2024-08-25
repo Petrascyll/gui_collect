@@ -71,7 +71,7 @@ class FrameAnalysis():
         )
         vcount = None
         for path in paths:
-            if not vcount: vcount = extract_from_txt('vertex count', path)
+            if path and not vcount: vcount = extract_from_txt('vertex count', path)
             if path: assert(vcount == extract_from_txt('vertex count', path))
         print('\t\tSanity Checks Done: {:.6}s'.format(time.time() - st))
 
@@ -107,7 +107,7 @@ class FrameAnalysis():
                     buffers.append(texcoord)
                     formats.append(texcoord_format)
 
-                vb_merged = merge_buffers(buffers, formats)
+                vb_merged = merge_buffers(buffers, formats) if buffers else None
             
             if textures : _export_component_textures(export_name, component, textures[i])
             if vb_merged: _export_component_buffers(export_name, component, vb_merged)
