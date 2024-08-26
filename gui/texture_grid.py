@@ -3,6 +3,7 @@ from functools import partial
 
 from .xtk.ScrollableFrame import ScrollableFrame
 from .texture_grid_item import TextureGridItem
+from .light_texture_grid_item import LightTextureGridItem
 from frame_analysis.structs import Component
 from .state import State
 
@@ -132,11 +133,16 @@ class TextureGrid(tk.Frame):
 
     def create_widgets(self, scrollable_frame, textures, component_index, first_index):
         for texture in textures:
-            TextureGridItem(
+            LightTextureGridItem(
                 scrollable_frame.interior,
-                texture, width=256, height=256,
+                texture, width=272, height=328,
                 get_ref=lambda: self.get_ref(component_index, first_index)
             )
+            # TextureGridItem(
+            #     scrollable_frame.interior,
+            #     texture, width=256, height=256,
+            #     get_ref=lambda: self.get_ref(component_index, first_index)
+            # )
 
     def grid_widgets(self, scrollable_frame: ScrollableFrame):
         for i, item in enumerate(scrollable_frame.interior.winfo_children()):

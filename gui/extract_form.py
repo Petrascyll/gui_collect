@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import time
 import traceback
 import subprocess
 
@@ -129,6 +130,7 @@ class ExtractForm(tk.Frame):
         targeted_dump.clear()
 
     def start_extraction(self):
+        st = time.time()
 
         extract_name, input_component_hashes, input_component_names, input_components_options, path = self.collect_input()
         if not input_component_hashes:
@@ -153,10 +155,13 @@ class ExtractForm(tk.Frame):
             self.state.lock_sidebar()
             self.parent.texture_picker.load(extract_name, extracted_components, callback=self.finish_extraction)
             self.parent.texture_picker.focus_set()
+            self.update_idletasks()
             self.parent.show_texture_picker()
             self.update_idletasks()
         else:
             self.finish_extraction(extract_name, extracted_components)
+
+        print('Ready {:.3}s'.format(time.time() - st))
 
     def finish_extraction(self, extract_name, extracted_components, collected_textures=None):
         try:

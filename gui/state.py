@@ -12,7 +12,7 @@ class State():
     multiple nested levels
     '''
     __instance = None
-    K = Enum('K', 'FRAME_ANALYSIS')
+    K = Enum('K', 'FRAME_ANALYSIS F_ARIAL16')
 
     def __init__(self):
         if State.__instance != None:
@@ -75,3 +75,6 @@ class State():
     
     def del_var(self, key):
         del self.registered[key]
+
+    def has_var(self, key):
+        return key in self.registered
