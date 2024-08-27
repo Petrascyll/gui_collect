@@ -2,9 +2,8 @@ import re
 import time
 from pathlib import Path
 
-from .structs import BufferType
-from .structs import Component
-
+from .structs import BufferType, Component
+from .buffer_reader import get_best_buffer_path
 
 class LogAnalysis():
 
@@ -64,11 +63,12 @@ class LogAnalysis():
             raise Exception('Invalid input hash {}'.format(component_hash))
 
     def set_draw_data(self, component: Component):
-        largest_texcoord_filepath = None
-        largest_position_filepath = None
-        highest_ib_first_index    = -1
         object_indices: list[str] = []
-        ib_filepaths : list[Path] = []
+        ib_filepaths  : list[Path] = []
+
+        highest_ib_first_index = -1
+        backup_position_paths: list[Path] = []
+        backup_texcoord_paths: list[Path] = []
 
         for id in component.ids:
             vs_hash = self.get_vertex_shader_hash(id)
@@ -76,29 +76,38 @@ class LogAnalysis():
             ib_hash = self.get_ib_hash(id)
 
             ib_first_index = self.get_ib_first_index(id)
-            # ib_index_count = self.get_ib_index_count(id)
-            if ib_first_index in object_indices:
+
+            if ib_first_index not in object_indices:
+                component.index_ids[ib_first_index] = [id]
+                ib_filepath = self.compile_ib_filepath(id, ib_hash, vs_hash, ps_hash)
+                if not ib_filepath.exists(): raise Exception()
+
+                if ib_first_index > highest_ib_first_index:
+                    highest_ib_first_index = ib_first_index
+                    backup_position_paths: list[Path] = []
+                    backup_texcoord_paths: list[Path] = []
+
+                ib_filepaths  .append(ib_filepath)
+                object_indices.append(ib_first_index)
+            else:
                 component.index_ids[ib_first_index].append(id)
-                continue
-            component.index_ids[ib_first_index] = [id]
 
-            ib_filepath = self.compile_ib_filepath(id, ib_hash, vs_hash, ps_hash)
-            if not ib_filepath.exists(): raise Exception()
-
-            if int(ib_first_index) > highest_ib_first_index:
-                highest_ib_first_index = int(ib_first_index)
+            if ib_first_index == highest_ib_first_index:
                 if draw_hash := self.get_vb_hash(id, 0):
-                    largest_position_filepath = self.compile_vb_filepath(id, draw_hash, 0, vs_hash, ps_hash)
-                    if not largest_position_filepath.exists(): raise Exception()
+                    backup_position_path = self.compile_vb_filepath(id, draw_hash, 0, vs_hash, ps_hash)
+                    if backup_position_path.exists():
+                        backup_position_paths.append(backup_position_path)
+
                 if texcoord_hash := self.get_vb_hash(id, 1):
-                    largest_texcoord_filepath = self.compile_vb_filepath(id, texcoord_hash, 1, vs_hash, ps_hash)
-                    if not largest_texcoord_filepath.exists(): raise Exception()
+                    backup_texcoord_path = self.compile_vb_filepath(id, texcoord_hash, 1, vs_hash, ps_hash)
+                    if backup_texcoord_path.exists():
+                        backup_texcoord_paths.append(backup_texcoord_path)
 
-            object_indices.append(ib_first_index)
-            ib_filepaths  .append(ib_filepath)
+        st = time.time()
+        component.backup_position_path = get_best_buffer_path(backup_position_paths)
+        component.backup_texcoord_path = get_best_buffer_path(backup_texcoord_paths)
+        print('\t\tFound best draw buffers in: {}s'.format(time.time() - st))
 
-        component.backup_position_path = largest_position_filepath
-        component.backup_texcoord_path = largest_texcoord_filepath
         component.ib_paths = [
             ib_filepath for ib_filepath, _ in sorted(
                 zip(ib_filepaths, object_indices),
@@ -240,7 +249,7 @@ def parse_frame_analysis_log_file(log_path):
                 elif keyword in ['IASetIndexBuffer', 'PSSetShader', 'VSSetShader', 'CSSetShader']:
                     hash_match = re.search(r'hash=([a-f0-9]+)', line)
                     if not hash_match: continue
-                    assert(keyword not in log_data[draw_id])
+                    # assert(keyword not in log_data[draw_id])
                     log_data[draw_id][keyword] = hash_match.group(1)
                 
                 elif keyword in ['DrawIndexedInstanced', 'DrawIndexed']:

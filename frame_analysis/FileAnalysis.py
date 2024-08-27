@@ -5,6 +5,7 @@ from .structs import BufferType
 from frame_analysis.structs import Component
 
 from .buffer_utilities import extract_from_txt
+from .buffer_reader import get_best_buffer_path
 
 
 class FrameAnalysisException(Exception):
@@ -50,12 +51,12 @@ class FileAnalysis():
             raise Exception('Failed to find hash "{}" in FrameAnalysis files.'.format(component_hash))
 
     def set_draw_data(self, component: Component):
-        largest_texcoord_filepath = None
-        largest_position_filepath = None
-        texcoord_largest_count = -1
-        position_largest_count = -1
         object_indices: list[str] = []
-        ib_filepaths : list[Path] = []
+        ib_filepaths  : list[Path] = []
+
+        highest_ib_first_index = -1
+        backup_position_paths: list[Path] = []
+        backup_texcoord_paths: list[Path] = []
 
         for id in component.ids:
             id_files = [f for f in self.files if f.name.startswith(id)]
@@ -67,32 +68,34 @@ class FileAnalysis():
                 print('\tSkipping ID {} for "{}"'.format(id, component.name))
                 continue
 
-            if ib_first_index in object_indices:
+            if ib_first_index not in object_indices:
+                component.index_ids[ib_first_index] = [id]
+
+                if ib_first_index > highest_ib_first_index:
+                    highest_ib_first_index = ib_first_index
+                    backup_position_paths: list[Path] = []
+                    backup_texcoord_paths: list[Path] = []
+
+                object_indices.append(ib_first_index)
+                ib_filepaths  .append(ib_filepath)
+
+            else:
                 component.index_ids[ib_first_index].append(id)
-                continue
-            component.index_ids[ib_first_index] = [id]
 
-            texcoord_vb_candidate = [f for f in id_files if "-vb1=" in f.name]
-            if len(texcoord_vb_candidate) == 1:
-                texcoord_vb_candidate = texcoord_vb_candidate[0]
-                texcoord_count = extract_from_txt('vertex count', texcoord_vb_candidate)
-                if texcoord_count > texcoord_largest_count:
-                    texcoord_largest_count = texcoord_count
-                    largest_texcoord_filepath = texcoord_vb_candidate
+            if ib_first_index == highest_ib_first_index:
+                position_vb_candidate = [f for f in id_files if "-vb0=" in f.name]
+                if len(position_vb_candidate) == 1:
+                    backup_position_paths.append(position_vb_candidate[0])
 
-            position_vb_candidate = [f for f in id_files if "-vb0=" in f.name]
-            if len(position_vb_candidate) == 1:
-                position_vb_candidate = position_vb_candidate[0]
-                position_count = extract_from_txt('vertex count', position_vb_candidate)
-                if position_count > position_largest_count:
-                    position_largest_count = position_count
-                    largest_position_filepath = position_vb_candidate
+                texcoord_vb_candidate = [f for f in id_files if "-vb1=" in f.name]
+                if len(texcoord_vb_candidate) == 1:
+                    backup_texcoord_paths.append(texcoord_vb_candidate[0])
 
-            object_indices.append(ib_first_index)
-            ib_filepaths  .append(ib_filepath)
+        st = time.time()
+        component.backup_position_path = get_best_buffer_path(backup_position_paths)
+        component.backup_texcoord_path = get_best_buffer_path(backup_texcoord_paths)
+        print('\t\tFound best draw buffers in: {}s'.format(time.time() - st))
 
-        component.backup_position_path = largest_position_filepath
-        component.backup_texcoord_path = largest_texcoord_filepath
         component.ib_paths = [
             ib_filepath for ib_filepath, _ in sorted(
                 zip(ib_filepaths, object_indices),
