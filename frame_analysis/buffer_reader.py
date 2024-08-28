@@ -173,3 +173,9 @@ def get_best_buffer_path(buffer_paths: list[Path]):
 
         if real_stride == header_stride:
             return path
+
+    # Give up
+    if buffer_paths:
+        print('\t\tWARNING: Failed to find ideal backup buffer!')
+        print('\t\tUsing buffer with missing data.')
+        return buffer_paths[0]
