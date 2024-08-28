@@ -2,7 +2,8 @@ import os
 from pathlib import Path
 
 
-from frame_analysis.buffer_utilities import parse_buffer_file_name
+from frame_analysis.buffer_utilities import parse_buffer_file_name, is_valid_hash
+
 
 class Texture():
     def __init__(self, filepath: Path, texture_usage):
@@ -10,15 +11,26 @@ class Texture():
         self.path = filepath
 
         _, resource, resource_hash, resource_contamination, _ = parse_buffer_file_name(filepath.name)
-        self.hash          = resource_hash
-        self.contamination = resource_contamination
-        self.slot          = int(resource.split('ps-t')[1])
 
-        assert(self.hash in texture_usage)
+        if is_valid_hash(resource_hash, 8):
+            self.hash          = resource_hash
+            self.contamination = resource_contamination
+            self.slot          = int(resource.split('ps-t')[1].split('-')[0])
 
-        self.width  = int(texture_usage[self.hash]['width'])
-        self.height = int(texture_usage[self.hash]['height'])
-        self.format : str = texture_usage[self.hash]['format']
+            assert(self.hash in texture_usage)
+
+            self.width  = int(texture_usage[self.hash]['width'])
+            self.height = int(texture_usage[self.hash]['height'])
+            self.format : str = texture_usage[self.hash]['format']
+
+        else:
+            self.hash          = '???'
+            self.contamination = None
+            self.slot          = int(resource.split('ps-t')[1].split('-')[0])
+
+            self.width  = 1
+            self.height = 1
+            self.format = '???'
 
         self._pow_2 = None
         self._size  = None

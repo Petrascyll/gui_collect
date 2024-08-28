@@ -63,7 +63,7 @@ class TextureAnalysis():
     def get_textures(self, draw_id: str):
         if draw_id not in self.cached_textures:
             self.cached_textures[draw_id] = sorted([
-                Texture(f, self.texture_usage)
+                    Texture(f, self.texture_usage)
                     for f in self.texture_filepaths
                     if f.name.startswith(f'{draw_id}-ps-t')
                     and f.suffix in ['.dds', '.jpg']
