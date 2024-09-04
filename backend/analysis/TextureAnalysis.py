@@ -4,8 +4,8 @@ from enum import Enum
 
 from .structs import Component
 
+from backend.analysis.structs import Texture
 
-from texture_utilities.Texture import Texture
 
 class TextureAnalysis():
     F = Enum('FILTER', 'ONLY_POW_2 MIN_SIZE MIN_WIDTH MIN_HEIGHT')

@@ -12,10 +12,10 @@ from .xtk.EntryWithPlaceholder import EntryWithPlaceholder
 from .xtk.InputComponentList import InputComponentFrameList
 from .state import State
 
-from config.config import Config
-from frame_analysis.FrameAnalysis import FrameAnalysis
-from frame_analysis.buffer_utilities import is_valid_hash
-from targeted_dump import targeted_dump
+from backend.config.Config import Config
+from backend.analysis.FrameAnalysis import FrameAnalysis
+from backend.utils import is_valid_hash
+from backend.analysis import targeted_analysis
 
 FILEBROWSER_PATH = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
 
@@ -119,15 +119,21 @@ class ExtractForm(tk.Frame):
         # return 'Arle', ['e811d2a1'], [''], [{'textures_only': False}], path
         # return 'Lingsha', ['49b55fac', 'a016d09a', '6dca71bc'], ['Hair', 'Head', 'Body'], [{'textures_only': False}, {'textures_only': False}, {'textures_only': False}], path
         # return 'Amber', ['b03c7e30', '032456e6', '78b033ca', '91f05866'], ['', 'Mouth', 'EyeBrows', 'Face'], [{'textures_only': False}, {'textures_only': True}, {'textures_only': True},  {'textures_only': True}], path
+        # return 'SacrificialSword', ['20f011e5'], [''], [{'textures_only': False}], path
+        # return 'Kafka', ['f82cf281', 'de648f58', 'fa23099d'], ['Hair', 'Head', 'Body'], [{'textures_only': False}, {'textures_only': False}, {'textures_only': False}], path
+        # return 'Boothill', ['753caf86', '2a3d07c1', '3c3ec92a'], ['Hair', 'Head', 'Body'], [{'textures_only': False}, {'textures_only': False}, {'textures_only': False}], path
+        # return 'Furina', ['045e580b', '71654d94'], ['', 'Face'], [{'textures_only': False}, {'textures_only': False}], path
+        # return 'Mavuika', ['5bee95b2', '43f8af29', '89103707', '2c1d62c6', '7655bd7c'], ['Hair', 'Body', 'Face', 'FaceLower', 'EyeBrows'], [{'textures_only': False}]*5, path
+        # return 'SurfsUp', ['da383c7e'], [''], [{'textures_only': False}], path
         return extract_name, input_component_hashes, input_component_names, input_components_options, path
 
     def generated_targeted_dump_ini(self):
         extract_name, input_component_hashes, input_component_names, _, _ = self.collect_input()
         if not input_component_hashes: return
-        targeted_dump.generate(extract_name, input_component_hashes, input_component_names)
+        targeted_analysis.generate(extract_name, input_component_hashes, input_component_names)
 
     def clear_targeted_dump_ini(self):
-        targeted_dump.clear()
+        targeted_analysis.clear()
 
     def start_extraction(self):
         st = time.time()

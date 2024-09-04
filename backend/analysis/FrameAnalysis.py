@@ -5,13 +5,17 @@ import traceback
 
 from pathlib import Path
 
+from backend.utils.buffer_utils.buffer_reader import get_buffer_elements
+from backend.utils.buffer_utils.buffer_encoder import merge_buffers, handle_no_weight_blend
+from backend.utils.buffer_utils.buffer_decoder import collect_binary_buffer_data
+from backend.utils.buffer_utils.exceptions import InvalidTextBufferException
+
 from .LogAnalysis     import LogAnalysis
 from .FileAnalysis    import FileAnalysis
 from .TextureAnalysis import TextureAnalysis
 
-from .structs import Component
 from .JsonBuilder import JsonBuilder
-from .buffer_utilities import collect_buffer_data, extract_from_txt, merge_buffers, handle_no_weight_blend
+from .structs     import Component
 
 
 class FrameAnalysis():
@@ -41,14 +45,12 @@ class FrameAnalysis():
             print('\tExtracting model data of [{}]{}'.format(target_hash, f' - {name}' if name else ''))
             try:
                 self.log_analysis.extract(c, target_hash)
-                self.check_extraction_sanity(c)
                 c.print(tabs=2)
             except Exception as X:
                 print('\t\tLog Analysis Failed: {}'.format(X))
                 traceback.print_exc()
                 try:
                     self.file_analysis.extract(c, target_hash)
-                    self.check_extraction_sanity(c)
                     c.print(tabs=2)
                 except Exception as X:
                     print('\t\tFile Analysis Failed: {}'.format(X))
@@ -59,21 +61,6 @@ class FrameAnalysis():
             components.append(c)
         return components
 
-    @staticmethod
-    def check_extraction_sanity(component: Component):
-        st = time.time()
-        paths = (
-            component.backup_position_path,
-            component.backup_texcoord_path,
-            component.position_path,
-            component.texcoord_path,
-            component.blend_path
-        )
-        vcount = None
-        for path in paths:
-            if path and not vcount: vcount = extract_from_txt('vertex count', path)
-            if path: assert(vcount == extract_from_txt('vertex count', path))
-        print('\t\tSanity Checks Done: {:.6}s'.format(time.time() - st))
 
     @staticmethod
     def export(export_name, components: list[Component], textures = None, game='zzz'):
@@ -83,37 +70,50 @@ class FrameAnalysis():
         # if extract_path.exists(): shutil.rmtree(extract_path) # TODO Should be optional
         extract_path.mkdir(parents=True, exist_ok=True)
 
+        st = time.time()
+
         for i, component in enumerate(components):
             json_builder.add_component(component, textures[i] if textures else None, game)
 
             if 'textures_only' in component.options and component.options['textures_only']:
                 vb_merged = None
             else: 
-                buffers = []
-                formats = []
-                if component.position_path or component.backup_position_path:
-                    position, position_format = collect_buffer_data(component.position_path if component.position_path else component.backup_position_path)
-                    buffers.append(position)
-                    formats.append(position_format)
-                
-                if component.blend_path:
-                    blend, blend_format = collect_buffer_data(component.blend_path)
-                    handle_no_weight_blend(blend, blend_format)
-                    buffers.append(blend)
-                    formats.append(blend_format)
-                
-                if component.texcoord_path or component.backup_texcoord_path:
-                    texcoord, texcoord_format = collect_buffer_data(component.texcoord_path if component.texcoord_path else component.backup_texcoord_path)
-                    buffers.append(texcoord)
-                    formats.append(texcoord_format)
+                buffers  = []
+                elements = []
 
-                vb_merged = merge_buffers(buffers, formats) if buffers else None
+                merged_buffer_paths = (
+                    ('position', [component.position_path] if component.position_path else component.backup_position_paths),
+                    ('blend',    [component.blend_path   ] if component.blend_path    else []),
+                    ('texcoord', [component.texcoord_path] if component.texcoord_path else component.backup_texcoord_paths),
+                )
+
+                for buffer_type, buffer_paths in merged_buffer_paths:
+                    if len(buffer_paths) > 0:
+                        try:
+                            buffer_elements = get_buffer_elements(buffer_paths)
+                        except InvalidTextBufferException:
+                            print('\t\ERROR: Invalid text buffer!')
+                            return
+                        else:
+                            buffer_path    = buffer_paths[0].with_suffix('.buf')
+                            buffer_formats = [element.Format for element in buffer_elements]
+                            buffer         = collect_binary_buffer_data(buffer_path, buffer_formats)
+
+                            if buffer_type == 'blend':
+                                handle_no_weight_blend(buffer, buffer_elements)
+
+                            buffers .append(buffer)
+                            elements.append(buffer_elements)
+                
+                vb_merged = merge_buffers(buffers, elements) if buffers else None
             
             if textures : _export_component_textures(export_name, component, textures[i])
             if vb_merged: _export_component_buffers(export_name, component, vb_merged)
 
         json_out = json.dumps(json_builder.build(), indent=4)
         Path('_Extracted', export_name, 'hash.json').write_text(json_out)
+
+        print('Export done: {:.3}s'.format(time.time() - st))
 
 
 def _export_component_buffers(export_name: str, component: Component, vb_merged):

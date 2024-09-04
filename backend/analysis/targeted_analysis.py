@@ -1,8 +1,8 @@
 from pathlib import Path
 
 
-_filepath      = Path('targeted_dump', 'include', 'auto_generated.ini')
-_text_filepath = Path('targeted_dump', 'include', 'auto_generated_text.txt')
+_filepath      = Path('include', 'auto_generated.ini')
+_text_filepath = Path('include', 'auto_generated_text.txt')
 
 def get_status():
     exists = _filepath.exists()
@@ -112,25 +112,25 @@ data = R32_FLOAT  -0.99 -0 +1 +1   1.00 0.00 0 1   0 0 0 0.75   0.00 0.00   1 2 
 ; GI+HI Pose Shader One
 hash = 653c63ba4a73ca8b
 allow_duplicate_hash = overrule
-analyse_options = dump_vb txt
+analyse_options = dump_vb txt buf
 
 [ShaderOverridePose1]
 ; ZZZ+SR Pose Shader One
 hash = e8425f64cfb887cd
 allow_duplicate_hash = overrule
-analyse_options = dump_vb txt
+analyse_options = dump_vb txt buf
 
 [ShaderOverridePose2]
 ; ZZZ+SR Pose Shader Two
 hash = a0b21a8e787c5a98
 allow_duplicate_hash = overrule
-analyse_options = dump_vb txt
+analyse_options = dump_vb txt buf
 
 [ShaderOverridePose3]
 ; ZZZ+SR Pose Shader Three
 hash = 9684c4091fc9e35a
 allow_duplicate_hash = overrule
-analyse_options = dump_vb txt
+analyse_options = dump_vb txt buf
 
 [ShaderOverrideShapekey]
 ; ZZZ+SR ShapeKey Compute Shader
@@ -140,7 +140,7 @@ analyse_options = dump_rt dump_tex dump_cb buf txt
 
 ;----------PRESET COMMANDS----------
 [CommandListModel]
-analyse_options = dump_ib dump_vb txt
+analyse_options = dump_ib dump_vb txt buf
 
 [CommandListRT]
 analyse_options = dump_rt jps_dds

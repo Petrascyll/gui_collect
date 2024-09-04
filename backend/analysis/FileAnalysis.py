@@ -1,11 +1,9 @@
 import time
 from pathlib import Path
 
-from .structs import BufferType
-from frame_analysis.structs import Component
-
-from .buffer_utilities import extract_from_txt
-from .buffer_reader import get_best_buffer_path
+from backend.utils.buffer_utils.buffer_reader import extract_from_txt
+from backend.utils.buffer_utils.structs import BufferType
+from backend.analysis.structs import Component
 
 
 class FrameAnalysisException(Exception):
@@ -73,8 +71,6 @@ class FileAnalysis():
 
                 if ib_first_index > highest_ib_first_index:
                     highest_ib_first_index = ib_first_index
-                    backup_position_paths: list[Path] = []
-                    backup_texcoord_paths: list[Path] = []
 
                 object_indices.append(ib_first_index)
                 ib_filepaths  .append(ib_filepath)
@@ -91,10 +87,8 @@ class FileAnalysis():
                 if len(texcoord_vb_candidate) == 1:
                     backup_texcoord_paths.append(texcoord_vb_candidate[0])
 
-        st = time.time()
-        component.backup_position_path = get_best_buffer_path(backup_position_paths)
-        component.backup_texcoord_path = get_best_buffer_path(backup_texcoord_paths)
-        print('\t\tFound best draw buffers in: {}s'.format(time.time() - st))
+        component.backup_position_paths = backup_position_paths
+        component.backup_texcoord_paths = backup_texcoord_paths
 
         component.ib_paths = [
             ib_filepath for ib_filepath, _ in sorted(

@@ -2,8 +2,10 @@ import re
 import time
 from pathlib import Path
 
-from .structs import BufferType, Component
-from .buffer_reader import get_best_buffer_path
+from backend.utils.buffer_utils.structs import BufferType
+
+from .structs import Component
+
 
 class LogAnalysis():
 
@@ -63,10 +65,9 @@ class LogAnalysis():
             raise Exception('Invalid input hash {}'.format(component_hash))
 
     def set_draw_data(self, component: Component):
-        object_indices: list[str] = []
+        object_indices: list[int] = []
         ib_filepaths  : list[Path] = []
 
-        highest_ib_first_index = -1
         backup_position_paths: list[Path] = []
         backup_texcoord_paths: list[Path] = []
 
@@ -82,31 +83,23 @@ class LogAnalysis():
                 ib_filepath = self.compile_ib_filepath(id, ib_hash, vs_hash, ps_hash)
                 if not ib_filepath.exists(): raise Exception()
 
-                if ib_first_index > highest_ib_first_index:
-                    highest_ib_first_index = ib_first_index
-                    backup_position_paths: list[Path] = []
-                    backup_texcoord_paths: list[Path] = []
-
                 ib_filepaths  .append(ib_filepath)
                 object_indices.append(ib_first_index)
             else:
                 component.index_ids[ib_first_index].append(id)
 
-            if ib_first_index == highest_ib_first_index:
-                if draw_hash := self.get_vb_hash(id, 0):
-                    backup_position_path = self.compile_vb_filepath(id, draw_hash, 0, vs_hash, ps_hash)
-                    if backup_position_path.exists():
-                        backup_position_paths.append(backup_position_path)
+            if draw_hash := self.get_vb_hash(id, 0):
+                backup_position_path = self.compile_vb_filepath(id, draw_hash, 0, vs_hash, ps_hash)
+                if backup_position_path.exists():
+                    backup_position_paths.append(backup_position_path)
 
-                if texcoord_hash := self.get_vb_hash(id, 1):
-                    backup_texcoord_path = self.compile_vb_filepath(id, texcoord_hash, 1, vs_hash, ps_hash)
-                    if backup_texcoord_path.exists():
-                        backup_texcoord_paths.append(backup_texcoord_path)
+            if texcoord_hash := self.get_vb_hash(id, 1):
+                backup_texcoord_path = self.compile_vb_filepath(id, texcoord_hash, 1, vs_hash, ps_hash)
+                if backup_texcoord_path.exists():
+                    backup_texcoord_paths.append(backup_texcoord_path)
 
-        st = time.time()
-        component.backup_position_path = get_best_buffer_path(backup_position_paths)
-        component.backup_texcoord_path = get_best_buffer_path(backup_texcoord_paths)
-        print('\t\tFound best draw buffers in: {}s'.format(time.time() - st))
+        component.backup_position_paths = backup_position_paths
+        component.backup_texcoord_paths = backup_texcoord_paths
 
         component.ib_paths = [
             ib_filepath for ib_filepath, _ in sorted(
@@ -117,6 +110,7 @@ class LogAnalysis():
         component.object_indices = sorted(object_indices)
         component.ib_hash        = self.get_ib_hash(component.ids[0])
         component.draw_hash      = self.get_vb_hash(component.ids[0], 0)
+        component.texcoord_hash  = self.get_vb_hash(component.ids[0], 1)
 
     def set_prepose_data(self, component: Component):
         if not component.draw_hash:
@@ -146,6 +140,7 @@ class LogAnalysis():
             assert(buffer_path.exists())
 
             if buffer_type == BufferType.Position_VB:
+                component.root_vs_hash  = vs_hash
                 component.position_hash = buffer_hash
                 component.position_path = buffer_path
             elif buffer_type == BufferType.Texcoord_VB:
@@ -192,7 +187,7 @@ class LogAnalysis():
     def get_vb_hash(self, draw_id: str, slot: int):
         if str(slot) in self.log_data[draw_id]['IASetVertexBuffers']:
             return self.log_data[draw_id]['IASetVertexBuffers'][str(slot)]
-        return None
+        return ''
 
     def get_ib_hash(self, draw_id: str):
         return self.log_data[draw_id]['IASetIndexBuffer']

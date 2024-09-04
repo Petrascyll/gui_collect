@@ -5,9 +5,10 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter.font import Font
 
+from backend.config.Config import Config
+
 from .data import Page
 from .state import State
-from config.config import Config
 from .xtk.FlatImageButton import FlatImageButton
 
 

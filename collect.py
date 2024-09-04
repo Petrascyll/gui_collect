@@ -1,22 +1,22 @@
 import tempfile
 import traceback
 
-from config.config import Config
-from targeted_dump import targeted_dump
-from texture_utilities.TextureManager import TextureManager
-from gui.app import App
+from backend.config.Config import Config
+from backend.analysis import targeted_analysis
+from backend.utils.texture_utils.TextureManager import TextureManager
+from frontend.app import App
 
 def main():
     print('3dmigoto GUI collect script')
     cfg = Config()
-    targeted_dump.clear()
+    targeted_analysis.clear()
     with tempfile.TemporaryDirectory() as temp_dir:
         cfg.temp_data['temp_dir'] = temp_dir
         app = App()
         TextureManager(temp_dir)
         app.mainloop()
     cfg.save_config()
-    targeted_dump.clear()
+    targeted_analysis.clear()
 
 
 if __name__ == '__main__':

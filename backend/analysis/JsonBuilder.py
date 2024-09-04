@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field, asdict
 
-from .buffer_utilities import parse_buffer_file_name
 from .structs import Component
+
 
 @dataclass
 class JsonComponent():
@@ -50,26 +50,19 @@ class JsonBuilder():
         if game != 'zzz' and ('textures_only' in component.options and component.options['textures_only']):
             return json_component
 
-        json_component.ib                     = parse_buffer_file_name(component.ib_paths[0].name)[2] if component.ib_paths else ''
+        json_component.ib = component.ib_hash
         if game == 'zzz' and ('textures_only' in component.options and component.options['textures_only']):
             return json_component
 
-        json_component.draw_vb = parse_buffer_file_name(component.backup_position_path.name)[2] if component.backup_position_path else ''
+        json_component.draw_vb = component.draw_hash
 
         if component.position_path:
-            parsed = parse_buffer_file_name(component.position_path.name)
-            json_component.root_vs     = parsed[4]['vs']
-            json_component.position_vb = parsed[2]
-        elif component.backup_position_path:
-            json_component.position_vb = json_component.draw_vb
+            json_component.root_vs     = component.root_vs_hash
+            json_component.position_vb = component.position_hash
+        elif component.backup_position_paths:
+            json_component.position_vb = component.draw_hash
 
-        texcoord_path = component.texcoord_path if component.texcoord_path else component.backup_texcoord_path            
-        if texcoord_path:
-            texcoord_hash = parse_buffer_file_name(texcoord_path.name)[2]
-            json_component.texcoord_vb = texcoord_hash
-
-        if component.blend_path:
-            blend_hash = parse_buffer_file_name(component.blend_path.name)[2]
-            json_component.blend_vb = blend_hash
+        json_component.texcoord_vb = component.texcoord_hash
+        json_component.blend_vb    = component.blend_hash
 
         return json_component

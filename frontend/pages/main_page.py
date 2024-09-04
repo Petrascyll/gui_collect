@@ -2,11 +2,12 @@ from enum import Enum
 import tkinter as tk
 from pathlib import Path
 
+from backend.config.Config import Config
+
 from ..data import Page
 from ..extract_form import ExtractForm
 from ..address_frame import AddressFrame
 from ..texture_picker import TexturePicker
-from config.config import Config
 
 
 class MainPage(tk.Frame):

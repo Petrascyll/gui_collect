@@ -4,7 +4,8 @@ from tkinter.font import Font
 
 from pathlib import Path
 
-from config.config import Config
+from backend.config.Config import Config
+
 from ..state import State
 from ..xtk.Checkbox import LabeledCheckbox
 from ..xtk.FlatImageButton import FlatImageButton

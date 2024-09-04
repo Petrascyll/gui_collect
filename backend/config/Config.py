@@ -1,6 +1,10 @@
 import os
 import json
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict
+
+from .structs import ConfigData
+from .exceptions import InvalidConfigData
+
 
 class Config():
     __instance = None
@@ -39,14 +43,14 @@ class Config():
 
     def _create_config(self):
         with open(self._config_filepath, 'w', encoding='utf-8') as f:
-            json.dump(asdict(_ConfigData()), f, indent=4)
+            json.dump(asdict(ConfigData()), f, indent=4)
 
     def _load_config(self) -> dict:
         with open(self._config_filepath, 'r', encoding='utf-8') as f:
             try:
                 d = json.load(f)
-                _ConfigData.validate_config_data(d)
-                self.data = _ConfigData(**d)
+                ConfigData.validate_config_data(d)
+                self.data = ConfigData(**d)
             except json.decoder.JSONDecodeError:
                 print('\tconfig: JSON Decode Error. config.json is not a valid json file.')
                 self.prompt_config_refresh()
@@ -72,44 +76,3 @@ class Config():
             return self._load_config()
         else:
             exit('\tInvalid config.json. Exiting.')
-
-@dataclass
-class _GameConfigData():
-    # export_path               : str = '_Extracted'
-    frame_analysis_parent_path: str = ''
-
-    # predefined_texture_names: list[str] = field(
-    #     default_factory= lambda: [
-    #         'Diffuse',
-    #         'NormalMap',
-    #         'LightMap',
-    #         'StockingMap',
-    #         'Expressionmap',
-    #         'Shadow',
-    #     ]
-    # )
-
-@dataclass
-class _ConfigData():
-    first_launch: bool = True
-    active_game: str = 'zzz'
-    targeted_analysis_enabled: bool = False
-    game: dict[str, _GameConfigData] = field(
-        default_factory= lambda: {
-            'zzz': _GameConfigData(),
-            'hsr': _GameConfigData(),
-            'gi' : _GameConfigData(),
-        }
-    )
-
-    @staticmethod
-    def validate_config_data(d: dict):
-        # TODO
-        # Defaulted 3 required keys missing from .json 
-        # Validate values for certain keys
-        # raise InvalidConfigData()
-        pass
-
-class InvalidConfigData(Exception):
-    def __init__(self, msg):
-        super.__init__(msg)

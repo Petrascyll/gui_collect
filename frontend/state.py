@@ -1,6 +1,6 @@
 from enum import Enum, auto
 
-from config.config import Config
+from backend.config.Config import Config
 
 from .data import Page
 

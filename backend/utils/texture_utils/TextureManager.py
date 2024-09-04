@@ -4,7 +4,7 @@ import threading
 from tkinter import PhotoImage
 from pathlib import Path
 
-from .Texture import Texture
+from ...analysis.structs import Texture
 
 class TextureManager():
     __instance = None

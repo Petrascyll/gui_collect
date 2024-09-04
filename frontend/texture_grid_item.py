@@ -2,13 +2,13 @@ import tkinter as tk
 
 from functools import partial
 
-from texture_utilities.TextureManager import TextureManager
-from texture_utilities.Texture import Texture
+from backend.utils.texture_utils.TextureManager import TextureManager
+from backend.analysis.structs import Texture
 
 from .xtk.ScrollableFrame import ScrollableFrame
 
 
-class LightTextureGridItem(tk.Canvas):
+class TextureGridItem(tk.Canvas):
     def __init__(self, parent, texture: Texture, get_ref, *args, **kwargs):
         tk.Canvas.__init__(self, parent)
         self.config(*args, **kwargs)

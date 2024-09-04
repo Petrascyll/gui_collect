@@ -2,16 +2,14 @@ import tkinter as tk
 from functools import partial
 from pathlib import Path
 
-from config.config import Config
-from frame_analysis.structs import Component
+from backend.config.Config import Config
+from backend.analysis.structs import Component, Texture
+from backend.utils.texture_utils.TextureManager import TextureManager
 
 from .texture_grid import TextureGrid
 from .xtk.ScrollableFrame import ScrollableFrame
 from .xtk.FlatImageButton import FlatImageButton
 from .xtk.FlatButton import FlatButton
-
-from texture_utilities.Texture import Texture
-from texture_utilities.TextureManager import TextureManager
 
 
 class TexturePicker(tk.Frame):
