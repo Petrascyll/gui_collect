@@ -11,7 +11,6 @@ from backend.utils.buffer_utils.buffer_decoder import collect_binary_buffer_data
 from backend.utils.buffer_utils.exceptions import InvalidTextBufferException
 
 from .LogAnalysis     import LogAnalysis
-from .FileAnalysis    import FileAnalysis
 from .TextureAnalysis import TextureAnalysis
 
 from .JsonBuilder import JsonBuilder
@@ -24,7 +23,6 @@ class FrameAnalysis():
 
         self.path = frame_analysis_path
         self.log_analysis     =     LogAnalysis(self.path)
-        self.file_analysis    =    FileAnalysis(self.path)
         self.texture_analysis = TextureAnalysis(self.path)
 
     def get_textures(self, draw_id):
@@ -49,13 +47,7 @@ class FrameAnalysis():
             except Exception as X:
                 print('\t\tLog Analysis Failed: {}'.format(X))
                 traceback.print_exc()
-                try:
-                    self.file_analysis.extract(c, target_hash)
-                    c.print(tabs=2)
-                except Exception as X:
-                    print('\t\tFile Analysis Failed: {}'.format(X))
-                    traceback.print_exc()
-                    return
+                return
 
             self.texture_analysis.set_preferred_texture_id(c, game)
             components.append(c)
