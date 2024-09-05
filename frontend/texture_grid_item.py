@@ -85,7 +85,7 @@ class TextureGridItem(tk.Canvas):
 
 class TextureTypeFrame(ScrollableFrame):
     def __init__(self, parent, handle_texture_type_click, *args, **kwargs):
-        ScrollableFrame.__init__(self, parent, scrollable_parent=parent.master.parent.parent, bg='#111', width=256-16, height=256-16)
+        ScrollableFrame.__init__(self, parent, scrollable_parent=parent.master.parent.parent, bg='#111', width=256, height=256)
         self.config(*args, **kwargs)
         self.parent = parent
 

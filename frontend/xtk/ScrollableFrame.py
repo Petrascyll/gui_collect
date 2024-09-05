@@ -34,7 +34,8 @@ class ScrollableFrame(tk.Frame):
         self._scrollbar.grid(row=0, column=1, sticky="nes")
 
         # The Canvas which supports the Scrollbar Interface, layout to the left
-        self._canvas = tk.Canvas(self, bd=0, highlightthickness=0, width=self['width'], height=self['height'])
+        # Width of scrollbar is 14px
+        self._canvas = tk.Canvas(self, bd=0, highlightthickness=0, width=self['width'] - 14, height=self['height'])
         self._canvas.grid(row=0, column=0, sticky="nesw")
         self._canvas.config(bg=self['bg'])
 
