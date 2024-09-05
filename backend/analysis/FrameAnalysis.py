@@ -84,7 +84,7 @@ class FrameAnalysis():
                         try:
                             buffer_elements = get_buffer_elements(buffer_paths)
                         except InvalidTextBufferException:
-                            print('\t\ERROR: Invalid text buffer!')
+                            print('\tERROR: Invalid text buffer!')
                             return
                         else:
                             buffer_path    = buffer_paths[0].with_suffix('.buf')
