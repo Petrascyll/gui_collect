@@ -41,12 +41,12 @@ class Component():
                 '{}   {:8} - {}'.format('\t'*(tabs+1), first_index, ib_path.name)
                 for ib_path, first_index in zip(self.ib_paths, self.object_indices)
             ],
-            # '{}Backup Position Path: {}'.format('\t'*tabs, self.backup_position_path.name if self.backup_position_path else ''),
-            # '{}Backup Texcoord Path: {}'.format('\t'*tabs, self.backup_texcoord_path.name if self.backup_texcoord_path else ''),
+            '{}Backup Position Path: {}'.format('\t'*tabs, self.backup_position_paths[0].with_suffix('.buf').name if self.backup_position_paths else ''),
+            '{}Backup Texcoord Path: {}'.format('\t'*tabs, self.backup_texcoord_paths[0].with_suffix('.buf').name if self.backup_texcoord_paths else ''),
             '',
-            '{} Position Path: {}'.format('\t'*tabs, self.position_path.name if self.position_path else ''),
-            '{} Texcoord Path: {}'.format('\t'*tabs, self.texcoord_path.name if self.texcoord_path else ''),
-            '{}    Blend Path: {}   '.format('\t'*tabs, self.blend_path.name if self.blend_path else ''),
+            '{} Position Path: {}'.format('\t'*tabs, self.position_path.with_suffix('.buf').name if self.position_path else ''),
+            '{} Texcoord Path: {}'.format('\t'*tabs, self.texcoord_path.with_suffix('.buf').name if self.texcoord_path else ''),
+            '{}    Blend Path: {}   '.format('\t'*tabs, self.blend_path.with_suffix('.buf').name if self.blend_path else ''),
         ])
         print(s)
 

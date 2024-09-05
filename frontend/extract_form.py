@@ -175,7 +175,6 @@ class ExtractForm(tk.Frame):
             frame_analysis.export(extract_name, extracted_components, collected_textures, game=self.variant.value)
             self.state.del_var(State.K.FRAME_ANALYSIS)
             subprocess.run([FILEBROWSER_PATH, Path('_Extracted', extract_name)])
-            print('Extraction done')
         except Exception as X:
             print(X)
             traceback.print_exc()

@@ -23,8 +23,10 @@ def merge_buffers(buffers, buffer_formats: list[dict]):
 # Constructs the output file that will be loaded into 3dmigoto
 def construct_combined_buffer(buffer_data, buffer_elements: list[BufferElement]):
 
+    stride = sum([element.ByteWidth for element in buffer_elements])
+
     vb_merged = '\n'.join([
-        'stride: {}'       .format(sum([element.ByteWidth for element in buffer_elements])),
+        'stride: {}'       .format(stride),
         'first vertex: 0',
         'vertex count: {}' .format(len(buffer_data)),
         'topology: trianglelist',
@@ -50,6 +52,10 @@ def construct_combined_buffer(buffer_data, buffer_elements: list[BufferElement])
             ''
         ])
         byte_offset += element.ByteWidth
+
+        print(f'\t{element.Name:12} - {element.ByteWidth:2} - {element.Format}')
+
+    print(f'Total Stride: {stride}\n')
 
     vb_merged += '\nvertex-data:\n\n'
     

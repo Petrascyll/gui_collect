@@ -173,7 +173,6 @@ def get_buffer_elements(buffer_paths: list[Path] | Path):
             raise InvalidTextBufferException
 
         if int(header['stride']) == sum(element.ByteWidth for element in buffer_elements):
-            print('\t\tFound correct headers: {}'.format(buffer_path.name))
             return buffer_elements
 
     raise Exception('Failed to find correct buffer format.')

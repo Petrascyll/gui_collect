@@ -97,6 +97,7 @@ class FrameAnalysis():
                             buffers .append(buffer)
                             elements.append(buffer_elements)
                 
+                print(f'Constructing combined buffer for [{component.ib_hash}] - {component.name}')
                 vb_merged = merge_buffers(buffers, elements) if buffers else None
             
             if textures : _export_component_textures(export_name, component, textures[i])
