@@ -56,7 +56,7 @@ def construct_combined_buffer(buffer_data, buffer_elements: list[BufferElement])
     # Scyll: Extremely fast - avoid excessive string concatenation with +=
     vb_merged += '\n'.join([
         ''.join([
-            f'vb0[{i}]+{byte_offsets[j]} {element_names[j]}: {", ".join(buffer_data[i][j])}\n'
+            f'vb0[{i}]+{byte_offsets[j]} {element_names[j]}: {", ".join(map(str, buffer_data[i][j]))}\n'
             for j in range(len(buffer_elements))
         ])
         for i in range(len(buffer_data))

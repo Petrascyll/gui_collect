@@ -39,44 +39,44 @@ def get_decoder(dxgi_format: str):
 
     if f16_pattern.match(dxgi_format):
         unpack_from = struct.Struct(FORMAT('e')).unpack_from
-        return lambda buffer, offset: [str(x) for x in unpack_from(buffer, offset)]
+        return lambda buffer, offset: unpack_from(buffer, offset)
     if f32_pattern.match(dxgi_format):
         unpack_from = struct.Struct(FORMAT('f')).unpack_from
-        return lambda buffer, offset: [str(x) for x in unpack_from(buffer, offset)]
+        return lambda buffer, offset: unpack_from(buffer, offset)
     
     if u8_pattern.match(dxgi_format):
         unpack_from = struct.Struct(FORMAT('B')).unpack_from
-        return lambda buffer, offset: [str(x) for x in unpack_from(buffer, offset)]
+        return lambda buffer, offset: unpack_from(buffer, offset)
     if u16_pattern.match(dxgi_format):
         unpack_from = struct.Struct(FORMAT('H')).unpack_from
-        return lambda buffer, offset: [str(x) for x in unpack_from(buffer, offset)]
+        return lambda buffer, offset: unpack_from(buffer, offset)
     if u32_pattern.match(dxgi_format):
         unpack_from = struct.Struct(FORMAT('L')).unpack_from
-        return lambda buffer, offset: [str(x) for x in unpack_from(buffer, offset)]
+        return lambda buffer, offset: unpack_from(buffer, offset)
     
     if s8_pattern.match(dxgi_format):
         unpack_from = struct.Struct(FORMAT('b')).unpack_from
-        return lambda buffer, offset: [str(x) for x in unpack_from(buffer, offset)]
+        return lambda buffer, offset: unpack_from(buffer, offset)
     if s16_pattern.match(dxgi_format):
         unpack_from = struct.Struct(FORMAT('h')).unpack_from
-        return lambda buffer, offset: [str(x) for x in unpack_from(buffer, offset)]
+        return lambda buffer, offset: unpack_from(buffer, offset)
     if s32_pattern.match(dxgi_format):
         unpack_from = struct.Struct(FORMAT('l')).unpack_from
-        return lambda buffer, offset: [str(x) for x in unpack_from(buffer, offset)]
+        return lambda buffer, offset: unpack_from(buffer, offset)
 
     if unorm8_pattern.match(dxgi_format):
         unpack_from = struct.Struct(FORMAT('B')).unpack_from
-        return lambda buffer, offset: [str(x/255.0) for x in unpack_from(buffer, offset)]
+        return lambda buffer, offset: [x/255.0 for x in unpack_from(buffer, offset)]
     if unorm16_pattern.match(dxgi_format):
         unpack_from = struct.Struct(FORMAT('H')).unpack_from
-        return lambda buffer, offset: [str(x/65535.0) for x in unpack_from(buffer, offset)]
+        return lambda buffer, offset: [x/65535.0 for x in unpack_from(buffer, offset)]
 
     if snorm8_pattern.match(dxgi_format):
         unpack_from = struct.Struct(FORMAT('b')).unpack_from
-        return lambda buffer, offset: [str(x/127.0) for x in unpack_from(buffer, offset)]
+        return lambda buffer, offset: [x/127.0 for x in unpack_from(buffer, offset)]
     if snorm16_pattern.match(dxgi_format):
         unpack_from = struct.Struct(FORMAT('h')).unpack_from
-        return lambda buffer, offset: [str(x/32767.0) for x in unpack_from(buffer, offset)]
+        return lambda buffer, offset: [x/32767.0 for x in unpack_from(buffer, offset)]
 
     raise Exception('Unrecognized dxgi format: {}'.format(dxgi_format))
 

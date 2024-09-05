@@ -111,13 +111,23 @@ class FrameAnalysis():
 def _export_component_buffers(export_name: str, component: Component, vb_merged):
     object_classification = component.object_classification
 
+    # Instead of writing the same vb0 text file multiple times,
+    # write it once, and copy and rename it to spread it across
+    # the rest of the component's parts. Copying seems faster
+    # than writing
+    main_vb0_file_path = None
+
     for i, ib_path in enumerate(component.ib_paths):
         prefix = export_name + component.name + object_classification[i]
         vb0_file_name = '{}-vb0={}.txt'.format(prefix, component.position_hash if component.position_hash else component.draw_hash)
         ib_file_name  = '{}-ib={}.txt' .format(prefix, component.ib_hash)
 
         vb0_file_path = Path('_Extracted', export_name, vb0_file_name)
-        vb0_file_path.write_text(vb_merged)
+        if not main_vb0_file_path:
+            vb0_file_path.write_text(vb_merged)
+            main_vb0_file_path = vb0_file_path
+        else:
+            shutil.copyfile(main_vb0_file_path, vb0_file_path)
 
         ib_file_path = Path('_Extracted', export_name, ib_file_name)
         shutil.copyfile(ib_path, ib_file_path)
