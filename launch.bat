@@ -27,6 +27,7 @@ setlocal EnableDelayedExpansion
 ))
 
 echo You must have at least Python 3.9 installed! 
+pause
 goto end
 
 :run-script

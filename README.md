@@ -6,10 +6,9 @@ Used to extract model data from 3dmigoto generated frame dumps for certain anime
 ## Requirements
 - **Python >= 3.9**
 - texconv.exe (included in modules directory)
-- texdiag.exe (included in modules directory)
 
 > [!WARNING]
-> texconv.exe and texdiag.exe are used to convert and inspect .dds file types, and are included in the modules directory. If you're concerned about having unknown .exes bundled in which is a very valid concern, feel free to delete the included .exes and grab them yourself from Microsoft DirectX's official repo here https://github.com/microsoft/DirectXTex/releases/tag/jun2024
+> texconv.exe is used to convert .dds file types, and is included in the modules directory. If you're concerned about having an unknown .exe bundled in which is a very valid concern, feel free to delete it and grab it yourself from Microsoft DirectX's official repo here https://github.com/microsoft/DirectXTex/releases/tag/jun2024
 
 ## How to run
 
