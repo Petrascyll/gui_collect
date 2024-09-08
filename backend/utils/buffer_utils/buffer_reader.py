@@ -162,9 +162,10 @@ def read_clean_header(buffer_path: Path):
     return header, buffer_elements
 
 
-def get_buffer_elements(buffer_paths: list[Path] | Path):
-    if type(buffer_paths) is not list:
-        buffer_paths = [buffer_paths]
+def get_buffer_elements(buffer_paths: list[Path]):
+    min_trash_buffer_elements = None
+    max_expressed_stride      = -1
+    buffer_stride             = -1
 
     for buffer_path in buffer_paths:
         header, buffer_elements = read_clean_header(buffer_path)
@@ -172,10 +173,22 @@ def get_buffer_elements(buffer_paths: list[Path] | Path):
         if int(header['stride']) == 0:
             raise InvalidTextBufferException
 
-        if int(header['stride']) == sum(element.ByteWidth for element in buffer_elements):
-            return buffer_elements
+        expressed_stride = sum(element.ByteWidth for element in buffer_elements)
+        buffer_stride    = int(header['stride'])
 
-    raise Exception('Failed to find correct buffer format.')
+        if buffer_stride == expressed_stride:
+            return buffer_stride, buffer_elements
+
+        if expressed_stride > max_expressed_stride:
+            min_trash_buffer_elements = buffer_elements
+            max_expressed_stride      = expressed_stride
+
+    print(
+        f'WARNING: Failed to find ideal buffer format. '
+        f'Buffer "{buffer_paths[0].with_suffix(".buf").name}" has stride = {buffer_stride}, '
+        f'but only {max_expressed_stride} bytes out of those {buffer_stride} can be extracted.'
+    )
+    return buffer_stride, min_trash_buffer_elements
 
 
 def extract_from_txt(key, filepath) -> int:

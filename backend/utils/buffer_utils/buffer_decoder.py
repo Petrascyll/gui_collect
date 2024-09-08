@@ -81,7 +81,7 @@ def get_decoder(dxgi_format: str):
     raise Exception('Unrecognized dxgi format: {}'.format(dxgi_format))
 
 
-def collect_binary_buffer_data(buffer_path: Path, buffer_formats: list[str]):
+def collect_binary_buffer_data(buffer_path: Path, buffer_formats: list[str], buffer_stride: int):
     buffer = buffer_path.read_bytes()
 
     byte_offset    = 0
@@ -90,12 +90,11 @@ def collect_binary_buffer_data(buffer_path: Path, buffer_formats: list[str]):
         decoder_offset.append((get_decoder(format), byte_offset))
         byte_offset += get_byte_width(format)
 
-    stride       = byte_offset
-    vertex_count = len(buffer) // stride
+    vertex_count = len(buffer) // buffer_stride
 
     buffer_data = [
         [
-            decoder(buffer, vertex_index * stride + offset)
+            decoder(buffer, vertex_index * buffer_stride + offset)
             for decoder, offset in decoder_offset
         ]
         for vertex_index in range(vertex_count)

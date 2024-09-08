@@ -82,14 +82,14 @@ class FrameAnalysis():
                 for buffer_type, buffer_paths in merged_buffer_paths:
                     if len(buffer_paths) > 0:
                         try:
-                            buffer_elements = get_buffer_elements(buffer_paths)
+                            buffer_stride, buffer_elements = get_buffer_elements(buffer_paths)
                         except InvalidTextBufferException:
                             print('\tERROR: Invalid text buffer!')
                             return
                         else:
                             buffer_path    = buffer_paths[0].with_suffix('.buf')
                             buffer_formats = [element.Format for element in buffer_elements]
-                            buffer         = collect_binary_buffer_data(buffer_path, buffer_formats)
+                            buffer         = collect_binary_buffer_data(buffer_path, buffer_formats, buffer_stride)
 
                             if buffer_type == 'blend':
                                 handle_no_weight_blend(buffer, buffer_elements)
