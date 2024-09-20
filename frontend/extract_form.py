@@ -128,9 +128,14 @@ class ExtractForm(tk.Frame):
         return extract_name, input_component_hashes, input_component_names, input_components_options, path
 
     def generated_targeted_dump_ini(self):
-        extract_name, input_component_hashes, input_component_names, _, _ = self.collect_input()
+        extract_name, input_component_hashes, input_component_names, _, path = self.collect_input()
         if not input_component_hashes: return
-        targeted_analysis.generate(extract_name, input_component_hashes, input_component_names)
+
+        d3dx_path = path.parent
+        if not (d3dx_path/'d3dx.ini').exists():
+            d3dx_path = None
+
+        targeted_analysis.generate(extract_name, input_component_hashes, input_component_names, d3dx_path)
 
     def clear_targeted_dump_ini(self):
         targeted_analysis.clear()

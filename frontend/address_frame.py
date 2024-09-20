@@ -74,6 +74,7 @@ class AddressFrame(tk.Frame):
     def set_path(self, text: str):
         self.path = str(Path(text).resolve())
         print('Set frame analysis path: {}'.format(str(self.path)))
+        print()
         
         self.folder_path_label.config(text=self.path)
         self.parent.on_address_change(text=self.path)
