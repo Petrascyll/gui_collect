@@ -123,7 +123,9 @@ class LogAnalysis():
             and self.log_data[id]['SOSetTargets']['0'] == component.draw_hash
         ]
         if not pose_ids: return
-        if len(pose_ids) != 1: raise Exception()
+
+        # Yunli weapon is posed twice for some reason?
+        # if len(pose_ids) != 1: raise Exception()
 
         pose_id = pose_ids[0]
         vs_hash = self.get_vertex_shader_hash(pose_id)
