@@ -55,6 +55,9 @@ fixed_content = '''
 [Constants]
 global $active = 0
 
+[Rendering]
+dump_usage = 1
+
 [Hunting]
 hunting = 1
 analyse_options =
