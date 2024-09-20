@@ -47,6 +47,9 @@ class FrameAnalysis():
             try:
                 self.log_analysis.extract(c, target_hash)
                 c.print(tabs=2)
+            except BufferError:
+                print('\t\tLog Analysis Failed!')
+                return
             except Exception as X:
                 print('\t\tLog Analysis Failed: {}'.format(X))
                 traceback.print_exc()

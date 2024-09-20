@@ -27,6 +27,8 @@ class LogAnalysis():
         self.set_draw_data    (extract_component)
         self.set_prepose_data (extract_component)
         # self.set_shapekey_data(extract_component)
+
+        self.check_analysis (extract_component)
         print('\t\tLog Based Extraction Done: {:.6}s'.format(time.time() - st))
 
 
@@ -81,7 +83,10 @@ class LogAnalysis():
             if ib_first_index not in object_indices:
                 component.index_ids[ib_first_index] = [id]
                 ib_filepath = self.compile_ib_filepath(id, ib_hash, vs_hash, ps_hash)
-                if not ib_filepath.exists(): raise Exception()
+                if not ib_filepath.exists():
+                    print(f'{ib_filepath.name} does not exist in the frame analysis folder.')
+                    print('Your `analyse_options` [Hunting] 3dm key is missing required values.')
+                    raise BufferError()
 
                 ib_filepaths  .append(ib_filepath)
                 object_indices.append(ib_first_index)
@@ -139,7 +144,6 @@ class LogAnalysis():
         for slot, buffer_type in zip(*prepose_data):
             buffer_hash = self.log_data[pose_id]['IASetVertexBuffers'][slot]
             buffer_path = self.compile_vb_filepath(pose_id, buffer_hash, slot, vs_hash, ext='.txt')
-            assert(buffer_path.exists())
 
             if buffer_type == BufferType.Position_VB:
                 component.root_vs_hash  = vs_hash
@@ -151,6 +155,32 @@ class LogAnalysis():
             elif buffer_type == BufferType.Blend_VB:
                 component.blend_hash = buffer_hash
                 component.blend_path = buffer_path
+
+    def check_analysis(self, component: Component):
+
+        # Check required .txt and .buf files exist in frame analysis folder
+        txt_paths: dict[str, Path] = {
+            'Position Data': component.position_path,
+            'Blend Data'   : component.blend_path,
+            'Texcoord Data': component.texcoord_path,
+            'Backup Position Data': component.backup_position_paths[0] if component.backup_position_paths else None,
+            'Backup Texcoord Data': component.backup_texcoord_paths[0] if component.backup_texcoord_paths else None,
+        }
+        for k, txt_path in txt_paths.items():
+            if not txt_path: continue
+
+            buf_path = txt_path.with_suffix('.buf')
+            
+            missing_path: Path = None
+            if not txt_path.exists(): missing_path = txt_path
+            if not buf_path.exists(): missing_path = buf_path
+            if missing_path:
+                print(f'\t\t{k}: \'{missing_path.name}\' does not exist in the frame analysis folder.')
+                print('\t\tMake sure to include `buf` in addition to `txt` in your `analyse_options` [Hunting] 3dm key')
+                print('\t\tIf you\'re performing targeted dumps, also check your targeted .ini is correctly targeting the model.')
+                raise BufferError()
+        
+        return
 
     def compile_vb_filepath(self, draw_id, vb_hash, slot, vs_hash, ps_hash=None, ext='.txt'):
         resources = [(f'vb{slot}', vb_hash), ('vs', vs_hash)]
