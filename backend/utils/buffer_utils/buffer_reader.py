@@ -171,7 +171,7 @@ def get_buffer_elements(buffer_paths: list[Path]):
         header, buffer_elements = read_clean_header(buffer_path)
 
         if int(header['stride']) == 0:
-            raise InvalidTextBufferException
+            continue
 
         expressed_stride = sum(element.ByteWidth for element in buffer_elements)
         buffer_stride    = int(header['stride'])
@@ -182,6 +182,10 @@ def get_buffer_elements(buffer_paths: list[Path]):
         if expressed_stride > max_expressed_stride:
             min_trash_buffer_elements = buffer_elements
             max_expressed_stride      = expressed_stride
+
+    if buffer_stride == -1:
+        print('ERROR: Failed to find any valid buffer format.')
+        raise InvalidTextBufferException
 
     print(
         f'WARNING: Failed to find ideal buffer format. '
