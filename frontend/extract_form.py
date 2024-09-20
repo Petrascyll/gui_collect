@@ -146,12 +146,21 @@ class ExtractForm(tk.Frame):
         extract_name, input_component_hashes, input_component_names, input_components_options, path = self.collect_input()
         if not input_component_hashes:
             print('Frame Analysis Aborted! No valid hashes provided.')
+            print()
             return
         if not extract_name:
             print('Frame Analysis Aborted! You must provided a name for the extracted model.')
+            print()
             return
         if not (path/'log.txt').exists():
             print('Frame Analysis Aborted! Invalid frame analysis path: "{}".'.format(str(path)))
+            print()
+            return
+        if not (path/'ShaderUsage.txt').exists():
+            print('Missing required ShaderUsage.txt file in frame analysis folder.')
+            print('Enable dumping it either by setting dump_usage = 1 in 3dm d3dx.ini')
+            print('or by using a targeted .ini created through gui collect to dump.')
+            print()
             return
 
         frame_analysis = FrameAnalysis(path)
