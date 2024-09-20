@@ -16,14 +16,18 @@ from .TextureAnalysis import TextureAnalysis
 from .JsonBuilder import JsonBuilder
 from .structs     import Component
 
+from frontend.state import State
+
 
 class FrameAnalysis():
     def __init__(self, frame_analysis_path: Path):
-        print(frame_analysis_path)
+        self.terminal = State.get_instance().get_terminal()
 
         self.path = frame_analysis_path
         self.log_analysis     =     LogAnalysis(self.path)
         self.texture_analysis = TextureAnalysis(self.path)
+
+        self.terminal.print(f'Starting Frame Analysis: <PATH>{frame_analysis_path}</PATH>\n')
 
     def get_textures(self, draw_id):
         # filter = self.texture_analysis.get_default_filter()
@@ -43,16 +47,19 @@ class FrameAnalysis():
                 'U1', 'V1', 'W1', 'X1', 'Y1', 'Z1',
             ] if game != 'gi' else ['Head', 'Body', 'Dress', 'Extra']
             
-            print('\tExtracting model data of [{}]{}'.format(target_hash, f' - {name}' if name else ''))
+            self.terminal.print('Extracting model data of [{}]{}'.format(target_hash, f' - {name}' if name else ''))
             try:
                 self.log_analysis.extract(c, target_hash)
-                c.print(tabs=2)
+                c.print()
             except BufferError:
-                print('\t\tLog Analysis Failed!')
+                self.terminal.print('<ERROR>Log Analysis Failed!</ERROR>')
+                return
+            except ZeroDivisionError:
+                self.terminal.print('<ERROR>Log Analysis Failed!</ERROR>')
                 return
             except Exception as X:
-                print('\t\tLog Analysis Failed: {}'.format(X))
-                traceback.print_exc()
+                self.terminal.print('<ERROR>Log Analysis Failed: {}</ERROR>'.format(X))
+                self.terminal.print(f'<ERROR>{traceback.format_exc()}</ERROR>')
                 return
 
             self.texture_analysis.set_preferred_texture_id(c, game)
@@ -60,8 +67,7 @@ class FrameAnalysis():
         return components
 
 
-    @staticmethod
-    def export(export_name, components: list[Component], textures = None, game='zzz'):
+    def export(self, export_name, components: list[Component], textures = None, game='zzz'):
         json_builder = JsonBuilder()
 
         extract_path = Path('_Extracted', export_name)
@@ -90,7 +96,7 @@ class FrameAnalysis():
                         try:
                             buffer_stride, buffer_elements = get_buffer_elements(buffer_paths)
                         except InvalidTextBufferException:
-                            print('\tERROR: Invalid text buffer!')
+                            self.terminal.print('<ERROR>ERROR: Invalid text buffer!</ERROR>')
                             return
                         else:
                             buffer_path    = buffer_paths[0].with_suffix('.buf')
@@ -103,7 +109,7 @@ class FrameAnalysis():
                             buffers .append(buffer)
                             elements.append(buffer_elements)
                 
-                print(f'Constructing combined buffer for [{component.ib_hash}] - {component.name}')
+                self.terminal.print(f'Constructing combined buffer for [{component.ib_hash}] - {component.name}')
                 vb_merged = merge_buffers(buffers, elements) if buffers else None
             
             if textures : _export_component_textures(export_name, component, textures[i])
@@ -112,7 +118,7 @@ class FrameAnalysis():
         json_out = json.dumps(json_builder.build(), indent=4)
         Path('_Extracted', export_name, 'hash.json').write_text(json_out)
 
-        print('Export done: {:.3}s'.format(time.time() - st))
+        self.terminal.print('Export done: {:.3}s'.format(time.time() - st))
 
 
 def _export_component_buffers(export_name: str, component: Component, vb_merged):

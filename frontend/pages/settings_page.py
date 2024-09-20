@@ -17,8 +17,9 @@ class SettingsPage(tk.Frame):
         self.config(*args, **kwargs)
         self.parent = parent
 
-        self.state = State.get_instance()
-        self.cfg   = Config.get_instance()
+        self.state    = State.get_instance()
+        self.cfg      = Config.get_instance()
+        self.terminal = self.state.get_terminal()
 
         self.create_widgets()
 
@@ -32,7 +33,7 @@ class SettingsPage(tk.Frame):
     
 
     def update_cfg(self, key, value):
-        print('Set {} to {}'.format(key, value))
+        self.terminal.print('Set Config: {} = {}'.format(key, value))
         self.cfg.data.__setattr__(key, value)
         self.state.refresh_all_extract_forms()
 

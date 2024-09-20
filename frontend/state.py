@@ -25,7 +25,8 @@ class State():
         self.active_page = Page[self._cfg.active_game] if self._cfg.active_game else Page.zzz
         self._active_page_callbacks = []
 
-        self.sidebar = None
+        self.sidebar  = None
+        self.terminal = None
         self.extract_forms = []
 
     @staticmethod
@@ -38,6 +39,14 @@ class State():
         if self.sidebar:
             raise Exception('Sidebar has already been registered')
         self.sidebar = sidebar
+
+    def register_terminal(self, terminal):
+        if self.terminal:
+            raise Exception('Terminal has already been registered')
+        self.terminal = terminal
+
+    def get_terminal(self):
+        return self.terminal
 
     def lock_sidebar(self):
         if not self.sidebar:

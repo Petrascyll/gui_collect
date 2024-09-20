@@ -6,6 +6,9 @@ from .structs import BufferElement
 from .exceptions import InvalidTextBufferException
 
 
+from frontend.state import State
+
+
 def read_header(buffer: TextIOWrapper):
     key_value_pattern = re.compile(r'^\s*(.*?): (.*)$')
     element_pattern   = re.compile(r'^element\[(\d+)\]:$')
@@ -100,7 +103,7 @@ def read_vertex_data(buffer: TextIOWrapper, vertex_data_start_pos: int, valid_el
 
         elif element_name == 'TANGENT':
             if element_values[-1] not in ['-1', '1']:
-                print('WARNING: TANGENT has invalid data.')
+                State.get_instance().get_terminal().print('<WARNING>WARNING: TANGENT has invalid data.</WARNING>')
         
         vertex_data.append(element_values)
 
@@ -184,13 +187,13 @@ def get_buffer_elements(buffer_paths: list[Path]):
             max_expressed_stride      = expressed_stride
 
     if buffer_stride == -1:
-        print('ERROR: Failed to find any valid buffer format.')
+        State.get_instance().get_terminal().print('<ERROR>ERROR: Failed to find any valid buffer format.</ERROR>')
         raise InvalidTextBufferException
 
-    print(
-        f'WARNING: Failed to find ideal buffer format. '
-        f'Buffer "{buffer_paths[0].with_suffix(".buf").name}" has stride = {buffer_stride}, '
-        f'but only {max_expressed_stride} bytes out of those {buffer_stride} can be extracted.'
+    State.get_instance().get_terminal().print(
+        f'<WARNING>WARNING: Failed to find ideal buffer format. '
+        f'Buffer </WARNING><PATH>{buffer_paths[0].with_suffix(".buf").name}"</PATH><WARNING> has stride = {buffer_stride}, '
+        f'but only {max_expressed_stride} bytes out of those {buffer_stride} can be extracted.</WARNING>'
     )
     return buffer_stride, min_trash_buffer_elements
 

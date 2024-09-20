@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 
 from backend.utils.buffer_utils.structs import BufferType
+from frontend.state import State
 
 from .structs import Component
 
@@ -13,15 +14,19 @@ class LogAnalysis():
         self.frame_analysis_path = frame_analysis_path
         self.log_data = parse_frame_analysis_log_file(self.frame_analysis_path / 'log.txt')
 
+        self.terminal = State.get_instance().get_terminal()
+
 
     def extract(self, extract_component: Component, component_hash: str, component_hash_type: str = None) -> None:
         st = time.time()
         if not component_hash_type:
             component_hash_type = self.guess_hash_type(component_hash)
             if not component_hash_type:
-                raise Exception('Failed to find hash "{}" in FrameAnalysis log file.'.format(component_hash))
+                self.terminal.print('<ERROR>ERROR: Failed to find hash "{}" in FrameAnalysis log file.</ERROR>'.format(component_hash))
+                raise ZeroDivisionError()
             if component_hash_type not in [BufferType.IB, BufferType.Draw_VB]:
-                raise Exception('Unsupported')
+                self.terminal.print('<ERROR>ERROR: Hash "{}" is neither an IB nor a Draw hash.</ERROR>'.format(component_hash))
+                raise ZeroDivisionError()
 
         self.set_relevant_ids (extract_component, component_hash, component_hash_type)
         self.set_draw_data    (extract_component)
@@ -29,7 +34,7 @@ class LogAnalysis():
         # self.set_shapekey_data(extract_component)
 
         self.check_analysis (extract_component)
-        print('\t\tLog Based Extraction Done: {:.6}s'.format(time.time() - st))
+        self.terminal.print('Log Based Extraction Done: {:.6}s'.format(time.time() - st))
 
 
     def guess_hash_type(self, target_hash):
@@ -84,8 +89,8 @@ class LogAnalysis():
                 component.index_ids[ib_first_index] = [id]
                 ib_filepath = self.compile_ib_filepath(id, ib_hash, vs_hash, ps_hash)
                 if not ib_filepath.exists():
-                    print(f'{ib_filepath.name} does not exist in the frame analysis folder.')
-                    print('Your `analyse_options` [Hunting] 3dm key is missing required values.')
+                    self.terminal.print(f'<ERROR>ERROR:</ERROR> <PATH>{ib_filepath.name}</PATH><ERROR> does not exist in the frame analysis folder.</ERROR>')
+                    self.terminal.print('Your `analyse_options` [Hunting] 3dm key is missing required values.', timestamp=False)
                     raise BufferError()
 
                 ib_filepaths  .append(ib_filepath)
@@ -175,9 +180,9 @@ class LogAnalysis():
             if not txt_path.exists(): missing_path = txt_path
             if not buf_path.exists(): missing_path = buf_path
             if missing_path:
-                print(f'\t\t{k}: \'{missing_path.name}\' does not exist in the frame analysis folder.')
-                print('\t\tMake sure to include `buf` in addition to `txt` in your `analyse_options` [Hunting] 3dm key')
-                print('\t\tIf you\'re performing targeted dumps, also check your targeted .ini is correctly targeting the model.')
+                self.terminal.print(f'<ERROR>{k}: </ERROR><PATH>{missing_path.name}</PATH><ERROR> does not exist in the frame analysis folder.</ERROR>')
+                self.terminal.print('Make sure to include `buf` in addition to `txt` in your `analyse_options` [Hunting] 3dm key.', timestamp=False)
+                self.terminal.print('If you\'re performing targeted dumps, also check your targeted .ini is correctly targeting the model.', timestamp=False)
                 raise BufferError()
         
         return
@@ -292,6 +297,6 @@ def parse_frame_analysis_log_file(log_path):
 
             else:
                 continue
-    print('Read {} in {:.3}s'.format(log_path.parent.name + '\\' + log_path.name, time.time() - st))
+    State.get_instance().get_terminal().print('Read {} in {:.3}s'.format(log_path.parent.name + '\\' + log_path.name, time.time() - st))
     
     return log_data

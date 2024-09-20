@@ -5,6 +5,8 @@ from os.path import getsize
 from backend.utils import is_valid_hash
 from backend.utils.buffer_utils.buffer_encoder import parse_buffer_file_name
 
+from frontend.state import State
+
 
 @dataclass
 class Component():
@@ -34,21 +36,25 @@ class Component():
     ib_hash       : str = ''
 
     def print(self, tabs=0):
-        s = '\n'.join([
+        s = [
             # '{}Relevant IDs: {}'        .format('\t'*tabs, self.ids),
-            '{}Index Buffer Paths:'          .format('\t'*tabs),
+            'Index Buffer Paths:',
             *[
-                '{}   {:8} - {}'.format('\t'*(tabs+1), first_index, ib_path.name)
+                '     {:8} - <PATH>{}</PATH>'.format(first_index, ib_path.name)
                 for ib_path, first_index in zip(self.ib_paths, self.object_indices)
             ],
-            '{}Backup Position Path: {}'.format('\t'*tabs, self.backup_position_paths[0].with_suffix('.buf').name if self.backup_position_paths else ''),
-            '{}Backup Texcoord Path: {}'.format('\t'*tabs, self.backup_texcoord_paths[0].with_suffix('.buf').name if self.backup_texcoord_paths else ''),
+            'Backup Position Path: <PATH>{}</PATH>'.format(self.backup_position_paths[0].with_suffix('.buf').name if self.backup_position_paths else ''),
+            'Backup Texcoord Path: <PATH>{}</PATH>'.format(self.backup_texcoord_paths[0].with_suffix('.buf').name if self.backup_texcoord_paths else ''),
             '',
-            '{} Position Path: {}'.format('\t'*tabs, self.position_path.with_suffix('.buf').name if self.position_path else ''),
-            '{} Texcoord Path: {}'.format('\t'*tabs, self.texcoord_path.with_suffix('.buf').name if self.texcoord_path else ''),
-            '{}    Blend Path: {}   '.format('\t'*tabs, self.blend_path.with_suffix('.buf').name if self.blend_path else ''),
-        ])
-        print(s)
+            'Position Path: <PATH>{}</PATH>'.format(self.position_path.with_suffix('.buf').name if self.position_path else ''),
+            'Texcoord Path: <PATH>{}</PATH>'.format(self.texcoord_path.with_suffix('.buf').name if self.texcoord_path else ''),
+            '   Blend Path: <PATH>{}</PATH>'.format(self.blend_path.with_suffix('.buf').name if self.blend_path else ''),
+        ]
+
+        terminal = State.get_instance().get_terminal()
+        for line in s:
+            terminal.print(line, timestamp=False)
+
 
 
 class Texture():
@@ -63,7 +69,9 @@ class Texture():
             self.contamination = resource_contamination
             self.slot          = int(resource.split('ps-t')[1].split('-')[0])
 
-            assert(self.hash in texture_usage)
+            if self.hash not in texture_usage:
+                State.get_instance().get_terminal().print(f'<ERROR>Failed to find texture hash {self.hash} in ShaderUsage.txt</ERROR>')
+                raise Exception()
 
             self.width  = int(texture_usage[self.hash]['width'])
             self.height = int(texture_usage[self.hash]['height'])

@@ -12,14 +12,15 @@ def get_status():
         enabled = len(text) > 0
     return exists, enabled
 
-def clear():
+def clear(terminal=None):
     _filepath      .write_text('', encoding='utf-8')
     _text_filepath .write_text('', encoding='utf-8')
 
-    print(f'Cleared targeted content from {_filepath.absolute()}')
-    print()
+    if terminal:
+        terminal.print(f'Cleared targeted ini content from <PATH>{_filepath.absolute()}</PATH>')
+        terminal.print()
 
-def generate(export_name, model_hashes, component_names, d3dx_path: Path):
+def generate(export_name, model_hashes, component_names, d3dx_path: Path, terminal):
     draw_content = '\n\n'.join([
         '\n'.join([
             '[TextureOverrideModel{}]'.format(i+1),
@@ -52,11 +53,11 @@ def generate(export_name, model_hashes, component_names, d3dx_path: Path):
         encoding='utf-8'
     )
 
-    print(f'Wrote targeted content to {_filepath.absolute()}')
+    terminal.print(f'Wrote targeted ini content to <PATH>{_filepath.absolute()}</PATH>')
     if d3dx_path:
         relative_path = _filepath.absolute().relative_to(d3dx_path, walk_up=True)
-        print(f'Relative path to {d3dx_path.absolute()} is {relative_path}')
-        print()
+        terminal.print(f'Its relative path to <PATH>{d3dx_path.absolute()}</PATH> is <PATH>{relative_path}</PATH>')
+        terminal.print()
 
 
 fixed_content = '''

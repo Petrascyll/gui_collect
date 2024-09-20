@@ -19,7 +19,8 @@ class AddressFrame(tk.Frame):
         self.parent = parent
 
         self._state = State.get_instance()
-        
+        self.terminal = self._state.get_terminal()
+
         self.font = Font(family='Arial', size=20, weight='bold')
         self.address_max_width = 400
         self.target = target
@@ -73,8 +74,8 @@ class AddressFrame(tk.Frame):
 
     def set_path(self, text: str):
         self.path = str(Path(text).resolve())
-        print('Set frame analysis path: {}'.format(str(self.path)))
-        print()
+        self.terminal.print('Set frame analysis path: <PATH>{}</PATH>'.format(str(self.path)))
+        self.terminal.print()
         
         self.folder_path_label.config(text=self.path)
         self.parent.on_address_change(text=self.path)
@@ -106,7 +107,7 @@ class AddressFrame(tk.Frame):
         if not frame_analysis_parent_path.exists():
             return
 
-        print('Looking for latest frame analysis in {}'.format(str(frame_analysis_parent_path)))
+        self.terminal.print('Looking for latest frame analysis in <PATH>{}</PATH>'.format(str(frame_analysis_parent_path)))
         frame_analysis_paths = sorted(
             [
                 f for f in frame_analysis_parent_path.iterdir()

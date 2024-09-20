@@ -5,6 +5,7 @@ from .style import APP_STYLE
 from .sidebar import Sidebar
 from .main import Main
 from .state import State
+from .Terminal import Terminal
 
 
 class App(tk.Tk):
@@ -15,9 +16,9 @@ class App(tk.Tk):
 
         self.state = State()
 
-        version_str = '0.9.0'
+        version_str = '0.9.1'
         self.title(f'GUI Collect v{version_str}')
-        self.geometry('1368x800')
+        self.geometry('1368x840')
         # self.geometry('1650x800')
         self.configure_style()
         self.configure_grid()
@@ -28,16 +29,19 @@ class App(tk.Tk):
 
     def configure_grid(self):
         self   .grid_rowconfigure(0, weight=1)
+        self   .grid_rowconfigure(1, weight=0)
         self.grid_columnconfigure(0, weight=0)
         self.grid_columnconfigure(1, weight=1)
 
     def create_widgets(self):
-        self.sidebar = Sidebar(parent=self, active_page=self.state.active_page)
-        self.main    =    Main(parent=self, active_page=self.state.active_page)
+        self.terminal = Terminal(parent=self)
+        self.sidebar  =  Sidebar(parent=self, active_page=self.state.active_page)
+        self.main     =     Main(parent=self, active_page=self.state.active_page)
 
     def grid_widgets(self):
-        self.sidebar.grid(column=0, row=0, sticky='nsew')
-        self.main   .grid(column=1, row=0, sticky='nsew')
+        self.sidebar .grid(column=0, row=0, rowspan=2, sticky='nsew')
+        self.main    .grid(column=1, row=0, sticky='nsew')
+        self.terminal.grid(column=1, row=1, sticky='nsew')
 
     def configure_style(self):
         # styling tk.Scrollbar via parameters didn't work

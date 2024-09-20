@@ -32,6 +32,8 @@ class ExtractForm(tk.Frame):
         self.state = State.get_instance()
         self.state.register_extract_form(self)
 
+        self.terminal = self.state.get_terminal()
+
         self.configure_grid()
         self.create_widgets()
         self.grid_widgets()
@@ -107,7 +109,7 @@ class ExtractForm(tk.Frame):
         for input_component in self.input_component_list.get():
             if not input_component.hash: continue
             if not is_valid_hash(input_component.hash):
-                print('Invalid hash: {}'.format(input_component.hash))
+                self.terminal.print('<ERROR>Invalid hash: {}</ERROR>'.format(input_component.hash))
                 return None, None, None, None, None
             
             input_component_hashes  .append(input_component.hash)
@@ -129,45 +131,51 @@ class ExtractForm(tk.Frame):
 
     def generated_targeted_dump_ini(self):
         extract_name, input_component_hashes, input_component_names, _, path = self.collect_input()
-        if not input_component_hashes: return
+        if not input_component_hashes:
+            self.terminal.print('<ERROR>Targeted Ini Generation Aborted! No valid hashes provided.</ERROR>')
+            self.terminal.print()
+            return
 
         d3dx_path = path.parent
         if not (d3dx_path/'d3dx.ini').exists():
             d3dx_path = None
 
-        targeted_analysis.generate(extract_name, input_component_hashes, input_component_names, d3dx_path)
+        targeted_analysis.generate(extract_name, input_component_hashes, input_component_names, d3dx_path, self.terminal)
 
     def clear_targeted_dump_ini(self):
-        targeted_analysis.clear()
+        targeted_analysis.clear(self.terminal)
 
     def start_extraction(self):
         st = time.time()
 
         extract_name, input_component_hashes, input_component_names, input_components_options, path = self.collect_input()
         if not input_component_hashes:
-            print('Frame Analysis Aborted! No valid hashes provided.')
-            print()
+            self.terminal.print('<ERROR>Frame Analysis Aborted! No valid hashes provided.</ERROR>')
+            self.terminal.print()
             return
         if not extract_name:
-            print('Frame Analysis Aborted! You must provided a name for the extracted model.')
-            print()
+            self.terminal.print('<ERROR>Frame Analysis Aborted! You must provided a name for the extracted model.</ERROR>')
+            self.terminal.print()
             return
         if not (path/'log.txt').exists():
-            print('Frame Analysis Aborted! Invalid frame analysis path: "{}".'.format(str(path)))
-            print()
+            self.terminal.print('<ERROR>Frame Analysis Aborted! Invalid frame analysis path: "{}".</ERROR>'.format(str(path)))
+            self.terminal.print()
             return
         if not (path/'ShaderUsage.txt').exists():
-            print('Missing required ShaderUsage.txt file in frame analysis folder.')
-            print('Enable dumping it either by setting dump_usage = 1 in 3dm d3dx.ini')
-            print('or by using a targeted .ini created through gui collect to dump.')
-            print()
+            self.terminal.print('<ERROR>Missing required ShaderUsage.txt file in frame analysis folder.</ERROR>')
+            self.terminal.print(
+                'Enable dumping it either by setting dump_usage = 1 in 3dm d3dx.ini'
+                'or by using a targeted .ini generated through gui collect to dump.'
+            )
+            self.terminal.print()
             return
 
         frame_analysis = FrameAnalysis(path)
         self.state.set_var(State.K.FRAME_ANALYSIS, frame_analysis)
         extracted_components = frame_analysis.extract(input_component_hashes, input_component_names, input_components_options, game=self.variant.value)
         if extracted_components is None:
-            print('Frame Analysis Failed!')
+            self.terminal.print('<ERROR>Frame Analysis Failed!</ERROR>')
+            self.terminal.print()
             return
         
         skip_textures = False
@@ -181,19 +189,27 @@ class ExtractForm(tk.Frame):
         else:
             self.finish_extraction(extract_name, extracted_components)
 
-        print('Ready {:.3}s'.format(time.time() - st))
+        self.terminal.print('Ready {:.3}s'.format(time.time() - st))
 
     def finish_extraction(self, extract_name, extracted_components, collected_textures=None):
         try:
             frame_analysis = self.state.get_var(State.K.FRAME_ANALYSIS)
             frame_analysis.export(extract_name, extracted_components, collected_textures, game=self.variant.value)
             self.state.del_var(State.K.FRAME_ANALYSIS)
-            subprocess.run([FILEBROWSER_PATH, Path('_Extracted', extract_name)])
+
+            extract_dir = Path('_Extracted', extract_name)
+
+            self.terminal.print(f'Opening <PATH>{extract_dir.absolute()}</PATH> with File Explorer')
+            self.terminal.print()
+
+            subprocess.run([FILEBROWSER_PATH, extract_dir])
         except Exception as X:
-            print(X)
-            traceback.print_exc()
-            print('Frame Analysis Failed!')
+            self.terminal.print(f'<ERROR>{X}</ERROR>')
+            self.terminal.print(f'<ERROR>{traceback.format_exc()}</ERROR>')
+            self.terminal.print('<ERROR>Frame Analysis Failed!</ERROR>')
+
         self.state.unlock_sidebar()
 
     def cancel_extraction(self):
+        self.terminal.print('<WARNING>Frame Analysis Canceled.</WARNING>')
         self.state.unlock_sidebar()

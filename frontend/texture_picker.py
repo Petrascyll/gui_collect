@@ -6,6 +6,8 @@ from backend.config.Config import Config
 from backend.analysis.structs import Component, Texture
 from backend.utils.texture_utils.TextureManager import TextureManager
 
+from .state import State
+
 from .texture_grid import TextureGrid
 from .xtk.ScrollableFrame import ScrollableFrame
 from .xtk.FlatImageButton import FlatImageButton
@@ -18,6 +20,7 @@ class TexturePicker(tk.Frame):
         self.config(*args, **kwargs, bg='#111')
         self.parent = parent
 
+        self.terminal = State.get_instance().get_terminal()
         self.temp_dir = Config.get_instance().temp_data['temp_dir']
 
         self.configure_grid()
@@ -63,7 +66,7 @@ class TexturePicker(tk.Frame):
         self.grid_columnconfigure(2, weight=1)
 
     def load(self, export_name, components: list[Component], callback):
-        print('Texture picker loaded')
+        self.terminal.print('Texture picker loaded')
 
         self.export_name = export_name
         self.components  = components
@@ -177,7 +180,6 @@ class TextureBar(tk.Frame):
                 component_part_name = '{}{}'.format(component.name, component.object_classification[j])
                 component_part = ComponentPartFrame(self.component_summary.interior, active=is_active, header_text=component_part_name)
                 component_part.header.bind('<Button-1>', partial(self.handle_jump, i, first_index))
-                # component_part.header.bind('<Button-1>', lambda _: print('hi'))
 
                 component_part.pack(side='top', pady=pady, fill='x', expand=True)
 

@@ -2,6 +2,8 @@ import re
 
 from .structs import BufferElement
 
+from frontend.state import State
+
 
 def merge_buffers(buffers, buffer_formats: list[dict]):
     vertex_count = len(buffers[0])
@@ -33,6 +35,8 @@ def construct_combined_buffer(buffer_data, buffer_elements: list[BufferElement])
         '',
     ])
 
+    terminal = State.get_instance().get_terminal()
+
     byte_offset = 0
     byte_offsets, element_names = [], []
     for i, element in enumerate(buffer_elements):
@@ -53,9 +57,9 @@ def construct_combined_buffer(buffer_data, buffer_elements: list[BufferElement])
         ])
         byte_offset += element.ByteWidth
 
-        print(f'\t{element.Name:12} - {element.ByteWidth:2} - {element.Format}')
+        terminal.print(f'{element.Name:12} - {element.ByteWidth:2} - {element.Format}', timestamp=False)
 
-    print(f'Total Stride: {stride}\n')
+    terminal.print(f'Total Stride: {stride}\n', timestamp=False)
 
     vb_merged += '\nvertex-data:\n\n'
     
@@ -95,8 +99,10 @@ def handle_no_weight_blend(blend, blend_elements: list[BufferElement]):
         for vertex_i in range(len(blend)):
             blend[vertex_i] += ['1']
 
-        print('\n\tBLENDINDICES has only 1 index (R32_UINT), and no BLENDWEIGHTS exist.')
-        print('\tManually inserted BLENDWEIGHTS = 1 for each vertex.\n')
+        terminal = State.get_instance().get_terminal()
+        terminal.print('BENDINDICES has only 1 index (R32_UINT), and no BLENDWEIGHTS exist.')
+        terminal.print('Manually inserted BLENDWEIGHTS = 1 for each vertex.')
+        terminal.print()
 
 
 def parse_buffer_file_name(file_name: str):
