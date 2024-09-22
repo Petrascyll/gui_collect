@@ -71,7 +71,7 @@ dump_usage = 1
 
 [Hunting]
 hunting = 1
-analyse_options =
+analyse_options = buf
 
 [ShaderRegexEnableTargetedTextureOverrides]
 shader_model = vs_4_0 vs_4_1 vs_5_0 vs_5_1
