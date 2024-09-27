@@ -1,5 +1,4 @@
 __pycache__
 _Extracted
 config.json
-include/*
-!include/.gitkeep
+include/auto_generated.ini
