@@ -77,11 +77,22 @@ class FrameAnalysis():
         st = time.time()
 
         for i, component in enumerate(components):
-            json_builder.add_component(component, textures[i] if textures else None, game)
+            self.terminal.print(f'Exporting [{component.ib_hash}] - {component.name}')
+            self.terminal.print((
+                    f'collect_model_data = {component.options['collect_model_data']}, '
+                    f'collect_model_hashes = {component.options['collect_model_hashes']} '
+                ), timestamp=False
+            )
+            self.terminal.print((
+                    f'collect_texture_data = {component.options['collect_texture_data']}, '
+                    f'collect_texture_hashes = {component.options['collect_texture_hashes']}'
+                ), timestamp=False
+            )
 
-            if 'textures_only' in component.options and component.options['textures_only']:
-                vb_merged = None
-            else: 
+            if component.options['collect_model_hashes'] or component.options['collect_texture_hashes']:
+                json_builder.add_component(component, textures[i] if textures else None, game)
+
+            if component.options['collect_model_data']:
                 buffers  = []
                 elements = []
 
@@ -112,8 +123,8 @@ class FrameAnalysis():
                 self.terminal.print(f'Constructing combined buffer for [{component.ib_hash}] - {component.name}')
                 vb_merged = merge_buffers(buffers, elements) if buffers else None
             
-            if textures : _export_component_textures(export_name, component, textures[i])
-            if vb_merged: _export_component_buffers(export_name, component, vb_merged)
+            if component.options['collect_texture_data'] and  textures: _export_component_textures(export_name, component, textures[i])
+            if component.options['collect_model_data']   and vb_merged: _export_component_buffers(export_name, component, vb_merged)
 
         json_out = json.dumps(json_builder.build(), indent=4)
         Path('_Extracted', export_name, 'hash.json').write_text(json_out)

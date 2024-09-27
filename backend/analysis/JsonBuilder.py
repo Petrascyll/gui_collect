@@ -33,36 +33,31 @@ class JsonBuilder():
     def jsonify_component(self, component: Component, textures=None, game='zzz'):
         json_component = JsonComponent(component_name=component.name)
 
-        json_component.texture_hashes = [
-            [
-                [
-                    texture_type,
-                    texture.path.suffix,
-                    texture.hash
-                ]
-                for (texture, texture_type) in textures[first_index]
-            ]
-            for first_index in textures
-        ] if textures else [[] for _ in component.object_indices]
-        
+        json_component.texture_hashes         = [[] for _ in component.object_indices]
         json_component.object_indexes         = component.object_indices
         json_component.object_classifications = component.object_classification[:len(component.object_indices)]
-        if game != 'zzz' and ('textures_only' in component.options and component.options['textures_only']):
-            return json_component
 
-        json_component.ib = component.ib_hash
-        if game == 'zzz' and ('textures_only' in component.options and component.options['textures_only']):
-            return json_component
+        if component.options['collect_texture_hashes']:
+            if textures:
+                json_component.texture_hashes = [
+                    [
+                        [texture_type, texture.path.suffix, texture.hash]
+                        for (texture, texture_type) in textures[first_index]
+                    ] for first_index in textures
+                ]
+            if game == 'zzz': json_component.ib = component.ib_hash
 
-        json_component.draw_vb = component.draw_hash
+        if component.options['collect_model_hashes']:
+            json_component.ib = component.ib_hash
+            json_component.draw_vb = component.draw_hash
 
-        if component.position_path:
-            json_component.root_vs     = component.root_vs_hash
-            json_component.position_vb = component.position_hash
-        elif component.backup_position_paths:
-            json_component.position_vb = component.draw_hash
+            if component.position_path:
+                json_component.root_vs     = component.root_vs_hash
+                json_component.position_vb = component.position_hash
+            elif component.backup_position_paths:
+                json_component.position_vb = component.draw_hash
 
-        json_component.texcoord_vb = component.texcoord_hash
-        json_component.blend_vb    = component.blend_hash
+            json_component.texcoord_vb = component.texcoord_hash
+            json_component.blend_vb    = component.blend_hash
 
         return json_component

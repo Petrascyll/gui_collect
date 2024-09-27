@@ -1,8 +1,9 @@
 import tkinter as tk
 from dataclasses import dataclass
+from pathlib import Path
 
 from .EntryWithPlaceholder import EntryWithPlaceholder
-from .Checkbox import LabeledCheckbox
+from .FlatImageButton import FlatImageButton
 
 
 @dataclass
@@ -39,7 +40,7 @@ class InputComponentFrameList(tk.Frame):
         i = len(self.input_component_frames)
         self.input_component_frames.append(InputComponentFrame(self, index=i))
         pady = (16, 4) if i == 0 else (4, 4) 
-        self.input_component_frames[-1].pack(side='top', padx=16, anchor='w', pady=pady)
+        self.input_component_frames[-1].pack(side='top', padx=16, anchor='w', fill='x', pady=pady)
 
         self.input_component_frames[-1].component_hash_entry.bind(
             '<KeyRelease>',
@@ -58,46 +59,57 @@ class InputComponentFrame(tk.Frame):
 
         self.configure_grid()
         self.create_widgets()
-        self   .rowconfigure(0, weight=0)
-        self   .rowconfigure(1, weight=1)
-        self.columnconfigure(0, weight=0)
-        self.columnconfigure(1, weight=1)
 
     def create_widgets(self):
         self.component_hash_entry = EntryWithPlaceholder(
             self,
             placeholder='IB Hash', color='#555',
             width=16,
-            font=('Arial', '24', 'bold')
+            font=('Arial', '20', 'bold')
         )
         self.component_name_entry = EntryWithPlaceholder(
             self,
             placeholder='Component Name', color='#555',
             width=16,
-            font=('Arial', '24', 'bold')
+            font=('Arial', '20', 'bold')
         )
         self.component_options_frame = tk.Frame(self, bg=self['bg'])
 
-        self.component_hash_entry   .grid(row=0, column=0, pady=(0,1), sticky='n')
-        self.component_name_entry   .grid(row=1, column=0, pady=(0,1), sticky='n')
-        self.component_options_frame.grid(row=0, column=1, rowspan=2,  sticky='nsew', padx=4, pady=4)
+        self.component_hash_entry   .grid(row=0, column=0, pady=(0,1), sticky='nsew')
+        self.component_name_entry   .grid(row=1, column=0, pady=(1,0), sticky='nsew')
+        self.component_options_frame.grid(row=0, column=1, rowspan=2,  sticky='nsew', padx=(2,0))
 
-        # TODO
+        # TODO stop being lazy and hard coding colors
+        variant_value = self.parent.parent.master.variant.value
+        if variant_value   == 'hsr': active_bg = '#7a6ce0'
+        elif variant_value == 'zzz': active_bg = '#e2751e'
+        elif variant_value ==  'gi': active_bg = '#5fb970'
+
         boolean_options = [
-            ('textures_only', 'Textures Only', False),
+            ('collect_model_data',     True, tk.PhotoImage(file=Path('resources', 'images', 'buttons', 'cube.inverted.74.png')), 'Collect model data. Model data will be extracted to the output folder.',),
+            ('collect_model_hashes',   True, tk.PhotoImage(file=Path('resources', 'images', 'buttons', 'hash.inverted.74.png')), 'Collect model hashes. Model hashes will be written to the hash.json in the output folder.',),
+            ('collect_texture_data',   True, tk.PhotoImage(file=Path('resources', 'images', 'buttons', 'dds.inverted.74.png')),  'Collect texture data. Texture data will be copied to the output folder.',),
+            ('collect_texture_hashes', True, tk.PhotoImage(file=Path('resources', 'images', 'buttons', 'hash.inverted.74.png')), 'Collect texture hashes. Texture hashes will be written to the hash.json in the output folder.',),
         ]
-        for option_key, option_text, initial_value in boolean_options:
-            checkbox = LabeledCheckbox(self.component_options_frame, text=option_text, font=('Arial', 18, 'bold'), disabled=False, initial_state=initial_value)
-            checkbox.key = option_key
-            checkbox.pack(pady=(0, 6), anchor='nw')
+
+        for i, (option_key, initial_value, img, option_text) in enumerate(boolean_options):
+            checkbox = FlatImageButton(
+                self.component_options_frame,
+                image=img, dual_state=True, key=option_key, value=initial_value,
+                bg='#222', active_bg=active_bg, tooltip_text=option_text,
+                img_width=74, img_height=74, width=74, height=74
+            )
+
+            padx = (0,0) if i != 1 else (0,2)
+            checkbox.pack(anchor='nw', padx=padx, side='left')
 
 
 
     def configure_grid(self):
-        self   .grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=0)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_columnconfigure(2, weight=0)
+        self   .rowconfigure(0, weight=1)
+        self   .rowconfigure(1, weight=1)
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=0)
 
     def get(self):
         return InputComponent(
@@ -112,3 +124,4 @@ class InputComponentFrame(tk.Frame):
     def key_release(self, event):
         s = self.component_hash_entry.get()
         if s: self.parent.parent.add_input_component()
+
