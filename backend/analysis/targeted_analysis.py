@@ -23,9 +23,12 @@ def generate(export_name, model_hashes, component_names, d3dx_path: Path, termin
         '\n'.join([
             '[TextureOverrideModel{}]'.format(i+1),
             'hash = {}'               .format(model_hash),
-            '$model_{} = 1'           .format(i+1),
             'match_priority = 0',
             'filter_index = 70111102111',
+            '$model_{} = 1'           .format(i+1),
+            'if vb0 > 0',
+            '    $modded_model_{} = 1'.format(i+1),
+            'endif',
             'run = CommandListRT',
             'run = CommandListModel',
             'run = CommandListTexture',
@@ -35,36 +38,41 @@ def generate(export_name, model_hashes, component_names, d3dx_path: Path, termin
 
     text_print_content = (
         f'[ResourceText.Model]\ntype = Buffer\ndata = "Targeted Analysis: {export_name}"\n\n'
-        +'[ResourcePosParams.Model]\ntype = StructuredBuffer\narray = 1\ndata = R32_FLOAT  -0.99 -0.00 +1.00 +1.00  0.005 0.005  1 2  0\n\n'
-        +'[CommandListPrintModel]\n'
-        +'Resource\\gui_collect\\internal\\Text = ResourceText.Model\n'
-        +'Resource\\gui_collect\\internal\\TextPosParams = ResourcePosParams.Model\n'
-        +'Resource\\gui_collect\\internal\\TextParams = ResourceColorParams.White\n'
-        +'run = CommandList\\gui_collect\\internal\\PrintText\n'
-        +'\n'
         +'\n'.join([
             f'[ResourceText.Model{i+1}]\ntype = Buffer\ndata = "- {model_hash}  ({component_name})"\n'
             for i, (model_hash, component_name) in enumerate(zip(model_hashes, component_names))
         ])
         +'\n'
         +'\n'.join([
+            f'[ResourceText.ModdedModel{i+1}]\ntype = Buffer\ndata = "- {model_hash}  ({component_name}) MOD ACTIVE"\n'
+            for i, (model_hash, component_name) in enumerate(zip(model_hashes, component_names))
+        ])
+        +'\n'
+        +'[ResourcePosParams.Model]\ntype = StructuredBuffer\narray = 1\ndata = R32_FLOAT  -0.99 -0.00 +1.00 +1.00  0.005 0.005  1 2  0\n\n'
+        +'\n'.join([
             f'[ResourcePosParams.Model{i+1}]\ntype = StructuredBuffer\narray = 1\ndata = R32_FLOAT  -0.99 {-0.0785*(i+1)} +1.00 +1.00  0.005 0.005  1 2  0\n'
             for i in range(len(model_hashes))
         ])
         +'\n'
+        +'[CommandListPrintModel]\n'
+        +'Resource\\gui_collect\\internal\\Text          = ref ResourceText.Model\n'
+        +'Resource\\gui_collect\\internal\\TextPosParams = ref ResourcePosParams.Model\n'
+        +'Resource\\gui_collect\\internal\\TextParams    = ref ResourceColorParams.White\n'
+        +'run = CommandList\\gui_collect\\internal\\PrintText\n'
+        +'\n'
         +'\n'.join([
             '\n'.join([
                 f'[CommandListPrintModel{i+1}]',
-                f'Resource\\gui_collect\\internal\\TextPosParams = ResourcePosParams.Model{i+1}',
-                f'Resource\\gui_collect\\internal\\Text = ResourceText.Model{i+1}',
-                f'if $model_{i+1}',
-                f'    if !$costume_mods',
-                f'        Resource\\gui_collect\\internal\\TextParams = ResourceColorParams.Green',
-                f'    else',
-                f'        Resource\\gui_collect\\internal\\TextParams = ResourceColorParams.YellowGreen',
-                f'    endif',
+                f'Resource\\gui_collect\\internal\\TextPosParams  = ref ResourcePosParams.Model{i+1}',
+                f'if $modded_model_{i+1}',
+                f'    Resource\\gui_collect\\internal\\Text       = ref ResourceText.ModdedModel{i+1}',
+                f'    Resource\\gui_collect\\internal\\TextParams = ref ResourceColorParams.YellowGreen',
+                f'elif $model_{i+1}',
+                f'    Resource\\gui_collect\\internal\\Text       = ref ResourceText.Model{i+1}',
+                f'    Resource\\gui_collect\\internal\\TextParams = ref ResourceColorParams.Green',
                 f'else',
-                f'    Resource\\gui_collect\\internal\\TextParams = ResourceColorParams.Red',
+                f'    Resource\\gui_collect\\internal\\Text       = ref ResourceText.Model{i+1}',
+                f'    Resource\\gui_collect\\internal\\TextParams = ref ResourceColorParams.Red',
                 f'endif',
                 f'run = CommandList\\gui_collect\\internal\\PrintText',
                 f''
@@ -74,11 +82,15 @@ def generate(export_name, model_hashes, component_names, d3dx_path: Path, termin
         +'\n'
         +'[Constants]\n'
         +''.join([f'global $model_{i+1} = 0\n' for i in range(len(model_hashes))])
+        +''.join([f'global $modded_model_{i+1} = 0\n' for i in range(len(model_hashes))])
         +'\n'
         +'[Present]\n'
-        +'run = CommandListPrintModel\n'
         +''.join([f'post $model_{i+1} = 0\n'            for i in range(len(model_hashes))])
-        +''.join([f'run = CommandListPrintModel{i+1}\n' for i in range(len(model_hashes))])
+        +''.join([f'post $modded_model_{i+1} = 0\n'            for i in range(len(model_hashes))])
+        +'if hunting == 1\n'
+        +'    run = CommandListPrintModel\n'
+        +''.join([f'    run = CommandListPrintModel{i+1}\n' for i in range(len(model_hashes))])
+        +'endif\n'
     )
 
     with open(_filepath, 'w') as f:
@@ -183,4 +195,5 @@ data = R32_FLOAT 1.00 0 0.00 1   0 0 0 0.8   1.0
 type = StructuredBuffer
 array = 1
 data = R32_FLOAT 0.80 1 0.00 1   0 0 0 0.8   1.0
+
 '''
