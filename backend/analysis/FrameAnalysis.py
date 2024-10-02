@@ -79,13 +79,13 @@ class FrameAnalysis():
         for i, component in enumerate(components):
             self.terminal.print(f'Exporting [{component.ib_hash}] - {component.name}')
             self.terminal.print((
-                    f'collect_model_data = {component.options['collect_model_data']}, '
-                    f'collect_model_hashes = {component.options['collect_model_hashes']} '
+                    f'collect_model_data = {component.options["collect_model_data"]}, '
+                    f'collect_model_hashes = {component.options["collect_model_hashes"]} '
                 ), timestamp=False
             )
             self.terminal.print((
-                    f'collect_texture_data = {component.options['collect_texture_data']}, '
-                    f'collect_texture_hashes = {component.options['collect_texture_hashes']}'
+                    f'collect_texture_data = {component.options["collect_texture_data"]}, '
+                    f'collect_texture_hashes = {component.options["collect_texture_hashes"]}'
                 ), timestamp=False
             )
 
