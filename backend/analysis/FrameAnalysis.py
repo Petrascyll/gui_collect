@@ -107,8 +107,10 @@ class FrameAnalysis():
                         try:
                             buffer_stride, buffer_elements = get_buffer_elements(buffer_paths)
                         except InvalidTextBufferException:
-                            self.terminal.print('<ERROR>ERROR: Invalid text buffer!</ERROR>')
-                            return
+                            self.terminal.print(f'<WARNING>WARNING: SKIPPING Invalid {buffer_type.upper()} text buffer!</WARNING>')
+                            for p in buffer_paths:
+                                self.terminal.print(f'<WARNING>{p.name}</WARNING>', timestamp=False)
+                            continue
                         else:
                             buffer_path    = buffer_paths[0].with_suffix('.buf')
                             buffer_formats = [element.Format for element in buffer_elements]
