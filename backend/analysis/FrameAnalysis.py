@@ -110,6 +110,7 @@ class FrameAnalysis():
                             self.terminal.print(f'<WARNING>WARNING: SKIPPING Invalid {buffer_type.upper()} text buffer!</WARNING>')
                             for p in buffer_paths:
                                 self.terminal.print(f'<WARNING>{p.name}</WARNING>', timestamp=False)
+                            json_builder.components[-1].__setattr__(f'{buffer_type}_vb', '')
                             continue
                         else:
                             buffer_path    = buffer_paths[0].with_suffix('.buf')

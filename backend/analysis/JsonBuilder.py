@@ -21,14 +21,14 @@ class JsonComponent():
 
 class JsonBuilder():
     def __init__(self):
-        self.out = []
+        self.components = []
 
     def build(self) -> list[dict]:
-        return self.out
+        return [asdict(c) for c in self.components]
 
     def add_component(self, component: Component, textures=None, game='zzz'):
         j = self.jsonify_component(component, textures, game)
-        self.out.append(asdict(j))
+        self.components.append(j)
 
     def jsonify_component(self, component: Component, textures=None, game='zzz'):
         json_component = JsonComponent(component_name=component.name)
