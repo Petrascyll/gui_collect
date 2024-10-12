@@ -26,7 +26,7 @@ def generate(export_name, model_hashes, component_names, d3dx_path: Path, termin
             'match_priority = 0',
             'filter_index = 70111102111',
             '$model_{} = 1'           .format(i+1),
-            'if vb0 > 0',
+            'if vb0 > 0 && ib > 0',
             '    $modded_model_{} = 1'.format(i+1),
             'endif',
             'run = CommandListRT',
@@ -114,9 +114,6 @@ TARGETED = '''
 
 [Includes]
 include = ./Internal.ini
-
-[Rendering]
-dump_usage = 1
 
 [Hunting]
 hunting = 1

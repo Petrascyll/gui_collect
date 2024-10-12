@@ -150,14 +150,6 @@ class ExtractForm(tk.Frame):
             self.terminal.print('<ERROR>Frame Analysis Aborted! Invalid frame analysis path: "{}".</ERROR>'.format(str(path)))
             self.terminal.print()
             return
-        if not (path/'ShaderUsage.txt').exists():
-            self.terminal.print('<ERROR>Missing required ShaderUsage.txt file in frame analysis folder.</ERROR>')
-            self.terminal.print(
-                'Enable dumping it either by setting dump_usage = 1 in 3dm d3dx.ini'
-                'or by using a targeted .ini generated through gui collect to dump.'
-            )
-            self.terminal.print()
-            return
 
         frame_analysis = FrameAnalysis(path)
         self.state.set_var(State.K.FRAME_ANALYSIS, frame_analysis)
