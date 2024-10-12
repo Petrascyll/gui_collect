@@ -10,9 +10,7 @@ from backend.utils.buffer_utils.buffer_encoder import merge_buffers, handle_no_w
 from backend.utils.buffer_utils.buffer_decoder import collect_binary_buffer_data
 from backend.utils.buffer_utils.exceptions import InvalidTextBufferException
 
-from .LogAnalysis     import LogAnalysis
-from .TextureAnalysis import TextureAnalysis
-
+from .LogAnalysis import LogAnalysis
 from .JsonBuilder import JsonBuilder
 from .structs     import Component
 
@@ -21,18 +19,11 @@ from frontend.state import State
 
 class FrameAnalysis():
     def __init__(self, frame_analysis_path: Path):
-        self.terminal = State.get_instance().get_terminal()
-
-        self.path = frame_analysis_path
-        self.log_analysis     =     LogAnalysis(self.path)
-        self.texture_analysis = TextureAnalysis(self.path)
+        self.terminal     = State.get_instance().get_terminal()
+        self.path         = frame_analysis_path
+        self.log_analysis = LogAnalysis(self.path)
 
         self.terminal.print(f'Starting Frame Analysis: <PATH>{frame_analysis_path}</PATH>\n')
-
-    def get_textures(self, draw_id):
-        # filter = self.texture_analysis.get_default_filter()
-        # filter[TextureAnalysis.F.MIN_HEIGHT]['active']
-        return self.texture_analysis.get_textures(draw_id)
 
     def extract(self, input_component_hashes, input_component_names, input_components_options, game='zzz') -> list[Component]:
         components: list[Component] = []
@@ -49,7 +40,7 @@ class FrameAnalysis():
             
             self.terminal.print('Extracting model data of [{}]{}'.format(target_hash, f' - {name}' if name else ''))
             try:
-                self.log_analysis.extract(c, target_hash)
+                self.log_analysis.extract(c, target_hash, game=game)
                 c.print()
             except BufferError:
                 self.terminal.print('<ERROR>Log Analysis Failed!</ERROR>')
@@ -62,7 +53,6 @@ class FrameAnalysis():
                 self.terminal.print(f'<ERROR>{traceback.format_exc()}</ERROR>')
                 return
 
-            self.texture_analysis.set_preferred_texture_id(c, game)
             components.append(c)
         return components
 

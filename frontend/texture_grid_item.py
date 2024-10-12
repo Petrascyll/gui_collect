@@ -26,15 +26,13 @@ class TextureGridItem(tk.Canvas):
         TextureManager.get_instance().get_image(self.texture, 256, self.callback)
 
         # I'm 1px off horizontally for some reason, so using x=13 instead of x=12
-        text_color = '#e8eaed'
-        font = ('Arial', 10, 'bold')
-        format_text_tag    = self.create_text(13,  12, anchor='nw', font=font, fill=text_color, text=f'{self.texture.format}')
+        format_text_tag    = self.create_text(13,  12, anchor='nw', font=('Arial', 10, 'bold'), fill='#e8eaed', text=f'{self.texture.format}')
         format_text_bg_tag = self.create_rectangle(get_padded_bbox(self.bbox(format_text_tag), 4), fill='#222', outline='')
         self.tag_lower(format_text_bg_tag, format_text_tag)
 
-        res_text_tag       = self.create_text(13, 36, anchor='nw', font=font, fill=text_color, text=f'{self.texture.width}x{self.texture.height}')
-        res_text_bg_tag    = self.create_rectangle(get_padded_bbox(self.bbox(res_text_tag), 4), fill='#222', outline='')
-        self.tag_lower(res_text_bg_tag, res_text_tag)
+        self.res_text_tag    = self.create_text(13, 36, anchor='nw', font=('Arial', 10, 'bold'), fill='#e8eaed', text=f'??x??')
+        self.res_text_bg_tag = self.create_rectangle(get_padded_bbox(self.bbox(self.res_text_tag), 4), fill='#222', outline='')
+        self.tag_lower(self.res_text_bg_tag, self.res_text_tag)
 
         invis_event_target = self.create_rectangle(0, 0, 272, 272, fill='', outline='')
         self.tag_bind(invis_event_target, '<Enter>', add='+', func=lambda e: e.widget.itemconfig(outer_image_bg_tag, fill='#A00'))
@@ -51,13 +49,18 @@ class TextureGridItem(tk.Canvas):
             substrs_color = ('#e8eaed', '#0FF', '#e8eaed', '#FF0', '#e8eaed', '#0FF')
 
         create_colored_text(self, 272+4, substrs, substrs_color)
-        self.create_text(int(self['width'])//2, 272+4+24, anchor='n', font=('Arial', 16, 'bold'), fill=text_color, text=get_size_str(self.texture.get_size()))
+        self.create_text(int(self['width'])//2, 272+4+24, anchor='n', font=('Arial', 16, 'bold'), fill='#e8eaed', text=get_size_str(self.texture.get_size()))
 
     def callback(self, image, width, height):
         self.update_idletasks()
         self.after_idle(self.load_image, image, width, height)
 
     def load_image(self, image, width, height):
+        self.delete(self.res_text_tag, self.res_text_bg_tag)
+        self.res_text_tag  = self.create_text(13, 36, anchor='nw', font=('Arial', 10, 'bold'), fill='#e8eaed', text=f'{self.texture._width}x{self.texture._height}')
+        self.res_text_bg_tag = self.create_rectangle(get_padded_bbox(self.bbox(self.res_text_tag), 4), fill='#222', outline='')
+        self.tag_lower(self.res_text_bg_tag, self.res_text_tag)
+        
         self.image_width  = width
         self.image_height = height
         img = self.create_image(

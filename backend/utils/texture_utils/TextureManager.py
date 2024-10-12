@@ -14,8 +14,8 @@ class TextureManager():
     callbacks: dict[str, list] = {}
     callbacks_lock = threading.Lock()
 
-    cached_images: dict[str, PhotoImage] = {}
-    invalid_textures = set()
+    cached_images: dict[str, tuple[int, int, PhotoImage]] = {}
+    invalid_textures: dict[str, tuple[int, int]] = {}
 
     def __init__(self, temp_dir: str):
         if TextureManager.__instance != None:
@@ -32,11 +32,14 @@ class TextureManager():
             raise Exception('TextureManager hasn\'t been initialized.')
         return TextureManager.__instance
 
-    def popen_and_call(self, temp_filepath: Path, width, height, popen_args):
+    def popen_and_call(self, texture: Texture, temp_filepath: Path, max_width: int):
 
-        def run_in_thread(temp_filepath: Path, width, height, popen_args):
+        def run_in_thread(texture: Texture, temp_filepath: Path, max_width: int):
+            _width, _height = texture.async_read_width_height(blocking=True)
+            width, height = get_max_fit(_width, _height, max_width)
+
             proc = subprocess.Popen(
-                popen_args,
+                get_popen_args(texture.path, self.temp_dir_filepath, max_width, width, height),
                 stdout = subprocess.DEVNULL,
                 stderr = subprocess.DEVNULL,
             )
@@ -51,9 +54,9 @@ class TextureManager():
             self.callbacks_lock.acquire(blocking=True)
 
             if proc.returncode == 0:
-                self.cached_images[temp_filepath.name] = image
+                self.cached_images[temp_filepath.name] = (_width, _height, image)
             else:
-                self.invalid_textures.add(temp_filepath.name)
+                self.invalid_textures[temp_filepath.name] = (_width, _height)
             
             callbacks = [*self.callbacks[temp_filepath.name]]
             del self.callbacks[temp_filepath.name]
@@ -63,18 +66,20 @@ class TextureManager():
             for callback in callbacks:
                 callback(image, width, height)
 
-        thread = threading.Thread(target=run_in_thread, args=(temp_filepath, width, height, popen_args))
+        thread = threading.Thread(target=run_in_thread, args=(texture, temp_filepath, max_width))
         thread.start()
         return thread
 
 
     def get_image(self, texture: Texture, max_width, callback):
         temp_filepath = self.temp_dir_filepath / '{}.{}.png'.format(texture.path.with_suffix('').name, max_width)
-        width, height = get_max_fit(texture.width, texture.height, max_width)
 
         if temp_filepath.name in self.cached_images:
-            callback(self.cached_images[temp_filepath.name], width, height)
+            texture._width, texture._height, img = self.cached_images[temp_filepath.name]
+            width, height = get_max_fit(texture._width, texture._height, max_width)
+            callback(img, width, height)
         elif temp_filepath.name in self.invalid_textures:
+            texture._width, texture._height = self.invalid_textures[temp_filepath.name]
             callback(self.no_preview_image, 256, 256)
 
         else:
@@ -84,23 +89,19 @@ class TextureManager():
             # in case the texture being requested is the same as the one that was
             # holding the lock
             if temp_filepath.name in self.cached_images:
-                callback(self.cached_images[temp_filepath.name], width, height)
+                texture._width, texture._height, img = self.cached_images[temp_filepath.name]
+                width, height = get_max_fit(texture._width, texture._height, max_width)
+                callback(img, width, height)
             elif temp_filepath.name in self.invalid_textures:
+                texture._width, texture._height = self.invalid_textures[temp_filepath.name]
                 callback(self.no_preview_image, 256, 256)
-            # Checking if the temp filepath alone exists is not enough to guarantee that
-            # its safe to use as texconv may still be in the middle of writing to it
-            # if temp_filepath.exists() and temp_filepath.name not in self.callbacks:
-            #     self.callbacks_lock.release()
-            #     callback(temp_filepath, width, height)
-
             else:
                 if temp_filepath.name in self.callbacks:
                     self.callbacks[temp_filepath.name].append(callback)
                     self.callbacks_lock.release()
                 else:
                     self.callbacks[temp_filepath.name] = [callback]
-                    popen_args = get_popen_args(texture.path, self.temp_dir_filepath, max_width, width, height)
-                    self.popen_and_call(temp_filepath, width, height, popen_args)
+                    self.popen_and_call(texture, temp_filepath, max_width)
                     self.callbacks_lock.release()
         return
 
@@ -130,7 +131,7 @@ def get_max_fit(width, height, max_side):
 
     ratio = max_side / max(width, height)
 
-    new_width  = width * ratio
-    new_height = height * ratio
+    new_width  = int(width * ratio)
+    new_height = int(height * ratio)
 
     return new_width, new_height

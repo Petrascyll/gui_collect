@@ -3,10 +3,10 @@ import time
 from pathlib import Path
 
 from backend.utils.buffer_utils.structs import BufferType
+from backend.utils.texture_utils.TextureManager import TextureManager
 from frontend.state import State
 
-from .structs import Component
-
+from .structs import Texture, Component, ID_Data
 
 class LogAnalysis():
 
@@ -15,9 +15,10 @@ class LogAnalysis():
         self.log_data = parse_frame_analysis_log_file(self.frame_analysis_path / 'log.txt')
 
         self.terminal = State.get_instance().get_terminal()
+        self.texture_manager = TextureManager.get_instance()
 
 
-    def extract(self, extract_component: Component, component_hash: str, component_hash_type: str = None) -> None:
+    def extract(self, extract_component: Component, component_hash: str, component_hash_type: str = None, game = 'zzz') -> None:
         st = time.time()
         if not component_hash_type:
             component_hash_type = self.guess_hash_type(component_hash)
@@ -32,6 +33,9 @@ class LogAnalysis():
         self.set_draw_data    (extract_component)
         self.set_prepose_data (extract_component)
         # self.set_shapekey_data(extract_component)
+        self.set_textures_id  (extract_component, game)
+        self.set_textures     (extract_component)
+
 
         self.check_analysis (extract_component)
         self.terminal.print('Log Based Extraction Done: {:.6}s'.format(time.time() - st))
@@ -86,7 +90,9 @@ class LogAnalysis():
             ib_first_index = self.get_ib_first_index(id)
 
             if ib_first_index not in object_indices:
-                component.index_ids[ib_first_index] = [id]
+                component.draw_data[ib_first_index] = {
+                    id: ID_Data(vs_hash, ps_hash)
+                }
                 ib_filepath = self.compile_ib_filepath(id, ib_hash, vs_hash, ps_hash)
                 if not ib_filepath.exists():
                     self.terminal.print(f'<ERROR>ERROR:</ERROR> <PATH>{ib_filepath.name}</PATH><ERROR> does not exist in the frame analysis folder.</ERROR>')
@@ -96,7 +102,7 @@ class LogAnalysis():
                 ib_filepaths  .append(ib_filepath)
                 object_indices.append(ib_first_index)
             else:
-                component.index_ids[ib_first_index].append(id)
+                component.draw_data[ib_first_index][id] = ID_Data(vs_hash, ps_hash)
 
             if draw_hash := self.get_vb_hash(id, 0):
                 backup_position_path = self.compile_vb_filepath(id, draw_hash, 0, vs_hash, ps_hash)
@@ -160,6 +166,58 @@ class LogAnalysis():
             elif buffer_type == BufferType.Blend_VB:
                 component.blend_hash = buffer_hash
                 component.blend_path = buffer_path
+
+    def set_textures_id(self, component: Component, game='zzz'):
+        '''
+            Guess the Draw ID with the most useful texture data
+            so that the texture picker would initially load the 
+            textures from it instead of loading the textures of
+            a Draw ID that has likely misleading texture data.
+
+            GI: First Draw ID above 000010
+            HSR/ZZZ: First Draw ID with render target o0
+
+            Note that this its not guaranteed that the Draw ID
+            chosen will be the best. Dumping render targets is
+            optional as well...
+        '''
+        for first_index in component.draw_data:
+            for id in component.draw_data[first_index]:
+                if game == 'gi' and int(id) < 10: continue
+
+                if game != 'gi' and 'render_targets' in self.log_data[id]:
+                    has_o0 = any([rt['slot'] == '0' for rt in self.log_data[id]['render_targets'].values()])
+                    if has_o0:
+                        component.tex_index_id[first_index] = id
+                        break
+
+            # Default to first draw id if no good draw id can be found
+            else:
+                component.tex_index_id[first_index] = next(iter(component.draw_data[first_index]))
+
+    def set_textures(self, component: Component):
+        '''
+            Save parsed texture data from log.txt to its component
+        '''
+        for first_index in component.draw_data:
+            initial_id = component.tex_index_id[first_index]
+            for id in component.draw_data[first_index]:
+                if 'textures' not in self.log_data[id]:
+                    continue
+
+                component.draw_data[first_index][id].textures = sorted([
+                    Texture(Path(texture_str_filepath), **texture_info)
+                    for texture_str_filepath, texture_info in self.log_data[id]['textures'].items()
+                    if Path(texture_str_filepath).exists()
+                ], key=lambda t: int(t.slot))
+
+                # Preload textures from the id with the most useful textures discovered
+                # These textures are going to be loaded by the texture picker after
+                # analysis is done so preloading them early could save some time
+                if id == initial_id:
+                    for texture in component.draw_data[first_index][id].textures:
+                        self.texture_manager.get_image(texture, 256, callback=lambda a,b,c: None)
+
 
     def check_analysis(self, component: Component):
 
@@ -244,7 +302,17 @@ class LogAnalysis():
             raise Exception()
 
 
-def parse_frame_analysis_log_file(log_path):
+# Group 1: Frame analysis path
+# Group 2: Texture file name
+# Group 3: 'ps-t' or 'o' (PS texture or RT)
+# Group 4: Texture slot
+# Group 5: Contamination [Optional]
+# Group 6: Texture hash
+# Group 7: Extension
+# Group 8: Texture Format
+texture_pattern = re.compile(r'^[\d]{6} 3DMigoto Dumping Texture2D (.*?FrameAnalysis-.*?\\)(\d{6}-(ps-t|o)(\d+)=(!.!=)?([a-f0-9]{8}).*?\.(.{3})) -> \1deduped\\[a-f0-9]{8}-(.*)\..{3}$')
+
+def parse_frame_analysis_log_file(log_path: Path):
     st = time.time()
     log_data = {}
 
@@ -258,6 +326,25 @@ def parse_frame_analysis_log_file(log_path):
                     log_data[draw_id] = {}
 
                 if line[7:15] == '3DMigoto':
+                    if m := texture_pattern.match(line):
+                        filepath = Path(m.group(1), m.group(2)).absolute()
+                        if m.group(3) == 'ps-t':
+                            if 'textures' not in log_data[draw_id]:
+                                log_data[draw_id]['textures'] = {}
+                            log_data[draw_id]['textures'][str(filepath)] = {
+                                'texture_slot'  : m.group(4),
+                                'texture_hash'  : m.group(6),
+                                'texture_format': m.group(8),
+                                'contamination' : m.group(5)[:-1] if m.group(5) else '',
+                                'extension'     : m.group(7)
+                            }
+                        else:
+                            if 'render_targets' not in log_data[draw_id]:
+                                log_data[draw_id]['render_targets'] = {}
+                            log_data[draw_id]['render_targets'][str(filepath)] = {
+                                'slot': m.group(4)
+                            }
+
                     continue
 
                 keyword = line[7:].split('(', maxsplit=1)[0]

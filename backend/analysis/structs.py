@@ -1,12 +1,165 @@
+import struct
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from os.path import getsize
-
-from backend.utils import is_valid_hash
-from backend.utils.buffer_utils.buffer_encoder import parse_buffer_file_name
-
 from frontend.state import State
 
+
+class Texture():
+    def __init__(
+            self, filepath: Path, *,
+            texture_slot:str, texture_hash:str, texture_format:str,
+            contamination:str, extension:str
+        ):
+        self.path: Path = filepath
+
+        self.slot         : str = texture_slot
+        self.hash         : str = texture_hash
+        self.format       : str = texture_format
+        self.contamination: str = contamination
+        self.extension    : str = extension
+
+        self._read_lock      = threading.Lock()
+        self._read_thread    = None
+        self._read_callbacks = []
+        self._width : int = None
+        self._height: int = None
+
+        self._pow_2 = None
+        self._size  = None
+
+    def async_read_width_height(self, callback=None, *, blocking=False):
+        if not callback and not blocking:
+            raise Exception()
+
+        if self._width and self._height:
+            if callback: return callback(self._width, self._height)
+            return self._width, self._height
+        if self.extension not in ['jpg', 'dds']:
+            print(f'Reading width/height from {str(self.path.name)} is unsupported.')
+            if callback: callback(1, 1)
+            return 1, 1
+
+        def run_in_thread():
+            try:
+                _width, _height = read_width_height(self.path)
+            except:
+                print(f'Failed to read width/height from {str(self.path.name)}.')
+                _width, _height = 1, 1
+            
+            self._read_lock.acquire()
+            self._read_thread = None
+            self._width, self._height = _width, _height
+            callbacks = [*self._read_callbacks]
+            self._read_callbacks = []
+            self._read_lock.release()
+
+            for callback in callbacks:
+                callback(self._width, self._height)
+
+        self._read_lock.acquire()
+        if self._width and self._height:
+            self._read_lock.release()
+            if callback: return callback(self._width, self._height)
+            return self._width, self._height
+
+        if not self._read_thread:
+            if callback: self._read_callbacks.append(callback)
+            self._read_thread = threading.Thread(target=run_in_thread, args=())
+            self._read_thread.start()
+        self._read_lock.release()
+        
+        if callback is None:
+            self._read_thread.join()
+            return self._width, self._height
+
+    def is_contaminated(self):
+        return self.contamination is not None
+
+    def is_power_of_two(self):
+        if not self._width or not self._height:
+            raise Exception('Texture has not been read yet!')
+        if self._pow_2 is not None: return self._pow_2
+
+        self._pow_2 = is_power_of_two(self._width) and is_power_of_two(self._height)
+        return self._pow_2
+
+    def get_size(self):
+        '''
+            returns size of file in bytes
+        '''
+        if self._size is not None: return self._size
+        self._size = getsize(self.path)
+        return self._size
+
+
+def is_power_of_two(n):
+   return (n != 0) and (n & (n-1) == 0)
+
+
+def read_width_height(image_path):
+    width, height = -1, -1
+    with open(image_path, 'rb', buffering=20) as f:
+
+        magic_dword = bytes.hex(f.read(4))
+
+        # DDS Magic DWORD
+        # https://learn.microsoft.com/en-us/windows/win32/direct3ddds/dx-graphics-dds-pguide
+        # https://learn.microsoft.com/en-us/windows/win32/direct3ddds/dds-header
+        if magic_dword == '44445320':
+            # Size of structure. This member must be set to 124.
+            dwSize = struct.unpack('<I', f.read(4))[0]
+            if dwSize != 124:
+                raise Exception('\tInvalid DDS File. Invalid structure size.')
+
+            # Flags to indicate which members contain valid data.
+            dwFlags = int.from_bytes(f.read(4), byteorder='little')
+            
+            # Required in every .dds file.
+            DDSD_CAPS_FLAG   = (dwFlags & 0x1) >> 0
+            DDSD_HEIGHT_FLAG = (dwFlags & 0x2) >> 1
+            DDSD_WIDTH_FLAG  = (dwFlags & 0x4) >> 2
+            if not(DDSD_CAPS_FLAG & DDSD_HEIGHT_FLAG & DDSD_WIDTH_FLAG):
+                raise Exception('\tInvalid DDS File. Invalid flags.')
+            
+            height, width = struct.unpack('<II', f.read(8))
+        
+        # JPG Magic DWORD 
+        # https://github.com/scardine/image_size
+        # yoinked from `get_image_size.py` [MIT License]
+        elif magic_dword == 'ffd8ffe0':
+            f.seek(0)
+            f.read(2)
+            b = f.read(1)
+            while (b and ord(b) != 0xDA):
+                while (ord(b) != 0xFF):
+                    b = f.read(1)
+                while (ord(b) == 0xFF):
+                    b = f.read(1)
+                if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
+                    f.read(3)
+                    h, w = struct.unpack(">HH", f.read(4))
+                    break
+                else:
+                    f.read(int(struct.unpack(">H", f.read(2))[0]) - 2)
+                b = f.read(1)
+            width, height = int(w), int(h)
+
+        # Unknown DWORD
+        else:
+            # TODO
+            raise Exception('Unimplemented')
+
+    return (width, height)
+
+
+
+@dataclass
+class ID_Data():
+    vs_hash: str = ''
+    ps_hash: str = ''
+    textures: list[Texture] = field(default_factory=lambda:[])
 
 @dataclass
 class Component():
@@ -25,8 +178,8 @@ class Component():
     backup_position_paths: list[Path] = None
     backup_texcoord_paths: list[Path] = None
 
-    index_ids: dict[int, list[str]] = field(default_factory=lambda:{})
-    tex_index_id: dict[int, str]    = field(default_factory=lambda:{})
+    tex_index_id: dict[int, str]                = field(default_factory=lambda:{})
+    draw_data   : dict[int, dict[str, ID_Data]] = field(default_factory=lambda:{})
 
     root_vs_hash  : str = ''
     draw_hash     : str = ''
@@ -54,57 +207,3 @@ class Component():
         terminal = State.get_instance().get_terminal()
         for line in s:
             terminal.print(line, timestamp=False)
-
-
-
-class Texture():
-    def __init__(self, filepath: Path, texture_usage):
-
-        self.path = filepath
-
-        _, resource, resource_hash, resource_contamination, _ = parse_buffer_file_name(filepath.name)
-
-        if is_valid_hash(resource_hash, 8):
-            self.hash          = resource_hash
-            self.contamination = resource_contamination
-            self.slot          = int(resource.split('ps-t')[1].split('-')[0])
-
-            if self.hash not in texture_usage:
-                State.get_instance().get_terminal().print(f'<ERROR>Failed to find texture hash {self.hash} in ShaderUsage.txt</ERROR>')
-                raise Exception()
-
-            self.width  = int(texture_usage[self.hash]['width'])
-            self.height = int(texture_usage[self.hash]['height'])
-            self.format : str = texture_usage[self.hash]['format']
-
-        else:
-            self.hash          = '???'
-            self.contamination = None
-            self.slot          = int(resource.split('ps-t')[1].split('-')[0])
-
-            self.width  = 1
-            self.height = 1
-            self.format = '???'
-
-        self._pow_2 = None
-        self._size  = None
-
-    def is_contaminated(self):
-        return self.contamination is not None
-
-    def is_power_of_two(self):
-        if self._pow_2 is not None: return self._pow_2
-        self._pow_2 = is_power_of_two(self.width) and is_power_of_two(self.height)
-        return self._pow_2
-
-    def get_size(self):
-        '''
-            returns size of file in bytes
-        '''
-        if self._size is not None: return self._size
-        self._size = getsize(self.path)
-        return self._size
-
-
-def is_power_of_two(n):
-   return (n != 0) and (n & (n-1) == 0)
