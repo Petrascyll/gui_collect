@@ -99,7 +99,7 @@ class ExtractForm(tk.Frame):
         else:
             self.extract_frame.grid(column=1, row=1, rowspan=2, padx=16, pady=16, sticky='nsew')
 
-    def collect_input(self):
+    def collect_input(self, skip_collect_nothing=True):
         path = Path(self.parent.address_frame.path)
         extract_name = self.extract_name.get().strip().replace(' ', '')
 
@@ -112,6 +112,11 @@ class ExtractForm(tk.Frame):
                 self.terminal.print('<ERROR>Invalid hash: {}</ERROR>'.format(input_component.hash))
                 return None, None, None, None, None
             
+            # Don't include components with none of the collect options enabled
+            if skip_collect_nothing:
+                collect_nothing = all(option_value is False for option_value in input_component.options.values())
+                if collect_nothing: continue
+
             input_component_hashes  .append(input_component.hash)
             input_component_names   .append(input_component.name)
             input_components_options.append(input_component.options)
@@ -119,7 +124,7 @@ class ExtractForm(tk.Frame):
         return extract_name, input_component_hashes, input_component_names, input_components_options, path
 
     def generated_targeted_dump_ini(self):
-        extract_name, input_component_hashes, input_component_names, _, path = self.collect_input()
+        extract_name, input_component_hashes, input_component_names, _, path = self.collect_input(skip_collect_nothing=False)
         if not input_component_hashes:
             self.terminal.print('<ERROR>Targeted Ini Generation Aborted! No valid hashes provided.</ERROR>')
             self.terminal.print()
@@ -158,11 +163,17 @@ class ExtractForm(tk.Frame):
             self.terminal.print('<ERROR>Frame Analysis Failed!</ERROR>')
             self.terminal.print()
             return
-        
-        skip_textures = False
-        if not skip_textures:
+
+        # Create list with indices of components that need their textures to be selected in the texture picker
+        # The other components should not show up in the texture picker, but should still be exported
+        textures_component_idx = [
+            idx for idx, extracted_component in enumerate(extracted_components)
+            if extracted_component.options['collect_texture_data'] or extracted_component.options['collect_texture_hashes']
+        ]
+
+        if len(textures_component_idx) > 0:
             self.state.lock_sidebar()
-            self.parent.texture_picker.load(extract_name, extracted_components, callback=self.finish_extraction)
+            self.parent.texture_picker.load(extract_name, extracted_components, textures_component_idx, finish_extraction_callback=self.finish_extraction)
             self.parent.texture_picker.focus_set()
             self.update_idletasks()
             self.parent.show_texture_picker()

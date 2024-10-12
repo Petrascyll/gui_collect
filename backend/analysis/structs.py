@@ -164,7 +164,7 @@ class ID_Data():
 @dataclass
 class Component():
     name: str = ''
-    options: list[dict[str, any]] = None
+    options: dict[str, any] = None
 
     position_path: Path = None
     blend_path   : Path = None

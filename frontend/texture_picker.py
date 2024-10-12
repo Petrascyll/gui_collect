@@ -30,32 +30,6 @@ class TexturePicker(tk.Frame):
         self.texture_bar = TextureBar(self)
         self.texture_bar.grid(row=0, column=0, sticky='nsew')
 
-        # self.middle_bar = tk.Frame(self, width=74, bg='#333')
-        # self.middle_bar.grid(row=0, column=1, padx=(1,0), sticky='nsew')
-        
-        # There's no built in anti aliasing AHHHHHHHHHHHHHHHHHH
-        # TODO replace with images from photoshop later
-        # prev_canvas = tk.Canvas(self.middle_bar, bg=self.middle_bar['bg'], width=64, height=64, cursor='hand2', relief='flat', highlightthickness=0)
-        # self.prev_canvas = prev_canvas
-        # item_id = prev_canvas.create_polygon([8,56, 32,8, 56,56], fill='#444')
-        # prev_canvas.bind('<Button-1>', self.texture_bar.go_to_prev)
-        # prev_canvas.bind('<Enter>', lambda _: prev_canvas.itemconfigure(item_id, fill='#e8eaed'))
-        # prev_canvas.bind('<Leave>', lambda _: prev_canvas.itemconfigure(item_id, fill='#444'))
-        # prev_canvas.bind('<Enter>', lambda _: prev_canvas.config(bg='#A00'), add='+')
-        # prev_canvas.bind('<Leave>', lambda _: prev_canvas.config(bg='#333'), add='+')
-        # prev_canvas.pack()
-
-        # next_canvas = tk.Canvas(self.middle_bar, bg=self.middle_bar['bg'], width=64, height=64, cursor='hand2', relief='flat', highlightthickness=0)
-        # self.next_canvas = next_canvas
-        # item_id = next_canvas.create_polygon([8,8, 56,8, 32,56], fill='#444')
-        # next_canvas.bind('<Button-1>', self.texture_bar.go_to_next)
-        # next_canvas.bind('<Enter>', lambda _: next_canvas.itemconfigure(item_id, fill='#e8eaed'))
-        # next_canvas.bind('<Leave>', lambda _: next_canvas.itemconfigure(item_id, fill='#444'))
-        # next_canvas.bind('<Enter>', lambda _: next_canvas.config(bg='#A00'), add='+')
-        # next_canvas.bind('<Leave>', lambda _: next_canvas.config(bg='#333'), add='+')
-        # next_canvas.pack()
-
-
         self.texture_grid = TextureGrid(self, get_ref=self.texture_bar.get_component_part_frame)
         self.texture_grid.grid(row=0, column=1, columnspan=2, sticky='nsew')
 
@@ -65,16 +39,28 @@ class TexturePicker(tk.Frame):
         self.grid_columnconfigure(1, weight=0)
         self.grid_columnconfigure(2, weight=1)
 
-    def load(self, export_name, components: list[Component], callback):
+    def load(self, export_name, components: list[Component], texture_components_idx: list[int], finish_extraction_callback):
         self.terminal.print('Texture picker loaded')
 
-        self.export_name = export_name
-        self.components  = components
-        self.callback    = callback
+        def helper_callback(collected_textures):
+            # We only display and pick textures of the components of idx in texture_components_idx
+            # but the finish_extraction_callback expects us to return a textures list for
+            # **all** components, so we provide default blank fields for those components
+            # we don't care about
+            iter_collected_textures = iter(collected_textures)
+            components_textures = [
+                {first_index: [] for first_index in components[i].object_indices}
+                if i not in texture_components_idx else next(iter_collected_textures)
+                for i in range(len(components))
+            ]
+            finish_extraction_callback(export_name, components, components_textures)
+
+        self.callback    = helper_callback
 
         self.update_idletasks()
-        self.texture_grid.load(component_index=0, first_index=0, components=self.components)
-        self.texture_bar .load(component_index=0, first_index=0, components=self.components)
+        texture_components  = [components[idx] for idx in texture_components_idx]
+        self.texture_grid.load(component_index=0, first_index=0, components=texture_components)
+        self.texture_bar .load(component_index=0, first_index=0, components=texture_components)
 
         self.bind_all('<s>', self.texture_bar.go_to_next)
         self.bind_all('<w>', self.texture_bar.go_to_prev)
@@ -91,15 +77,10 @@ class TexturePicker(tk.Frame):
     def set_active_texture_grid(self, component_index, first_index):
         self.texture_grid.set_active_grid(component_index, first_index)
 
-    def done(self, collected_textures):
-        self.callback(self.export_name, self.components, collected_textures)
-        self.unload()
 
     def unload(self):
         self.lower()
 
-        self.export_name = None
-        self.components  = None
         self.callback    = None
 
         self.texture_grid.unload()
@@ -280,11 +261,8 @@ class TextureBar(tk.Frame):
             for single_component_textures in self.component_textures
         ]
 
-        self.parent.done(textures)
-
-                # for slot in t.textures:
-                # t.textures
-            #     for a in self.component_textures[i][component_index].
+        self.parent.callback(textures)
+        self.parent.unload()
 
     def cancel_texture_collection(self):
         self.parent.unload()
