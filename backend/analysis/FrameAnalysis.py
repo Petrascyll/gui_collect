@@ -1,7 +1,9 @@
+import os
 import json
 import time
 import shutil
 import traceback
+import subprocess
 
 from pathlib import Path
 
@@ -10,11 +12,15 @@ from backend.utils.buffer_utils.buffer_encoder import merge_buffers, handle_no_w
 from backend.utils.buffer_utils.buffer_decoder import collect_binary_buffer_data
 from backend.utils.buffer_utils.exceptions import InvalidTextBufferException
 
+from backend.config.Config import Config
+
 from .LogAnalysis import LogAnalysis
 from .JsonBuilder import JsonBuilder
 from .structs     import Component
 
 from frontend.state import State
+
+FILEBROWSER_PATH = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
 
 
 class FrameAnalysis():
@@ -22,6 +28,7 @@ class FrameAnalysis():
         self.terminal     = State.get_instance().get_terminal()
         self.path         = frame_analysis_path
         self.log_analysis = LogAnalysis(self.path)
+        self.cfg          = Config.get_instance().data
 
         self.terminal.print(f'Starting Frame Analysis: <PATH>{frame_analysis_path}</PATH>\n')
 
@@ -57,11 +64,12 @@ class FrameAnalysis():
         return components
 
 
-    def export(self, export_name, components: list[Component], textures = None, game='zzz'):
+    def export(self, export_name, components: list[Component], textures = None, *, game: str):
         json_builder = JsonBuilder()
 
-        extract_path = Path('_Extracted', export_name)
-        # if extract_path.exists(): shutil.rmtree(extract_path) # TODO Should be optional
+        extract_path = Path(self.cfg.game[game].extract_path, export_name)
+        if self.cfg.game[game].game_options.clean_extract_folder:
+            if extract_path.exists(): shutil.rmtree(extract_path)
         extract_path.mkdir(parents=True, exist_ok=True)
 
         st = time.time()
@@ -116,16 +124,25 @@ class FrameAnalysis():
                 self.terminal.print(f'Constructing combined buffer for [{component.ib_hash}] - {component.name}')
                 vb_merged = merge_buffers(buffers, elements) if buffers else None
             
-            if component.options['collect_texture_data'] and  textures: _export_component_textures(export_name, component, textures[i])
-            if component.options['collect_model_data']   and vb_merged: _export_component_buffers(export_name, component, vb_merged)
+            if component.options['collect_texture_data'] and  textures: _export_component_textures(export_name, extract_path, component, textures[i])
+            if component.options['collect_model_data']   and vb_merged:  _export_component_buffers(export_name, extract_path, component, vb_merged)
 
         json_out = json.dumps(json_builder.build(), indent=4)
-        Path('_Extracted', export_name, 'hash.json').write_text(json_out)
+        (extract_path / 'hash.json').write_text(json_out)
 
         self.terminal.print('Export done: {:.3}s'.format(time.time() - st))
 
+        if self.cfg.game[game].game_options.delete_frame_analysis:
+            shutil.rmtree(self.path)
+            self.terminal.print('Deleted frame analysis <PATH>{}</PATH>'.format(str(self.path.absolute())))
 
-def _export_component_buffers(export_name: str, component: Component, vb_merged):
+        if self.cfg.game[game].game_options.open_extract_folder:
+            subprocess.run([FILEBROWSER_PATH, extract_path])
+            self.terminal.print(f'Opening <PATH>{extract_path.absolute()}</PATH> with File Explorer')
+            self.terminal.print()
+
+
+def _export_component_buffers(export_name: str, path: Path, component: Component, vb_merged):
     object_classification = component.object_classification
 
     # Instead of writing the same vb0 text file multiple times,
@@ -139,21 +156,21 @@ def _export_component_buffers(export_name: str, component: Component, vb_merged)
         vb0_file_name = '{}-vb0={}.txt'.format(prefix, component.position_hash if component.position_hash else component.draw_hash)
         ib_file_name  = '{}-ib={}.txt' .format(prefix, component.ib_hash)
 
-        vb0_file_path = Path('_Extracted', export_name, vb0_file_name)
+        vb0_file_path = (path/vb0_file_name)
         if not main_vb0_file_path:
             vb0_file_path.write_text(vb_merged)
             main_vb0_file_path = vb0_file_path
         else:
             shutil.copyfile(main_vb0_file_path, vb0_file_path)
 
-        ib_file_path = Path('_Extracted', export_name, ib_file_name)
+        ib_file_path = (path/ib_file_name)
         shutil.copyfile(ib_path, ib_file_path)
 
 
-def _export_component_textures(export_name: str, component: Component, textures):
+def _export_component_textures(export_name: str, path: Path, component: Component, textures):
     object_classification = component.object_classification
     for i, first_index in enumerate(textures):
         base_texture_file_name = '{}{}{}'.format(export_name, component.name, object_classification[i])
         for (texture, texture_type) in textures[first_index]:
             texture_file_name = base_texture_file_name + texture_type + texture.path.suffix
-            shutil.copyfile(texture.path, Path('_Extracted', export_name, texture_file_name))
+            shutil.copyfile(texture.path, (path/texture_file_name))

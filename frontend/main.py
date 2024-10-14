@@ -30,6 +30,7 @@ class Main(tk.Frame):
             Page.zzz      : MainPage(parent=self, variant=Page.zzz),
             Page.hsr      : MainPage(parent=self, variant=Page.hsr),
             Page.gi       : MainPage(parent=self, variant=Page.gi),
+            Page.hi3      : MainPage(parent=self, variant=Page.hi3),
             Page.settings : SettingsPage(parent=self)
         }
 

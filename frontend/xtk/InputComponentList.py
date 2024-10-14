@@ -84,6 +84,7 @@ class InputComponentFrame(tk.Frame):
         if variant_value   == 'hsr': active_bg = '#7a6ce0'
         elif variant_value == 'zzz': active_bg = '#e2751e'
         elif variant_value ==  'gi': active_bg = '#5fb970'
+        elif variant_value == 'hi3': active_bg = '#c660cf'
 
         boolean_options = [
             ('collect_model_data',     True, tk.PhotoImage(file=Path('resources', 'images', 'buttons', 'cube.inverted.74.png')), 'Collect model data. Model data will be extracted to the output folder.',),

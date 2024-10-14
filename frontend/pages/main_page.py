@@ -65,10 +65,10 @@ class MainPage(tk.Frame):
         
         # Check if current directory is a frame analysis in which case the parent is 3dm's
         if 'FrameAnalysis' in path.name and (path/'log.txt').exists():
-            self.cfg.game[self.variant.value]['frame_analysis_parent_path'] = str(path.parent)
+            self.cfg.game[self.variant.value].frame_analysis_parent_path = str(path.parent)
             return
 
         # Check if the current directory is that of 3dm
         has_d3dx = (path/'d3dx.ini').exists()
         if has_d3dx:
-            self.cfg.game[self.variant.value]['frame_analysis_parent_path'] = str(path)
+            self.cfg.game[self.variant.value].frame_analysis_parent_path = str(path)

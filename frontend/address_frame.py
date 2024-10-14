@@ -100,7 +100,7 @@ class AddressFrame(tk.Frame):
         self.set_path(path.parent.absolute())
 
     def load_latest_frame_analysis(self):
-        saved_path = Config.get_instance().data.game[self.target.value]['frame_analysis_parent_path']
+        saved_path = Config.get_instance().data.game[self.target.value].frame_analysis_parent_path
         if not saved_path:
             return
         frame_analysis_parent_path = Path(saved_path)
@@ -117,5 +117,7 @@ class AddressFrame(tk.Frame):
         )
         if len(frame_analysis_paths) > 0:
             self.set_path(str(frame_analysis_paths[-1]))
+        else:
+            self.set_path(saved_path)
 
         return

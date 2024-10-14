@@ -57,11 +57,6 @@ class Config():
             except InvalidConfigData:
                 pass
 
-
-    def _validate_config(self):
-        # for k, v in self.data.items():
-        pass
-
     def save_config(self):
         with open(self._config_filepath, 'w', encoding='utf-8') as f:
             json.dump(asdict(self.data), f, indent=4)

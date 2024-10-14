@@ -55,6 +55,13 @@ class Sidebar(tk.Frame):
         b.pack()
         self.buttons[Page.gi] = (b, bg_color)
 
+        bg_color = '#c660cf'
+        img = tk.PhotoImage(file=Path('./resources/images/icons/Mobius.png'))
+        b = FlatImageButton(self, bg=bg_color, image=img, **sidebar_button_style)
+        b.bind('<Button-1>', lambda _: self.handle_button_click(Page.hi3))
+        b.pack()
+        self.buttons[Page.hi3] = (b, bg_color)
+
         bg_color = '#AAA'
         img = tk.PhotoImage(file=Path('./resources/images/buttons/settings.1.256.png')).subsample(4)
         b = FlatImageButton(self, bg=bg_color, image=img, **sidebar_button_style)

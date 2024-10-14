@@ -5,4 +5,5 @@ class Page(Enum):
     zzz      = 'zzz'
     hsr      = 'hsr'
     gi       = 'gi'
+    hi3      = 'hi3'
     settings = 'settings'
