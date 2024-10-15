@@ -17,6 +17,7 @@ class PathPicker(tk.Frame):
         self.config(*args, **kwargs)
 
         self.path       = Path(value)
+        self.path_text  = get_short_path(self.path)
         self.callback   = callback
         self.default_bg = self['bg']
         self.button_bg  = button_bg
@@ -36,7 +37,7 @@ class PathPicker(tk.Frame):
         self.pick_folder_btn.bind('<Button-1>', handle_click)
 
     def create_label(self):
-        self.path_label = tk.Label(self, text=str(self.path.absolute()), fg='#999', bg=self['bg'], font=('Arial', '16'), cursor='hand2', relief='flat', anchor='w')
+        self.path_label = tk.Label(self, text=self.path_text, fg='#999', bg=self['bg'], font=('Arial', '16'), cursor='hand2', relief='flat', anchor='w')
         self.path_label.pack(side='left', fill='both', expand=True)
         
         img = tk.PhotoImage(file=Path('./resources/images/buttons/open_in_new.32.png').absolute())
@@ -62,6 +63,17 @@ class PathPicker(tk.Frame):
         
     def set_path(self, path):
         self.path = Path(path)
-        abs_path = str(self.path.absolute())
-        self.path_label.config(text=abs_path)
-        self.callback(abs_path)
+        self.path_text = get_short_path(self.path)
+
+        self.path_label.config(text=self.path_text)
+        self.callback(str(self.path.absolute()))
+
+def get_short_path(path: Path, max_width: int = 50):
+    s = str(path.absolute())
+    if len(s) <= max_width:
+        return s
+
+    while len(s) + 4 > max_width:
+        s = s.split('\\', maxsplit=1)[1]
+
+    return '...\\' + s
