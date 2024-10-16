@@ -183,7 +183,9 @@ class LogAnalysis():
         '''
         for first_index in component.draw_data:
             for id in component.draw_data[first_index]:
-                if game == 'gi' and int(id) < 10: continue
+                if game == 'gi' and int(id) >= 15:
+                    component.tex_index_id[first_index] = id
+                    break
 
                 if game != 'gi' and 'render_targets' in self.log_data[id]:
                     has_o0 = any([rt['slot'] == '0' for rt in self.log_data[id]['render_targets'].values()])

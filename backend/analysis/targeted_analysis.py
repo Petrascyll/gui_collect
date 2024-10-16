@@ -122,6 +122,9 @@ analyse_options = stereo
 [ShaderRegexEnableTargetedTextureOverrides]
 shader_model = vs_4_0 vs_4_1 vs_5_0 vs_5_1
 if !$costume_mods
+    if vb0 == 70111102111
+        checktextureoverride = vb0
+    endif
     if ib == 70111102111
         checktextureoverride = ib
     endif
