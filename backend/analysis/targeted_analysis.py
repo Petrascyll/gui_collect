@@ -155,6 +155,12 @@ hash = 9684c4091fc9e35a
 allow_duplicate_hash = overrule
 analyse_options = dump_vb txt buf
 
+[ShaderOverridePose4]
+; HI3 part 2
+hash = 10905ed856e6b621
+allow_duplicate_hash = overrule
+analyse_options = dump_vb txt buf
+
 [ShaderOverrideShapekey]
 ; ZZZ+SR ShapeKey Compute Shader
 hash = 743108cc03f39cbf
