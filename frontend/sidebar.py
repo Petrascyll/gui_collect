@@ -4,6 +4,7 @@ from pathlib import Path
 from .data import Page
 from .style import APP_STYLE, brighter, darker
 from .xtk.FlatImageButton import FlatImageButton
+from .xtk.Tooltip import Tooltip
 from .state import State
 
 sidebar_button_style = {
@@ -34,40 +35,26 @@ class Sidebar(tk.Frame):
     def create_widgets(self):
         self.buttons = {}
 
-        bg_color = '#e2751e'
-        img = tk.PhotoImage(file=Path('./resources/images/icons/Corin.png'))
-        b = FlatImageButton(self, bg=bg_color, image=img, **sidebar_button_style)
-        b.bind('<Button-1>', lambda _: self.handle_button_click(Page.zzz))
-        b.pack()
-        self.buttons[Page.zzz] = (b, bg_color)
+        def add_button(page, bg_color, img_path, tooltip_text, subsample=1, bottom=False):
+            img = tk.PhotoImage(file=Path(img_path)).subsample(subsample)
+            b = FlatImageButton(self, bg=bg_color, image=img, **sidebar_button_style)
+            b.bind('<Button-1>', lambda _: self.handle_button_click(page))
+            if bottom:
+                b.pack(side='bottom')
+            else:
+                b.pack()
 
-        bg_color = '#7a6ce0'
-        img = tk.PhotoImage(file=Path('./resources/images/icons/Fofo.png'))
-        b = FlatImageButton(self, bg=bg_color, image=img, **sidebar_button_style)
-        b.bind('<Button-1>', lambda _: self.handle_button_click(Page.hsr))
-        b.pack()
-        self.buttons[Page.hsr] = (b, bg_color)
+            tooltip = Tooltip(b, text=tooltip_text, bg='#FFF', waittime=400, wraplength=250)
+            b.bind("<Enter>", tooltip.onEnter)
+            b.bind("<Leave>", tooltip.onLeave)
 
-        bg_color = '#5fb970'
-        img = tk.PhotoImage(file=Path('./resources/images/icons/Sucrose.64.png'))
-        b = FlatImageButton(self, bg=bg_color, image=img, **sidebar_button_style)
-        b.bind('<Button-1>', lambda _: self.handle_button_click(Page.gi))
-        b.pack()
-        self.buttons[Page.gi] = (b, bg_color)
+            self.buttons[page] = (b, bg_color)
 
-        bg_color = '#c660cf'
-        img = tk.PhotoImage(file=Path('./resources/images/icons/Mobius.png'))
-        b = FlatImageButton(self, bg=bg_color, image=img, **sidebar_button_style)
-        b.bind('<Button-1>', lambda _: self.handle_button_click(Page.hi3))
-        b.pack()
-        self.buttons[Page.hi3] = (b, bg_color)
-
-        bg_color = '#AAA'
-        img = tk.PhotoImage(file=Path('./resources/images/buttons/settings.1.256.png')).subsample(4)
-        b = FlatImageButton(self, bg=bg_color, image=img, **sidebar_button_style)
-        b.bind('<Button-1>', lambda _: self.handle_button_click(Page.settings))
-        b.pack(side='bottom')
-        self.buttons[Page.settings] = (b, bg_color)
+        add_button(page=Page.zzz, bg_color='#e2751e', img_path='./resources/images/icons/Corin.png',   tooltip_text="Collect for Zenless Zone Zero")
+        add_button(page=Page.hsr, bg_color='#7a6ce0', img_path='./resources/images/icons/Fofo.png',    tooltip_text="Collect for Honkai: Star Rail")
+        add_button(page=Page.gi,  bg_color='#5fb970', img_path='./resources/images/icons/Sucrose.png', tooltip_text="Collect for Genshin Impact")
+        add_button(page=Page.hi3, bg_color='#c660cf', img_path='./resources/images/icons/Mobius.png',  tooltip_text="Collect for Honkai Impact 3rd")
+        add_button(page=Page.settings, bg_color='#AAA', img_path='./resources/images/buttons/settings.1.256.png', tooltip_text="Settings", subsample=4, bottom=True)
 
     def refresh_buttons(self):
         active_accent = self.buttons[self.active_page][1]
