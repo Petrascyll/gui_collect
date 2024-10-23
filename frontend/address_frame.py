@@ -34,11 +34,11 @@ class AddressFrame(tk.Frame):
         if self.path:
             self.folder_path_label.config(text=self.path)
 
-        img = tk.PhotoImage(file=Path('./resources/images/buttons/folder_open.256.png').absolute()).subsample(8)
+        img = tk.PhotoImage(file=Path('./resources/images/buttons/folder_open.32.png').absolute())
         pick_folder_btn = FlatImageButton(self, width=40, height=40, img_width=32, img_height=32, bg='#3fb76b', image=img)
         pick_folder_btn.bind('<Button-1>', lambda _: self.handle_frame_dump_pick())
 
-        img = tk.PhotoImage(file=Path('./resources/images/buttons/history.256.png').absolute()).subsample(8)
+        img = tk.PhotoImage(file=Path('./resources/images/buttons/history.32.png').absolute())
         pick_latest_dump_btn = FlatImageButton(self, width=40, height=40, img_width=32, img_height=32, bg='#244eb9', image=img)
         pick_latest_dump_btn.bind('<Button-1>', lambda _: self.load_latest_frame_analysis())
 

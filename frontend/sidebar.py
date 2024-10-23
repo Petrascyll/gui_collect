@@ -54,7 +54,7 @@ class Sidebar(tk.Frame):
         add_button(page=Page.hsr, bg_color='#7a6ce0', img_path='./resources/images/icons/Fofo.png',    tooltip_text="Collect for Honkai: Star Rail")
         add_button(page=Page.gi,  bg_color='#5fb970', img_path='./resources/images/icons/Sucrose.png', tooltip_text="Collect for Genshin Impact")
         add_button(page=Page.hi3, bg_color='#c660cf', img_path='./resources/images/icons/Mobius.png',  tooltip_text="Collect for Honkai Impact 3rd")
-        add_button(page=Page.settings, bg_color='#AAA', img_path='./resources/images/buttons/settings.1.256.png', tooltip_text="Settings", subsample=4, bottom=True)
+        add_button(page=Page.settings, bg_color='#AAA', img_path='./resources/images/buttons/settings.1.64.png', tooltip_text="Settings", bottom=True)
 
     def refresh_buttons(self):
         active_accent = self.buttons[self.active_page][1]

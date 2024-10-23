@@ -26,7 +26,7 @@ class PathPicker(tk.Frame):
         self.create_label()
 
     def create_button(self):
-        img = tk.PhotoImage(file=Path('./resources/images/buttons/folder_open.256.png').absolute()).subsample(10)
+        img = tk.PhotoImage(file=Path('./resources/images/buttons/folder_open.25.png').absolute())
         self.pick_folder_btn = FlatImageButton(self, width=32, height=32, img_width=25, img_height=25, bg=self.button_bg, image=img)
         self.pick_folder_btn.pack(side='right')
         
