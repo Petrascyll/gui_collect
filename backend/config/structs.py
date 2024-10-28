@@ -3,6 +3,14 @@ from pathlib import Path
 
 default_extract_path = str(Path('.', '_Extracted').absolute())
 
+GAME_NAME = {
+    'zzz': 'Zenless Zone Zero',
+    'hsr': 'Honkai: Star Rail',
+    'gi' : 'Genshin Impact',
+    'hi3': 'Honkai Impact 3rd',
+}
+
+
 @dataclass
 class _GameConfigOptionData():
     clean_extract_folder: bool = True
@@ -48,7 +56,7 @@ class ConfigData():
 
         _validate_helper(d, default_config_data, [],       {'active_game', 'targeted_analysis_enabled', 'game'})
         _validate_helper(d, default_config_data, ['game'], {'zzz', 'hsr', 'gi', 'hi3'})
-        for g in ('zzz', 'hsr', 'gi', 'hi3'):
+        for g in GAME_NAME:
             _validate_helper(d, default_config_data, ['game', g], {'extract_path', 'frame_analysis_parent_path', 'game_options'})
             _validate_helper(d, default_config_data, ['game', g, 'game_options'], {'clean_extract_folder', 'open_extract_folder', 'delete_frame_analysis'})
             

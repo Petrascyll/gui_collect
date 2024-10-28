@@ -38,6 +38,8 @@ class Terminal(tk.Frame):
 
         self.text_wdgt.tag_config('TIMESTAMP', foreground='#999')
         self.text_wdgt.tag_config('PATH', foreground='#4FF')
+        self.text_wdgt.tag_config('GAME', foreground='#4F4')
+        self.text_wdgt.tag_config('LINK', foreground='#08F', font=('Lucida Sans Typewriter', 10, 'underline'))
         self.text_wdgt.tag_config('ERROR', foreground='#F44', font=('Lucida Sans Typewriter', 10, 'bold'))
         self.text_wdgt.tag_config('WARNING', foreground='#FB2', font=('Lucida Sans Typewriter', 10, 'bold'))
 
