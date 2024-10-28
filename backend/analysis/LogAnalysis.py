@@ -380,6 +380,9 @@ def parse_frame_analysis_log_file(log_path: Path):
                         arg[0]: arg[1]
                         for arg in args
                     }
+
+                elif keyword in ['DrawIndexedInstancedIndirect']:
+                    log_data[draw_id] = {}
                 
                 elif keyword in ['ClearRenderTargetView']:
                     log_data[draw_id] = {}
