@@ -312,7 +312,8 @@ class LogAnalysis():
 # Group 6: Texture hash
 # Group 7: Extension
 # Group 8: Texture Format
-texture_pattern = re.compile(r'^[\d]{6} 3DMigoto Dumping Texture2D (.*?FrameAnalysis-.*?\\)(\d{6}-(ps-t|o)(\d+)=(!.!=)?([a-f0-9]{8}).*?\.(.{3})) -> \1deduped\\[a-f0-9]{8}-(.*)\..{3}$')
+# texture_pattern = re.compile(r'^[\d]{6} 3DMigoto Dumping Texture2D (.*?FrameAnalysis-.*?\\)(\d{6}-(ps-t|o)(\d+)=(!.!=)?([a-f0-9]{8}).*?\.(.{3})) -> \1deduped\\[a-f0-9]{8}-(.*)\..{3}$')
+texture_pattern = re.compile(r'^[\d]{6} 3DMigoto Dumping Texture2D (.*?FrameAnalysis-.*?\\)(\d{6}-(ps-t|o)(\d+)=(!.!=)?([a-f0-9]{8}).*?\.(.{3})) -> .*\\[a-f0-9]{8}-(.*)\..{3}$')
 
 def parse_frame_analysis_log_file(log_path: Path):
     st = time.time()
