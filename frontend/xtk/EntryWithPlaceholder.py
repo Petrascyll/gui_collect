@@ -13,6 +13,7 @@ class EntryWithPlaceholder(tk.Entry):
         if not self['text']:
             self.put_placeholder()
 
+        self.bind("<Key>", _onKeyRelease)
         self.bind("<FocusIn>", self.focus_in)
         self.bind("<FocusOut>", self.focus_out)
 
@@ -34,3 +35,16 @@ class EntryWithPlaceholder(tk.Entry):
         if s == self.placeholder:
             return ''
         return s
+
+# https://stackoverflow.com/questions/40946919/python-tkinter-copy-paste-not-working-with-other-languages
+def _onKeyRelease(event):
+    ctrl = (event.state & 0x4) != 0
+    if ctrl:
+        if event.keycode==65 and event.keysym.lower() != "a":
+            event.widget.event_generate("<<SelectAll>>")
+        elif event.keycode==67 and event.keysym.lower() != "c":
+            event.widget.event_generate("<<Copy>>")
+        elif event.keycode==88 and event.keysym.lower() != "x": 
+            event.widget.event_generate("<<Cut>>")
+        elif event.keycode==86 and event.keysym.lower() != "v": 
+            event.widget.event_generate("<<Paste>>")
