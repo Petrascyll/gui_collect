@@ -20,8 +20,9 @@ class TexturePicker(tk.Frame):
         self.config(*args, **kwargs, bg='#111')
         self.parent = parent
 
-        self.terminal = State.get_instance().get_terminal()
         self.temp_dir = Config.get_instance().temp_data['temp_dir']
+        self._state   = State.get_instance()
+        self.terminal = self._state.get_terminal()
 
         self.configure_grid()
         self.create_widgets()
@@ -55,15 +56,22 @@ class TexturePicker(tk.Frame):
             ]
             finish_extraction_callback(export_name, components, components_textures)
 
-        self.callback    = helper_callback
+        self.callback = helper_callback
+        self._state.register_texture_picker(self)
 
         self.update_idletasks()
         texture_components  = [components[idx] for idx in texture_components_idx]
         self.texture_grid.load(component_index=0, first_index=0, components=texture_components)
         self.texture_bar .load(component_index=0, first_index=0, components=texture_components)
+        self.bind_keys()
 
+    def bind_keys(self):
         self.bind_all('<s>', self.texture_bar.go_to_next)
         self.bind_all('<w>', self.texture_bar.go_to_prev)
+
+    def unbind_keys(self):
+        self.unbind_all('<s>')
+        self.unbind_all('<w>')
 
         # self.bind_all('<s>', lambda _: self.do_fake_click(self.next_canvas))
         # self.bind_all('<w>', lambda _: self.do_fake_click(self.prev_canvas))
@@ -82,12 +90,12 @@ class TexturePicker(tk.Frame):
         self.lower()
 
         self.callback    = None
+        self._state.unregister_texture_picker()
 
         self.texture_grid.unload()
         self.texture_bar .unload()
 
-        self.unbind_all('<s>')
-        self.unbind_all('<w>')
+        self.unbind_keys()
 
 class TextureBar(tk.Frame):
     def __init__(self, parent, *args, **kwargs):

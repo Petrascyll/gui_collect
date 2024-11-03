@@ -27,7 +27,8 @@ class State():
 
         self.sidebar  = None
         self.terminal = None
-        self.extract_forms = []
+        self.texture_picker = None
+        self.extract_forms  = []
 
     @staticmethod
     def get_instance():
@@ -47,6 +48,19 @@ class State():
 
     def get_terminal(self):
         return self.terminal
+
+    def register_texture_picker(self, texture_picker):
+        if self.texture_picker:
+            raise Exception('TexturePicker has already been registered')
+        self.texture_picker = texture_picker
+
+    def unregister_texture_picker(self):
+        if not self.texture_picker:
+            raise Exception('No TexturePicker registered')
+        self.texture_picker = None
+
+    def get_texture_picker(self):
+        return self.texture_picker
 
     def lock_sidebar(self):
         if not self.sidebar:

@@ -5,8 +5,10 @@ from functools import partial
 from backend.utils.texture_utils.TextureManager import TextureManager
 from backend.analysis.structs import Texture
 
-from .xtk.ScrollableFrame import ScrollableFrame
+from frontend.state import State
 
+from .xtk.ScrollableFrame import ScrollableFrame
+from .xtk.EntryWithPlaceholder import EntryWithPlaceholder
 
 class TextureGridItem(tk.Canvas):
     def __init__(self, parent, texture: Texture, get_ref, *args, **kwargs):
@@ -16,6 +18,8 @@ class TextureGridItem(tk.Canvas):
         self.parent = parent
         self.texture = texture
         self.get_ref = get_ref
+
+        self._texture_picker = State.get_instance().get_texture_picker()
 
         self.create_canvas_widgets()
 
@@ -72,19 +76,32 @@ class TextureGridItem(tk.Canvas):
         self.tag_raise(img, self.inner_image_bg_tag)
 
     def show_texture_type_picker(self, *args):
+        self._texture_picker.unbind_keys()
         self.border_frame = tk.Frame(self, bg='#A00')
         self.border_frame.place(x=0, y=0, width=272, height=272, anchor='nw')
 
+        def handle_leave(e):
+            self._texture_picker.bind_keys()
+            self.border_frame.destroy()
+            
         self.texture_type_frame = TextureTypeFrame(self.border_frame, self.handle_texture_type_click)
         self.texture_type_frame.pack(fill='both', expand=True, padx=8, pady=8)
-        self.texture_type_frame.bind('<Leave>', lambda _: self.border_frame.destroy())
+        self.texture_type_frame.bind('<Leave>', handle_leave)
 
         self.border_frame.tkraise()
 
     def handle_texture_type_click(self, texture_type: str, *args):
+        self._texture_picker.bind_keys()
         self.get_ref().add_texture(self.texture, texture_type)
         self.border_frame.destroy()
 
+
+TYPE_STYLE = {
+    'bg':'#222', 'fg':'#e8eaed',
+    'font':('Arial', 18, 'bold'),
+    'justify': 'center',
+    'cursor': 'hand2',
+}
 
 class TextureTypeFrame(ScrollableFrame):
     def __init__(self, parent, handle_texture_type_click, *args, **kwargs):
@@ -96,8 +113,23 @@ class TextureTypeFrame(ScrollableFrame):
         self.create_widgets()
 
     def create_widgets(self):
+        custom_type = EntryWithPlaceholder(self.interior, placeholder='Custom', **TYPE_STYLE)
+        custom_type.pack(side='top', fill='x', pady=(0, 1))
+
+        def submit_custom_type(event):
+            text = event.widget.get()
+            if not text: return
+            if not text.replace('_', '').isalnum(): return
+            self.handle_texture_type_click(text)
+
+        custom_type.bind('<Enter>', lambda e: e.widget.config(bg='#A00'))
+        custom_type.bind('<Leave>', lambda e: e.widget.config(bg='#222'))
+        custom_type.bind('<Return>',   submit_custom_type)
+        custom_type.bind('<Button-1>', submit_custom_type)
+        custom_type.focus()
+
         for texture_type in ['Diffuse', 'NormalMap', 'MaterialMap', 'LightMap', 'StockingMap', 'ShadowRamp', 'Shadow', 'ExpressionMap']:
-            texture_type_label = tk.Label(self.interior, text=texture_type, bg='#222', fg='#e8eaed', font=('Arial', 18, 'bold'), cursor='hand2')
+            texture_type_label = tk.Label(self.interior, text=texture_type, **TYPE_STYLE)
             texture_type_label.pack(side='top', fill='x', pady=(0, 1))
             
             texture_type_label.bind('<Enter>', lambda e: e.widget.config(bg='#A00'))
