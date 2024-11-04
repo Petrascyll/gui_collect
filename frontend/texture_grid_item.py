@@ -105,7 +105,7 @@ TYPE_STYLE = {
 
 class TextureTypeFrame(ScrollableFrame):
     def __init__(self, parent, handle_texture_type_click, *args, **kwargs):
-        ScrollableFrame.__init__(self, parent, scrollable_parent=parent.master.parent.parent, bg='#111', width=256, height=256)
+        tk.Frame.__init__(self, parent, bg='#111', width=256, height=256)
         self.config(*args, **kwargs)
         self.parent = parent
 
@@ -113,8 +113,8 @@ class TextureTypeFrame(ScrollableFrame):
         self.create_widgets()
 
     def create_widgets(self):
-        custom_type = EntryWithPlaceholder(self.interior, placeholder='Custom', **TYPE_STYLE)
-        custom_type.pack(side='top', fill='x', pady=(0, 1))
+        custom_type = EntryWithPlaceholder(self, placeholder='Custom', **TYPE_STYLE)
+        custom_type.pack(side='bottom', fill='x')
 
         def submit_custom_type(event):
             text = event.widget.get()
@@ -128,8 +128,13 @@ class TextureTypeFrame(ScrollableFrame):
         custom_type.bind('<Button-1>', submit_custom_type)
         custom_type.focus()
 
-        for texture_type in ['Diffuse', 'NormalMap', 'MaterialMap', 'LightMap', 'StockingMap', 'ShadowRamp', 'Shadow', 'ExpressionMap']:
-            texture_type_label = tk.Label(self.interior, text=texture_type, **TYPE_STYLE)
+        tk.Label(
+            self, font=('Arial', '10', 'bold'), fg='#444', bg=self['bg'], anchor='center',
+            text='Either pick one of the above\noptions or type and hit Enter',
+        ).pack(side='bottom', fill='x')
+
+        for texture_type in ['Diffuse', 'NormalMap', 'MaterialMap', 'LightMap', 'StockingMap']:
+            texture_type_label = tk.Label(self, text=texture_type, **TYPE_STYLE)
             texture_type_label.pack(side='top', fill='x', pady=(0, 1))
             
             texture_type_label.bind('<Enter>', lambda e: e.widget.config(bg='#A00'))
