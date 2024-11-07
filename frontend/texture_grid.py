@@ -59,9 +59,9 @@ class TextureGrid(tk.Frame):
         size_values = (16*1024, 256*1024, 1024*1024, 4096*1024)
         size_value_labels = ('16KiB', '256KiB', '1MiB', '4MiB')
 
-        self.ext_filter    = TextFilter(self.header, callback=self.regrid_active_widgets, active=True, values=('', 'dds', 'jpg'), value_labels=('', '.dds', '.jpg'), initial_value_index=1)
-        self.width_filter  = ConditionalFilter(self.header, callback=self.regrid_active_widgets, active=False, label_text='W', values=(256, 512, 1024, 2048, 4096), initial_value_index=2)
-        self.height_filter = ConditionalFilter(self.header, callback=self.regrid_active_widgets, active=False, label_text='H', values=(256, 512, 1024, 2048, 4096), initial_value_index=2)
+        self.ext_filter    = TextFilter(self.header, callback=self.regrid_active_widgets, active=False, values=('', 'dds', 'jpg'), value_labels=('', '.dds', '.jpg'), initial_value_index=0)
+        self.width_filter  = ConditionalFilter(self.header, callback=self.regrid_active_widgets, active=True, label_text='W', values=(256, 512, 1024, 2048, 4096), initial_value_index=1)
+        self.height_filter = ConditionalFilter(self.header, callback=self.regrid_active_widgets, active=True, label_text='H', values=(256, 512, 1024, 2048, 4096), initial_value_index=1)
         self.size_filter   = ConditionalFilter(self.header, callback=self.regrid_active_widgets, active=False, label_text='S', values=size_values, value_labels=size_value_labels, initial_value_index=2)
         self.pow_2_filter  = FlatImageButton(
             self.header,
