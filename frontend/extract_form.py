@@ -9,6 +9,7 @@ from .xtk.EntryWithPlaceholder import EntryWithPlaceholder
 from .xtk.InputComponentList import InputComponentFrameList
 from .xtk.CompactCheckbox import CompactCheckbox
 from .xtk.PathPicker import PathPicker
+from .style import brighter
 from .state import State
 
 from backend.config.Config import Config
@@ -24,7 +25,12 @@ class ExtractForm(tk.Frame):
         self.config(bg='#111')
         self.parent = parent
         self.variant = variant
-        
+
+        if   self.variant.value == 'hsr': self.accent_color = '#7a6ce0'
+        elif self.variant.value == 'zzz': self.accent_color = '#e2751e'
+        elif self.variant.value ==  'gi': self.accent_color = '#5fb970'
+        elif self.variant.value == 'hi3': self.accent_color = '#c660cf'
+
         self.cfg = Config.get_instance()
         self.state = State.get_instance()
         self.state.register_extract_form(self)
@@ -62,16 +68,45 @@ class ExtractForm(tk.Frame):
         self.input_component_list.pack(anchor='w', fill='x')
 
     def create_targeted_options(self):
-        targeted_dump_frame_title = tk.Label(self.targeted_dump, text='Targeted Frame Analysis', bg='#222', fg='#555', anchor='center', font=('Arial', '20', 'bold'))
-        targeted_dump_frame_title.pack(fill='x', pady=(0, 8))
+        targeted_dump_frame_title = tk.Label(self.targeted_dump, text='Targeted Frame Analysis', bg='#222', fg='#555', anchor='w', font=('Arial', '16', 'bold'))
+        targeted_dump_frame_title.pack(fill='x')
+        
+        pp = PathPicker(self.targeted_dump, value=Path('include', 'auto_generated.ini'), callback=None, bg='#333', button_bg=self.accent_color)
+        pp.pack(side='top', fill='x', pady=(0, 12))
 
-        clear_targeted_button = FlatButton(self.targeted_dump, text='Clear', bg='#0A0', hover_bg='#F00')
-        clear_targeted_button.bind('<Button-1>', lambda _: self.clear_targeted_dump_ini())
-        clear_targeted_button.pack(side='left', ipadx=16, ipady=16)
+        targeted_options = self.cfg.data.game[self.variant.value].targeted_options
+        def handle_change_0(newValue: bool):
+            self.terminal.print('Set Config: /game/{}/targeted_options/force_dump_dds = {}'.format(self.variant.value, newValue))
+            targeted_options.force_dump_dds = newValue
+        def handle_change_1(newValue: bool):
+            self.terminal.print('Set Config: /game/{}/targeted_options/dump_rt = {}'.format(self.variant.value, newValue))
+            targeted_options.dump_rt = newValue
 
-        generate_targeted_button = FlatButton(self.targeted_dump, text='Generate', bg='#0A0', hover_bg='#F00')
+        checkbox_0 = CompactCheckbox(
+            self.targeted_dump, height=30, active_bg=self.accent_color, on_change=handle_change_0,
+            active=targeted_options.force_dump_dds, text='Force dump textures as .dds',
+            tooltip_text='Some textures default to dumping as .jpg. Enable this option to ask 3dm to dump all texture as .dds which may improve their quality over their .jpg counterpart.'
+        )
+        checkbox_1 = CompactCheckbox(
+            self.targeted_dump, height=30, active_bg=self.accent_color, on_change=handle_change_1,
+            active=targeted_options.dump_rt, text='Dump render targets',
+            tooltip_text=(
+                'Render targets are helpful to try guess what draw call has the desired textures and have that as the initially selected draw call in the texture picker. '
+                'This is not a perfect nor mandatory option and very slightly increases how long F8 takes to finish. Make sure to check the draw calls other than the initially '
+                'selected one for any textures you\'d be interested in. If you disable dumping render targets, checking those other draw calls is even more important.'
+            )
+        )
+        
+        checkbox_0.pack(side='top', pady=(3, 0), anchor='w', fill='x')
+        checkbox_1.pack(side='top', pady=(3, 0), anchor='w', fill='x')
+
+        generate_targeted_button = FlatButton(self.targeted_dump, text='Generate', bg=self.accent_color, hover_bg=brighter(self.accent_color))
         generate_targeted_button.bind('<Button-1>', lambda _: self.generated_targeted_dump_ini())
-        generate_targeted_button.pack(side='right', ipadx=16, ipady=16)
+        generate_targeted_button.pack(side='right', ipadx=10, ipady=10, padx=(8,0))
+
+        clear_targeted_button = FlatButton(self.targeted_dump, text='Clear', bg=self.accent_color, hover_bg=brighter(self.accent_color))
+        clear_targeted_button.bind('<Button-1>', lambda _: self.clear_targeted_dump_ini())
+        clear_targeted_button.pack(side='right', ipadx=10, ipady=10)
 
     def create_extract_options(self):
         self.extract_name = EntryWithPlaceholder(
@@ -81,33 +116,27 @@ class ExtractForm(tk.Frame):
         )
         self.extract_name.pack(side='top', fill='x', pady=(0, 2))
 
-        variant_value = self.variant.value
-        if variant_value   == 'hsr': active_bg = '#7a6ce0'
-        elif variant_value == 'zzz': active_bg = '#e2751e'
-        elif variant_value ==  'gi': active_bg = '#5fb970'
-        elif variant_value == 'hi3': active_bg = '#c660cf'
-
         def handle_path_change(newPath: str):
             self.cfg.data.game[self.variant.value].extract_path = newPath
             self.terminal.print('Set Config: /game/extract/{}/extract_path = <PATH>{}</PATH>'.format(self.variant.value, newPath))
 
-        pp = PathPicker(self.extract_options_frame, value=self.cfg.data.game[self.variant.value].extract_path, callback=handle_path_change, bg='#333', button_bg=active_bg)
+        pp = PathPicker(self.extract_options_frame, value=self.cfg.data.game[self.variant.value].extract_path, callback=handle_path_change, bg='#333', button_bg=self.accent_color)
         pp.pack(side='top', fill='x', pady=(0, 12))
 
-        game_options = self.cfg.data.game[variant_value].game_options
+        game_options = self.cfg.data.game[self.variant.value].game_options
         def handle_change_0(newValue: bool):
-            self.terminal.print('Set Config: /game/{}/clean_extract_folder = {}'.format(variant_value, newValue))
+            self.terminal.print('Set Config: /game/{}/clean_extract_folder = {}'.format(self.variant.value, newValue))
             game_options.clean_extract_folder  = newValue
         def handle_change_1(newValue: bool):
-            self.terminal.print('Set Config: /game/{}/open_extract_folder = {}'.format(variant_value, newValue))
+            self.terminal.print('Set Config: /game/{}/open_extract_folder = {}'.format(self.variant.value, newValue))
             game_options.open_extract_folder   = newValue
         def handle_change_2(newValue: bool):
-            self.terminal.print('Set Config: /game/{}/delete_frame_analysis = {}'.format(variant_value, newValue))
+            self.terminal.print('Set Config: /game/{}/delete_frame_analysis = {}'.format(self.variant.value, newValue))
             game_options.delete_frame_analysis = newValue
 
-        checkbox_0 = CompactCheckbox(self.extract_options_frame, height=30, active_bg=active_bg, active=game_options.clean_extract_folder,  on_change=handle_change_0, text='Clean extracted folder before extraction')
-        checkbox_1 = CompactCheckbox(self.extract_options_frame, height=30, active_bg=active_bg, active=game_options.open_extract_folder,   on_change=handle_change_1, text='Open extracted folder after extraction')
-        checkbox_2 = CompactCheckbox(self.extract_options_frame, height=30, active_bg=active_bg, active=game_options.delete_frame_analysis, on_change=handle_change_2, text='Delete frame analysis after extraction')
+        checkbox_0 = CompactCheckbox(self.extract_options_frame, height=30, active_bg=self.accent_color, active=game_options.clean_extract_folder,  on_change=handle_change_0, text='Clean extracted folder before extraction')
+        checkbox_1 = CompactCheckbox(self.extract_options_frame, height=30, active_bg=self.accent_color, active=game_options.open_extract_folder,   on_change=handle_change_1, text='Open extracted folder after extraction')
+        checkbox_2 = CompactCheckbox(self.extract_options_frame, height=30, active_bg=self.accent_color, active=game_options.delete_frame_analysis, on_change=handle_change_2, text='Delete frame analysis after extraction')
         checkbox_0.pack(side='top', pady=(3, 0), anchor='w', fill='x')
         checkbox_1.pack(side='top', pady=(3, 0), anchor='w', fill='x')
         checkbox_2.pack(side='top', pady=(3, 0), anchor='w', fill='x')
@@ -163,7 +192,8 @@ class ExtractForm(tk.Frame):
         if not (d3dx_path/'d3dx.ini').exists():
             d3dx_path = None
 
-        targeted_analysis.generate(extract_name, input_component_hashes, input_component_names, d3dx_path, self.terminal)
+        targeted_options = self.cfg.data.game[self.variant.value].targeted_options
+        targeted_analysis.generate(extract_name, input_component_hashes, input_component_names, d3dx_path, self.terminal, dump_rt=targeted_options.dump_rt, force_dump_dds=targeted_options.force_dump_dds)
 
     def clear_targeted_dump_ini(self):
         targeted_analysis.clear(self.terminal)

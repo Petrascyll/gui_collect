@@ -18,7 +18,7 @@ def clear(terminal=None):
         terminal.print(f'Cleared targeted ini content from <PATH>{_filepath.absolute()}</PATH>')
         terminal.print()
 
-def generate(export_name, model_hashes, component_names, d3dx_path: Path, terminal):
+def generate(export_name, model_hashes, component_names, d3dx_path: Path, terminal, dump_rt = True, force_dump_dds = False):
     targeted_content = '\n\n'.join([
         '\n'.join([
             '[TextureOverrideModel{}]'.format(i+1),
@@ -29,9 +29,9 @@ def generate(export_name, model_hashes, component_names, d3dx_path: Path, termin
             'if vb0 > 0 && ib > 0',
             '    $modded_model_{} = 1'.format(i+1),
             'endif',
-            'run = CommandListRT',
+            '{}run = CommandListRT'.format('; ' if not dump_rt else ''),
             'run = CommandListModel',
-            'run = CommandListTexture',
+            'run = CommandListTexture.jpg.dds' if not force_dump_dds else 'run = CommandListTexture.dds',
         ])
         for i, model_hash in enumerate(model_hashes)
     ])
@@ -172,10 +172,13 @@ analyse_options = dump_rt dump_tex dump_cb buf txt
 analyse_options = dump_ib dump_vb txt buf
 
 [CommandListRT]
-analyse_options = dump_rt jps_dds
+analyse_options = dump_rt
 
-[CommandListTexture]
+[CommandListTexture.jpg.dds]
 analyse_options = dump_tex
+
+[CommandListTexture.dds]
+analyse_options = dump_tex dds
 
 ;------------TARGET MODEL----------
 '''

@@ -10,6 +10,10 @@ GAME_NAME = {
     'hi3': 'Honkai Impact 3rd',
 }
 
+@dataclass
+class _TargetedConfigOptionData():
+    force_dump_dds : bool = False
+    dump_rt        : bool = True
 
 @dataclass
 class _GameConfigOptionData():
@@ -21,11 +25,13 @@ class _GameConfigOptionData():
 class _GameConfigData():
     frame_analysis_parent_path: str = ''
     extract_path              : str = default_extract_path
-    game_options: _GameConfigOptionData = field(default_factory=lambda: _GameConfigOptionData())
-    
+    game_options     :     _GameConfigOptionData = field(default_factory=lambda:     _GameConfigOptionData())
+    targeted_options : _TargetedConfigOptionData = field(default_factory=lambda: _TargetedConfigOptionData())
+
     def __post_init__(self):
         if not is_dataclass(self.game_options):
-            self.game_options = _GameConfigOptionData(**self.game_options)
+            self.game_options     =     _GameConfigOptionData(**self.game_options)
+            self.targeted_options = _TargetedConfigOptionData(**self.targeted_options)
 
 @dataclass
 class ConfigData():
@@ -57,8 +63,9 @@ class ConfigData():
         _validate_helper(d, default_config_data, [],       {'active_game', 'targeted_analysis_enabled', 'game'})
         _validate_helper(d, default_config_data, ['game'], {'zzz', 'hsr', 'gi', 'hi3'})
         for g in GAME_NAME:
-            _validate_helper(d, default_config_data, ['game', g], {'extract_path', 'frame_analysis_parent_path', 'game_options'})
+            _validate_helper(d, default_config_data, ['game', g], {'extract_path', 'frame_analysis_parent_path', 'game_options', 'targeted_options'})
             _validate_helper(d, default_config_data, ['game', g, 'game_options'], {'clean_extract_folder', 'open_extract_folder', 'delete_frame_analysis'})
+            _validate_helper(d, default_config_data, ['game', g, 'targeted_options'], {'force_dump_dds', 'dump_rt'})
             
 
 def _validate_helper(d: dict, dd: dict, path: list[str], keys_to_be_added: set[str]):

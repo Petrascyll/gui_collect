@@ -2,9 +2,10 @@ import tkinter as tk
 
 from frontend.style import brighter, darker
 
+from .Tooltip import Tooltip
 
 class CompactCheckbox(tk.Canvas):
-    def __init__(self, parent, *args, text, active=False, on_change: callable, active_bg, **kwargs):
+    def __init__(self, parent, *args, text, active=False, on_change: callable, active_bg, tooltip_text='', **kwargs):
         tk.Canvas.__init__(self, parent)
         self.config(bg='#222', relief='flat', cursor='hand2', borderwidth=0, highlightthickness=0)
         self.config(*args, **kwargs)
@@ -27,6 +28,9 @@ class CompactCheckbox(tk.Canvas):
         self.bind('<Button-1>', self.handle_click)
         self.bind('<Enter>', self.handle_enter)
         self.bind('<Leave>', self.handle_leave)
+
+        if tooltip_text:
+            Tooltip(self, text=tooltip_text, bg='#FFF')
 
     def handle_click(self, _):
         self.active = not self.active

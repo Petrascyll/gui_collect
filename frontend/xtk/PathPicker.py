@@ -22,7 +22,8 @@ class PathPicker(tk.Frame):
         self.default_bg = self['bg']
         self.button_bg  = button_bg
 
-        self.create_button()
+        if self.callback:
+            self.create_button()
         self.create_label()
 
     def create_button(self):
