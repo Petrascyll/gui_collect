@@ -22,17 +22,23 @@ class AddressFrame(tk.Frame):
         self.terminal = self._state.get_terminal()
 
         self.font = Font(family='Arial', size=20, weight='bold')
-        self.address_max_width = 400
+        self.grid_columnconfigure(0, weight=1)
+
         self.target = target
         self.path: str = ''
-        
+        self.path_text = ''
+
         self.create_widgets()
         self.load_latest_frame_analysis()
     
+    def refresh_path_text(self):
+        if not self.path: return
+        self.path_text = get_trunc_path(self.path, self.font, self.folder_path_label.winfo_width())
+        self.folder_path_label.config(text=self.path_text)
+
     def create_widgets(self):
-        self.folder_path_label = tk.Label(self, text='Select Frame Analysis Folder', fg='#555', font=self.font)
-        if self.path:
-            self.folder_path_label.config(text=self.path)
+        self.folder_path_label = tk.Label(self, text='Select Frame Analysis Folder', fg='#555', anchor='w', font=self.font)
+        self.folder_path_label.bind('<Configure>', lambda _: self.refresh_path_text())
 
         img = tk.PhotoImage(file=Path('./resources/images/buttons/folder_open.32.png').absolute())
         pick_folder_btn = FlatImageButton(self, width=40, height=40, img_width=32, img_height=32, bg='#3fb76b', image=img)
@@ -42,62 +48,22 @@ class AddressFrame(tk.Frame):
         pick_latest_dump_btn = FlatImageButton(self, width=40, height=40, img_width=32, img_height=32, bg='#244eb9', image=img)
         pick_latest_dump_btn.bind('<Button-1>', lambda _: self.load_latest_frame_analysis())
 
-        # img = tk.PhotoImage(file=Path('./resources/images/buttons/close.256.png').absolute()).subsample(8)
-        # close_btn = FlatButton(self, width=40, height=40, img_width=32, img_height=32, bg='#b92424', image=img)
-        # close_btn.bind('<Button-1>', self.handle_address_close)
-
-        self.folder_path_label .pack(side='left')
-        pick_folder_btn        .pack(side='right', padx=0, pady=0)
-        pick_latest_dump_btn   .pack(side='right', padx=0, pady=0)
-        # close_btn              .pack(side='right', padx=0, pady=0)
-
-    # def set_label_text(self, text: str, max_chars:int=None):
-    #     # path = str(Path(text).resolve())
-    #     path = text
-    #     width = self.font.measure(self.path)
-    #     i = 0
-    #     j = len(path)
-    #     # Binary search to find the maximum number of characters that still fits within
-    #     # our width requirement :teriderp:
-    #     while width > self.address_max_width:
-    #         i = i + (j-i)//2
-    #         trimmed_path = path[-i:]
-    #         trimmed_width = self.font.measure(trimmed_path)
-    #         if trimmed_width > self.address_max_width:
-    #             continue
-    #         else:
-    #             j = i
-    #             i = i + (j-i)//2
-    #             trimmed_path = path[-i:]
-
-    #     self.folder_path_label.config(text=path)
+        self.folder_path_label .grid(row=0, column=0, sticky='nsew')
+        pick_latest_dump_btn   .grid(row=0, column=1, sticky='nsew')
+        pick_folder_btn        .grid(row=0, column=2, sticky='nsew')
 
     def set_path(self, text: str):
         self.path = str(Path(text).resolve())
         self.terminal.print('Set frame analysis path: <PATH>{}</PATH>'.format(str(self.path)))
         self.terminal.print()
         
-        self.folder_path_label.config(text=self.path)
+        self.refresh_path_text()
         self.parent.on_address_change(text=self.path)
 
     def handle_frame_dump_pick(self):
         path = filedialog.askdirectory(mustexist=True, title='Select Frame Analysis Folder')
         if path:
             self.set_path(path)
-
-    def handle_address_close(self, e):
-        path = self.folder_path_label['text']
-
-        if not path or 'FrameAnalysis' not in path:
-            self.folder_path_label.config(text='Select Frame Analysis Folder')
-            self.path = ''
-            return
-
-        path = Path(path)
-        while 'FrameAnalysis' not in path.name:
-            path = path.parent
-
-        self.set_path(path.parent.absolute())
 
     def load_latest_frame_analysis(self):
         saved_path = Config.get_instance().data.game[self.target.value].frame_analysis_parent_path
@@ -121,3 +87,16 @@ class AddressFrame(tk.Frame):
             self.set_path(saved_path)
 
         return
+
+# Maybe just a bit overkill
+def get_trunc_path(s: str, font: Font, max_width: int):
+    if (font.measure(s) <= max_width):
+        return s
+
+    # The font isnt changing so I can just hard code
+    # the width of '...\' = font.measure('...\\') = 32px
+    while 32 + font.measure(s) > max_width:
+        try: s = s.split('\\', maxsplit=1)[1]
+        except IndexError: break
+
+    return '...\\' + s
