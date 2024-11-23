@@ -9,6 +9,8 @@ from .xtk.EntryWithPlaceholder import EntryWithPlaceholder
 from .xtk.InputComponentList import InputComponentFrameList
 from .xtk.CompactCheckbox import CompactCheckbox
 from .xtk.PathPicker import PathPicker
+from .xtk.ScrollableFrame import ScrollableFrame
+
 from .style import brighter
 from .state import State
 
@@ -50,7 +52,7 @@ class ExtractForm(tk.Frame):
         self.grid_columnconfigure(1, weight=0)
 
     def create_widgets(self):
-        self.component_options_frame = tk.Frame(self, bg='#222', width=600)
+        self.component_options_frame = ScrollableFrame(self, bg='#222', width=600)
         self.extract_options_frame   = tk.Frame(self, bg='#222', padx=16, pady=16)
         self.targeted_dump           = tk.Frame(self, bg='#222', padx=16, pady=16)
         self.extract_frame           = tk.Frame(self, bg='#111')
@@ -64,8 +66,8 @@ class ExtractForm(tk.Frame):
         extract_button.pack(fill='x', side='bottom', anchor='e', ipadx=16, ipady=16)
 
     def create_component_options(self):
-        self.input_component_list = InputComponentFrameList(self.component_options_frame)
-        self.input_component_list.pack(anchor='w', fill='x')
+        self.input_component_list = InputComponentFrameList(self.component_options_frame.interior)
+        self.input_component_list.pack(anchor='w', padx=(0,4), pady=(16,0), fill='both')
 
     def create_targeted_options(self):
         targeted_dump_frame_title = tk.Label(self.targeted_dump, text='Targeted Frame Analysis', bg='#222', fg='#555', anchor='w', font=('Arial', '16', 'bold'))
@@ -112,7 +114,7 @@ class ExtractForm(tk.Frame):
         self.extract_name = EntryWithPlaceholder(
             self.extract_options_frame, placeholder='Extract Name',
             color='#555', font=('Arial', '24', 'bold'),
-            bg='#333', relief='flat', width=32
+            bg='#333', relief='flat', width=30
         )
         self.extract_name.pack(side='top', fill='x', pady=(0, 2))
 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from .EntryWithPlaceholder import EntryWithPlaceholder
 from .FlatImageButton import FlatImageButton
-
+from .Tooltip import Tooltip
 
 @dataclass
 class InputComponent():
@@ -29,33 +29,50 @@ class InputComponentFrameList(tk.Frame):
         return [input_component_frame.get() for input_component_frame in self.input_component_frames]
     
     def hash_key_release(self, e, i):
-        c = len(self.input_component_frames)
-        if i == c - 1:
-            s = e.widget.get()
-            if not s: return
-            self.add_input_component_frame()
-        return
+        s = e.widget.get()
+        if not s: return
+        self.add_input_component_frame()
 
     def add_input_component_frame(self):
         i = len(self.input_component_frames)
-        self.input_component_frames.append(InputComponentFrame(self, index=i))
-        pady = (16, 4) if i == 0 else (4, 4) 
-        self.input_component_frames[-1].pack(side='top', padx=16, anchor='w', fill='x', pady=pady)
+        self.input_component_frames.append(InputComponentFrame(self, index=i, handle_remove=self.remove_input_component_frame))
+        self.input_component_frames[-1].pack(side='top', padx=16, anchor='w', fill='x', pady=(0,8))
 
+        if len(self.input_component_frames) > 1:
+            self.input_component_frames[-2].component_hash_entry.unbind('<KeyRelease>')
         self.input_component_frames[-1].component_hash_entry.bind(
             '<KeyRelease>',
             lambda e: self.hash_key_release(e, i)
         )
 
+    def remove_input_component_frame(self, input_component_frame):
+        self.input_component_frames.pop(input_component_frame.index)
+        input_component_frame.pack_forget()
+        input_component_frame.destroy()
+
+        for i, icf in enumerate(self.input_component_frames):
+            icf.index = i
+            icf.component_hash_entry.unbind('<KeyRelease>')
+
+        self.input_component_frames[-1].component_hash_entry.bind(
+            '<KeyRelease>',
+            lambda e: self.hash_key_release(e, len(self.input_component_frames) - 1)
+        )
+
+        if len(self.input_component_frames) < 4:
+            self.add_input_component_frame()
+
+        self.update_idletasks()
 
 class InputComponentFrame(tk.Frame):
-    def __init__(self, parent, index, *args, **kwargs):
+    def __init__(self, parent, index, handle_remove, *args, **kwargs):
         tk.Frame.__init__(self, parent)
         self.parent = parent
         self.config(bg=self.parent['bg'])
         self.config(*args, **kwargs)
 
         self.index = index
+        self.handle_remove = handle_remove
 
         self.configure_grid()
         self.create_widgets()
@@ -75,12 +92,19 @@ class InputComponentFrame(tk.Frame):
         )
         self.component_options_frame = tk.Frame(self, bg=self['bg'])
 
+        self.remove_button = tk.Label(self, text='   ', bg='#502020', cursor='hand2')
+        self.remove_button.bind('<Button-1>', lambda _: self.handle_remove(self))
+        self.remove_button.bind('<Enter>', lambda e: e.widget.config(bg='#A00'))
+        self.remove_button.bind('<Leave>', lambda e: e.widget.config(bg='#502020'))
+        Tooltip(self.remove_button, text='Delete', bg='#FFF', waittime=100)
+
         self.component_hash_entry   .grid(row=0, column=0, pady=(0,1), sticky='nsew')
         self.component_name_entry   .grid(row=1, column=0, pady=(1,0), sticky='nsew')
         self.component_options_frame.grid(row=0, column=1, rowspan=2,  sticky='nsew', padx=(2,0))
+        self.remove_button          .grid(row=0, column=2, rowspan=2, sticky='nsew')
 
         # TODO stop being lazy and hard coding colors
-        variant_value = self.parent.parent.master.variant.value
+        variant_value = self.parent.parent.master.master.master.variant.value
         if variant_value   == 'hsr': active_bg = '#7a6ce0'
         elif variant_value == 'zzz': active_bg = '#e2751e'
         elif variant_value ==  'gi': active_bg = '#5fb970'
@@ -104,13 +128,12 @@ class InputComponentFrame(tk.Frame):
             padx = (0,0) if i != 1 else (0,2)
             checkbox.pack(anchor='nw', padx=padx, side='left')
 
-
-
     def configure_grid(self):
         self   .rowconfigure(0, weight=1)
         self   .rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=0)
+        self.columnconfigure(2, weight=0)
 
     def get(self):
         return InputComponent(
@@ -121,8 +144,3 @@ class InputComponentFrame(tk.Frame):
                 for option_widget in self.component_options_frame.winfo_children()
             }
         )
-
-    def key_release(self, event):
-        s = self.component_hash_entry.get()
-        if s: self.parent.parent.add_input_component()
-
