@@ -8,6 +8,8 @@ from frontend.state import State
 
 from .structs import Texture, Component, ID_Data
 
+DIR_TEXTURE_PATTERN = re.compile(r'^\d{6}-ps-t(\d+)=(!.!=)?([a-f0-9]{8})')
+
 class LogAnalysis():
 
     def __init__(self, frame_analysis_path: Path):
@@ -34,7 +36,12 @@ class LogAnalysis():
         self.set_prepose_data (extract_component)
         # self.set_shapekey_data(extract_component)
         self.set_textures_id  (extract_component, game)
-        self.set_textures     (extract_component)
+
+        if self.frame_analysis_path.name.isascii():
+            self.set_textures_from_log(extract_component)
+        else:
+            self.terminal.print('<WARNING>Non ASCII characters detected in frame analysis path. Falling back to texdiag.exe to find texture formats.</WARNING>')
+            self.set_textures_from_dir(extract_component)
 
 
         self.check_analysis (extract_component)
@@ -197,7 +204,7 @@ class LogAnalysis():
             else:
                 component.tex_index_id[first_index] = next(iter(component.draw_data[first_index]))
 
-    def set_textures(self, component: Component):
+    def set_textures_from_log(self, component: Component):
         '''
             Save parsed texture data from log.txt to its component
         '''
@@ -220,6 +227,31 @@ class LogAnalysis():
                     for texture in component.draw_data[first_index][id].textures:
                         self.texture_manager.get_image(texture, 256, callback=lambda a,b,c: None)
 
+    def set_textures_from_dir(self, component):
+        for first_index in component.draw_data:
+            initial_id = component.tex_index_id[first_index]
+            for id in component.draw_data[first_index]:
+
+                component.draw_data[first_index][id].textures = sorted([
+                    Texture(
+                        p,
+                        texture_slot   = m.group(1),
+                        texture_hash   = m.group(3),
+                        texture_format = 0,
+                        contamination  = m.group(2)[:-1] if m.group(2) else '',
+                        extension      = p.suffix[1:],
+                    )
+                    for p in self.frame_analysis_path.iterdir()
+                    if p.name.startswith(id) and p.suffix in ['.dds', '.jpg']
+                    and (m := DIR_TEXTURE_PATTERN.match(p.name))
+                ], key=lambda t: int(t.slot))
+
+                # Preload textures from the id with the most useful textures discovered
+                # These textures are going to be loaded by the texture picker after
+                # analysis is done so preloading them early could save some time
+                if id == initial_id:
+                    for texture in component.draw_data[first_index][id].textures:
+                        self.texture_manager.get_image(texture, 256, callback=lambda a,b,c: None)
 
     def check_analysis(self, component: Component):
 
@@ -313,7 +345,7 @@ class LogAnalysis():
 # Group 7: Extension
 # Group 8: Texture Format
 # texture_pattern = re.compile(r'^[\d]{6} 3DMigoto Dumping Texture2D (.*?FrameAnalysis-.*?\\)(\d{6}-(ps-t|o)(\d+)=(!.!=)?([a-f0-9]{8}).*?\.(.{3})) -> \1deduped\\[a-f0-9]{8}-(.*)\..{3}$')
-texture_pattern = re.compile(r'^[\d]{6} 3DMigoto Dumping Texture2D (.*?FrameAnalysis-.*?\\)(\d{6}-(ps-t|o)(\d+)=(!.!=)?([a-f0-9]{8}).*?\.(.{3})) -> .*\\[a-f0-9]{8}-(.*)\..{3}$')
+LOG_TEXTURE_PATTERN = re.compile(r'^[\d]{6} 3DMigoto Dumping Texture2D (.*?FrameAnalysis-.*?\\)(\d{6}-(ps-t|o)(\d+)=(!.!=)?([a-f0-9]{8}).*?\.(.{3})) -> .*\\[a-f0-9]{8}-(.*)\..{3}$')
 
 def parse_frame_analysis_log_file(log_path: Path):
     st = time.time()
@@ -329,8 +361,8 @@ def parse_frame_analysis_log_file(log_path: Path):
                     log_data[draw_id] = {}
 
                 if line[7:15] == '3DMigoto':
-                    if m := texture_pattern.match(line):
-                        filepath = Path(m.group(1), m.group(2)).absolute()
+                    if m := LOG_TEXTURE_PATTERN.match(line):
+                        filepath = Path(log_path.parent, m.group(2)).absolute()
                         if m.group(3) == 'ps-t':
                             if 'textures' not in log_data[draw_id]:
                                 log_data[draw_id]['textures'] = {}

@@ -5,18 +5,19 @@ from pathlib import Path
 from os.path import getsize
 from frontend.state import State
 
+from backend.utils.texture_utils.texdiag_helper import get_texdiag_info
+
 
 class Texture():
     def __init__(
             self, filepath: Path, *,
-            texture_slot:str, texture_hash:str, texture_format:str,
+            texture_slot:str, texture_hash:str, texture_format:str=None,
             contamination:str, extension:str
         ):
         self.path: Path = filepath
 
         self.slot         : str = texture_slot
         self.hash         : str = texture_hash
-        self.format       : str = texture_format
         self.contamination: str = contamination
         self.extension    : str = extension
 
@@ -26,8 +27,64 @@ class Texture():
         self._width : int = None
         self._height: int = None
 
+        self._format: str = None if not texture_format else texture_format
+        self._read_format_lock      = threading.Lock()
+        self._read_format_thread    = None
+        self._read_format_callbacks = []
+
         self._pow_2 = None
         self._size  = None
+
+    def async_read_format(self, callback=None, *, blocking=False):
+        if not callback and not blocking:
+            raise Exception()
+
+        if self._format:
+            if callback: return callback()
+            return
+
+        def run_in_thread():
+            try:
+                texdiag_info = get_texdiag_info(str(self.path.absolute()))
+                _format = texdiag_info['format']
+                # might as well set _width and _height to cause
+                # async_read_width_height to return immediately
+                # if [blocking] async_read_format has been called
+                # before it
+                _width  = int(texdiag_info['width'])
+                _height = int(texdiag_info['height'])
+            except ZeroDivisionError:
+                _format = '???'
+                _width  = 1
+                _height = 1
+
+            self._read_format_lock.acquire()
+            self._read_format_thread = None
+            self._format = _format
+            self._width  = _width
+            self._height = _height
+            callbacks = [*self._read_format_callbacks]
+            self._read_format_callbacks = []
+            self._read_format_lock.release()
+
+            for callback in callbacks:
+                callback()
+
+        self._read_format_lock.acquire()
+        if self._format:
+            self._read_format_lock.release()
+            if callback: return callback()
+            return
+
+        if not self._read_format_thread:
+            if callback: self._read_format_callbacks.append(callback)
+            self._read_format_thread = threading.Thread(target=run_in_thread, args=())
+            self._read_format_thread.start()
+        self._read_format_lock.release()
+
+        if callback is None:
+            self._read_format_thread.join()
+            return
 
     def async_read_width_height(self, callback=None, *, blocking=False):
         if not callback and not blocking:

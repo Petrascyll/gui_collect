@@ -27,23 +27,16 @@ class TextureGridItem(tk.Canvas):
         outer_image_bg_tag = self.create_rectangle(0, 0, 272, 272, fill='#333', outline='')
         inner_image_bg_tag = self.create_rectangle(8, 8, 264, 264, fill='#111', outline='')
         self.inner_image_bg_tag = inner_image_bg_tag
-        TextureManager.get_instance().get_image(self.texture, 256, self.callback)
 
-        # I'm 1px off horizontally for some reason, so using x=13 instead of x=12
-        format_text_tag    = self.create_text(13,  12, anchor='nw', font=('Arial', 10, 'bold'), fill='#e8eaed', text=f'{self.texture.format}')
-        format_text_bg_tag = self.create_rectangle(get_padded_bbox(self.bbox(format_text_tag), 4), fill='#222', outline='')
-        self.tag_lower(format_text_bg_tag, format_text_tag)
+        self.invis_event_target = self.create_rectangle(0, 0, 272, 272, fill='', outline='')
+        TextureManager.get_instance().get_image(self.texture, 256, callback=self.create_texture_image)
+        self.texture.async_read_format(callback=self.create_format_label)
 
-        self.res_text_tag    = self.create_text(13, 36, anchor='nw', font=('Arial', 10, 'bold'), fill='#e8eaed', text=f'??x??')
-        self.res_text_bg_tag = self.create_rectangle(get_padded_bbox(self.bbox(self.res_text_tag), 4), fill='#222', outline='')
-        self.tag_lower(self.res_text_bg_tag, self.res_text_tag)
-
-        invis_event_target = self.create_rectangle(0, 0, 272, 272, fill='', outline='')
-        self.tag_bind(invis_event_target, '<Enter>', add='+', func=lambda e: e.widget.itemconfig(outer_image_bg_tag, fill='#A00'))
-        self.tag_bind(invis_event_target, '<Leave>', add='+', func=lambda e: e.widget.itemconfig(outer_image_bg_tag, fill='#333'))
-        self.tag_bind(invis_event_target, '<Enter>', add='+', func=lambda e: e.widget.config(cursor='hand2'))
-        self.tag_bind(invis_event_target, '<Leave>', add='+', func=lambda e: e.widget.config(cursor=''))
-        self.tag_bind(invis_event_target, '<Button-1>', func=self.show_texture_type_picker)
+        self.tag_bind(self.invis_event_target, '<Enter>', add='+', func=lambda e: e.widget.itemconfig(outer_image_bg_tag, fill='#A00'))
+        self.tag_bind(self.invis_event_target, '<Leave>', add='+', func=lambda e: e.widget.itemconfig(outer_image_bg_tag, fill='#333'))
+        self.tag_bind(self.invis_event_target, '<Enter>', add='+', func=lambda e: e.widget.config(cursor='hand2'))
+        self.tag_bind(self.invis_event_target, '<Leave>', add='+', func=lambda e: e.widget.config(cursor=''))
+        self.tag_bind(self.invis_event_target, '<Button-1>', func=self.show_texture_type_picker)
 
         if not self.texture.contamination:
             substrs = ('ps-t', str(self.texture.slot), '=', self.texture.hash)
@@ -55,25 +48,35 @@ class TextureGridItem(tk.Canvas):
         create_colored_text(self, 272+4, substrs, substrs_color)
         self.create_text(int(self['width'])//2, 272+4+24, anchor='n', font=('Arial', 16, 'bold'), fill='#e8eaed', text=get_size_str(self.texture.get_size()))
 
-    def callback(self, image, width, height):
-        self.update_idletasks()
-        self.after_idle(self.load_image, image, width, height)
+    def create_format_label(self):
+        def helper_create_format_label():
+            format_text_tag    = self.create_text(13,  12, anchor='nw', font=('Arial', 10, 'bold'), fill='#e8eaed', text=self.texture._format)
+            format_text_bg_tag = self.create_rectangle(get_padded_bbox(self.bbox(format_text_tag), 4), fill='#222', outline='')
+            self.tag_lower(format_text_tag, self.invis_event_target)
+            self.tag_lower(format_text_bg_tag, format_text_tag)
 
-    def load_image(self, image, width, height):
-        self.delete(self.res_text_tag, self.res_text_bg_tag)
-        self.res_text_tag  = self.create_text(13, 36, anchor='nw', font=('Arial', 10, 'bold'), fill='#e8eaed', text=f'{self.texture._width}x{self.texture._height}')
-        self.res_text_bg_tag = self.create_rectangle(get_padded_bbox(self.bbox(self.res_text_tag), 4), fill='#222', outline='')
-        self.tag_lower(self.res_text_bg_tag, self.res_text_tag)
-        
-        self.image_width  = width
-        self.image_height = height
-        img = self.create_image(
-            (272 - self.image_width ) // 2,
-            (272 - self.image_height) // 2,
-            anchor='nw', image=image
-        )
-        self.tag_lower(img, self.inner_image_bg_tag)
-        self.tag_raise(img, self.inner_image_bg_tag)
+        self.update_idletasks()
+        self.after_idle(helper_create_format_label)
+
+    def create_texture_image(self, image, width, height):
+        def load_image(image, width, height):
+            res_text_tag  = self.create_text(13, 36, anchor='nw', font=('Arial', 10, 'bold'), fill='#e8eaed', text=f'{self.texture._width}x{self.texture._height}')
+            res_text_bg_tag = self.create_rectangle(get_padded_bbox(self.bbox(res_text_tag), 4), fill='#222', outline='')
+            self.tag_lower(res_text_tag, self.invis_event_target)
+            self.tag_lower(res_text_bg_tag, res_text_tag)
+
+            self.image_width  = width
+            self.image_height = height
+            self.img = self.create_image(
+                (272 - self.image_width ) // 2,
+                (272 - self.image_height) // 2,
+                anchor='nw', image=image
+            )
+            self.tag_lower(self.img, self.inner_image_bg_tag)
+            self.tag_raise(self.img, self.inner_image_bg_tag)
+
+        self.update_idletasks()
+        self.after_idle(load_image, image, width, height)
 
     def show_texture_type_picker(self, *args):
         self._texture_picker.unbind_keys()
