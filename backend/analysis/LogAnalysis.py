@@ -37,7 +37,7 @@ class LogAnalysis():
         # self.set_shapekey_data(extract_component)
         self.set_textures_id  (extract_component, game)
 
-        if self.frame_analysis_path.name.isascii():
+        if str(self.frame_analysis_path.absolute()).isascii():
             self.set_textures_from_log(extract_component)
         else:
             self.terminal.print('<WARNING>Non ASCII characters detected in frame analysis path. Falling back to texdiag.exe to find texture formats.</WARNING>')
