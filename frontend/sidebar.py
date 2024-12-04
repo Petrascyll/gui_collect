@@ -68,7 +68,7 @@ class Sidebar(tk.Frame):
         add_button(key='Help', bg_color='#AAA', img_path='./resources/images/buttons/help.1.64.png', tooltip_text="Opens in a new tab of the default browser the link to a usage guide", bottom=True)
 
     def handle_help_click(self):
-        url = 'https://github.com/petrascyll/gui_collect'
+        url = 'https://leotorrez.github.io/modding/guides/hunting'
         self._terminal.print(f'Opened <LINK>{url}</LINK> in new tab of default browser.')
         open_new_tab(url)
 
