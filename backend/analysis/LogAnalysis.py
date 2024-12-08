@@ -384,9 +384,11 @@ def parse_frame_analysis_log_file(log_path: Path):
 
                 keyword = line[7:].split('(', maxsplit=1)[0]
                 if keyword in [
-                    'IASetVertexBuffers', 'CopyResource', 'SOSetTargets',
+                    'IASetVertexBuffers', 'SOSetTargets',
                     'CSSetUnorderedAccessViews', 'CSSetShaderResources',
-                    'CSSetConstantBuffers'
+                    'CSSetConstantBuffers',
+                    # 'CopyResource', CopyResource could be invoked multiple times in the same call with keys src, dst failing the assert
+                    # should be handled separately but I dont currently need it for anything so its commented out
                 ]:
                     if keyword not in log_data[draw_id]:
                         log_data[draw_id][keyword] = {}
