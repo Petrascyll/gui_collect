@@ -16,7 +16,7 @@ class App(tk.Tk):
 
         self.state = State()
 
-        version_str = '0.9.93'
+        version_str = '0.9.94'
         self.title(f'GUI Collect v{version_str}')
         self.geometry('1368x840')
         # self.geometry('1650x800')

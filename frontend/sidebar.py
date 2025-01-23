@@ -95,7 +95,6 @@ class Sidebar(tk.Frame):
         if page == self.active_page: return
 
         if page.value in GAME_NAME:
-            self._terminal.print()
             self._terminal.print(f'Collecting for <GAME>{GAME_NAME[page.value]}</GAME>')
 
         self._state.update_active_page(page)

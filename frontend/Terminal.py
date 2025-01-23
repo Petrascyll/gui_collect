@@ -1,9 +1,10 @@
 import re
 import time
 import tkinter as tk
+from pathlib import Path
 
 from .state import State
-
+from .xtk.FlatImageButton import FlatImageButton
 
 # Doesn't support nested tags
 tag_pattern = re.compile(r'<(.*?)>([\s\S]*?)<\/\1>')
@@ -15,23 +16,31 @@ class Terminal(tk.Frame):
         self.config(*args, **kwargs)
         self.config(background='#080808')
 
+        self.chevron_down_img = tk.PhotoImage(file=Path('resources', 'images', 'buttons', 'chevron.down.16.png'))
+        self.chevron_up_img   = tk.PhotoImage(file=Path('resources', 'images', 'buttons', 'chevron.up.16.png'))
+
         self._state = State.get_instance()
         self._state.register_terminal(self)
 
+        self.terminal_visible = True
         self.create_widgets()
 
     def create_widgets(self):
+        self   .grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
         self.text_wdgt = tk.Text(
             self,
             wrap='word', height=12,
             insertbackground='#0FF', takefocus=False,
             insertofftime=500, insertontime=1000,
-            bg=self['bg'], fg='#e8eaed',
+            # bg=self['bg'],
+            bg='#080808',
+            fg='#e8eaed',
             font=('Lucida Sans Typewriter', 10),
             relief='flat', highlightthickness=0
         )
-        self.text_wdgt.pack(fill='both', expand=True, padx=16, pady=16)
+        self.text_wdgt.grid(row=0, column=0, sticky='nsew', ipadx=16)
 
         # TODO: Makes "read only" but breaks copy/paste
         # self.text_wdgt.bind("<Key>", lambda e: "break")
@@ -43,10 +52,25 @@ class Terminal(tk.Frame):
         self.text_wdgt.tag_config('ERROR', foreground='#F44', font=('Lucida Sans Typewriter', 10, 'bold'))
         self.text_wdgt.tag_config('WARNING', foreground='#FB2', font=('Lucida Sans Typewriter', 10, 'bold'))
 
-        # self.text_wdgt.tag_bind('PATH', '<Enter>', lambda e: e.widget.config(cursor='hand2'))
-        # self.text_wdgt.tag_bind('PATH', '<Leave>', lambda e: e.widget.config(cursor='left_ptr'))
+        self.btn = FlatImageButton(self, image=self.chevron_down_img, bg=self['bg'], img_width=16, img_height=16, width=34, height=34)
+        self.btn.place(relx=1.0, x=0, y=0, anchor='ne')
+        self.btn.bind('<Button-1>', self.toggle_terminal_visible)
 
-    def print(self, text='', end='\n', timestamp=True):
+
+    def toggle_terminal_visible(self, event):
+        self.terminal_visible = not self.terminal_visible
+        if self.terminal_visible:
+            self.btn.set_image(self.chevron_down_img, img_width=16, img_height=16, width=32, height=32)
+            self.text_wdgt.config(height=12)
+        else:
+            self.btn.set_image(self.chevron_up_img, img_width=16, img_height=16, width=32, height=32)
+            self.text_wdgt.config(height=2)
+        self.update_idletasks()
+        self.text_wdgt.see(tk.END)
+
+
+    def print(self, text='', timestamp=True):
+        self.text_wdgt.insert(tk.END, '\n')
 
         if timestamp and text != '':
             struct_time = time.localtime(time.time())
@@ -71,7 +95,6 @@ class Terminal(tk.Frame):
         if insert_start != len(text):
             self.text_wdgt.insert(tk.END, text[insert_start:])
 
-        self.text_wdgt.insert(tk.END, end)
         self.text_wdgt.see(tk.END)
 
 

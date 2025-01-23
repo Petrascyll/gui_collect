@@ -16,7 +16,6 @@ def clear(terminal=None):
 
     if terminal:
         terminal.print(f'Cleared targeted ini content from <PATH>{_filepath.absolute()}</PATH>')
-        terminal.print()
 
 def generate(export_name, model_hashes, component_names, d3dx_path: Path, terminal, dump_rt = True, force_dump_dds = False):
     targeted_content = '\n\n'.join([

@@ -187,7 +187,6 @@ class ExtractForm(tk.Frame):
         extract_name, input_component_hashes, input_component_names, _, path = self.collect_input(skip_collect_nothing=False)
         if not input_component_hashes:
             self.terminal.print('<ERROR>Targeted Ini Generation Aborted! No valid hashes provided.</ERROR>')
-            self.terminal.print()
             return
 
         d3dx_path = path.parent
@@ -206,15 +205,12 @@ class ExtractForm(tk.Frame):
         extract_name, input_component_hashes, input_component_names, input_components_options, path = self.collect_input()
         if not input_component_hashes:
             self.terminal.print('<ERROR>Frame Analysis Aborted! No valid hashes provided.</ERROR>')
-            self.terminal.print()
             return
         if not extract_name:
             self.terminal.print('<ERROR>Frame Analysis Aborted! You must provided a name for the extracted model.</ERROR>')
-            self.terminal.print()
             return
         if not (path/'log.txt').exists():
             self.terminal.print('<ERROR>Frame Analysis Aborted! Invalid frame analysis path: "{}".</ERROR>'.format(str(path)))
-            self.terminal.print()
             return
 
         frame_analysis = FrameAnalysis(path)
@@ -222,7 +218,6 @@ class ExtractForm(tk.Frame):
         extracted_components = frame_analysis.extract(input_component_hashes, input_component_names, input_components_options, game=self.variant.value)
         if extracted_components is None:
             self.terminal.print('<ERROR>Frame Analysis Failed!</ERROR>')
-            self.terminal.print()
             return
 
         # Create list with indices of components that need their textures to be selected in the texture picker
