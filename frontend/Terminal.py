@@ -40,7 +40,7 @@ class Terminal(tk.Frame):
             font=('Lucida Sans Typewriter', 10),
             relief='flat', highlightthickness=0
         )
-        self.text_wdgt.grid(row=0, column=0, sticky='nsew', ipadx=16)
+        self.text_wdgt.grid(row=0, column=0, sticky='nsew', padx=16)
 
         # TODO: Makes "read only" but breaks copy/paste
         # self.text_wdgt.bind("<Key>", lambda e: "break")
