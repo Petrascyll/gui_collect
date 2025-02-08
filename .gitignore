@@ -2,3 +2,4 @@ __pycache__
 _Extracted
 config.json
 include/auto_generated.ini
+.venv
