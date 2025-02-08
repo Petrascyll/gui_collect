@@ -5,7 +5,7 @@ from .structs import BufferElement
 from frontend.state import State
 
 
-def merge_buffers(buffers, buffer_formats: list[dict]):
+def merge_buffers(buffers, buffer_formats: list[list[BufferElement]]):
     vertex_count = len(buffers[0])
 
     merged_data = []

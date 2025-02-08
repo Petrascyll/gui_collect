@@ -111,9 +111,20 @@ class FrameAnalysis():
                             json_builder.components[-1].__setattr__(f'{buffer_type}_vb', '')
                             continue
                         else:
+                            # Used to reverse applied shapekeys on position buffer for hsr/zzz only
+                            shapekey_args = {
+                                'shapekey_buffer_path': component.shapekey_buffer_path,
+                                'shapekey_cb_paths':    component.shapekey_cb_paths
+                            } if (
+                                buffer_type == 'position'
+                                and game in ('hsr', 'zzz')
+                                and component.shapekey_buffer_path
+                                and component.shapekey_cb_paths
+                            ) else {}
+
                             buffer_path    = buffer_paths[0].with_suffix('.buf')
                             buffer_formats = [element.Format for element in buffer_elements]
-                            buffer         = collect_binary_buffer_data(buffer_path, buffer_formats, buffer_stride)
+                            buffer         = collect_binary_buffer_data(buffer_path, buffer_formats, buffer_stride, self.terminal, **shapekey_args)
 
                             if buffer_type == 'blend':
                                 handle_no_weight_blend(buffer, buffer_elements)
@@ -139,7 +150,6 @@ class FrameAnalysis():
         if self.cfg.game[game].game_options.open_extract_folder:
             subprocess.run([FILEBROWSER_PATH, extract_path])
             self.terminal.print(f'Opening <PATH>{extract_path.absolute()}</PATH> with File Explorer')
-            self.terminal.print()
 
 
 def _export_component_buffers(export_name: str, path: Path, component: Component, vb_merged):

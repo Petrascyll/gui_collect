@@ -33,8 +33,12 @@ class LogAnalysis():
 
         self.set_relevant_ids (extract_component, component_hash, component_hash_type)
         self.set_draw_data    (extract_component)
-        self.set_prepose_data (extract_component)
-        # self.set_shapekey_data(extract_component)
+
+        if pose_id := self.get_pose_id(extract_component):
+            self.set_prepose_data (extract_component, pose_id)
+            if game == 'hsr':
+                self.set_shapekey_data(extract_component, pose_id)
+
         self.set_textures_id  (extract_component, game)
 
         if str(self.frame_analysis_path.absolute()).isascii():
@@ -135,9 +139,9 @@ class LogAnalysis():
         component.draw_hash      = self.get_vb_hash(component.ids[0], 0)
         component.texcoord_hash  = self.get_vb_hash(component.ids[0], 1)
 
-    def set_prepose_data(self, component: Component):
+    def get_pose_id(self, component: Component):
         if not component.draw_hash:
-            return
+            return None
 
         pose_ids = [
             id for id in self.log_data
@@ -145,12 +149,14 @@ class LogAnalysis():
             and '0' in self.log_data[id]['SOSetTargets']
             and self.log_data[id]['SOSetTargets']['0'] == component.draw_hash
         ]
-        if not pose_ids: return
+        if not pose_ids: return None
 
         # Yunli weapon is posed twice for some reason?
         # if len(pose_ids) != 1: raise Exception()
 
-        pose_id = pose_ids[0]
+        return pose_ids[0]
+
+    def set_prepose_data(self, component: Component, pose_id: str):
         vs_hash = self.get_vertex_shader_hash(pose_id)
         assert('IASetVertexBuffers' in self.log_data[pose_id])
 
@@ -173,6 +179,67 @@ class LogAnalysis():
             elif buffer_type == BufferType.Blend_VB:
                 component.blend_hash = buffer_hash
                 component.blend_path = buffer_path
+
+    def set_shapekey_data(self, component: Component, pose_id: str):
+        '''
+            Must be called after `set_prepose_data` since the position hash is used as a safeguard
+        '''
+        if 'CopyResource' not in self.log_data[pose_id]:
+            return
+        
+        # There may be multiple CopyResource calls in the same draw call.
+        # Though its very unlikely for the Pose draw call to be like so,
+        # this is still a good safeguard to have.
+        # We are only interested in the CopyResource that copies the UAV
+        # data (source) into the pose call Position buffer (destination)
+        src_uav_hashes = [
+            src_hash
+            for src_hash, dst_hash in self.log_data[pose_id]['CopyResource']
+            if dst_hash == component.position_hash
+        ]
+
+        if len(src_uav_hashes) == 0:
+            return
+
+        # Pick the last one to account for a possible(?) edge case 
+        #   CopyResource(src=aaa, dst=123)
+        #   CopyResource(src=bbb, dst=123)
+        #   CopyResource(src=ccc, dst=123)
+        src_uav_hash = src_uav_hashes[-1]
+        
+        shapekey_ids = [
+            id for id in self.log_data
+            if 'CSSetUnorderedAccessViews' in self.log_data[id]
+            and '0' in self.log_data[id]['CSSetUnorderedAccessViews']
+            and self.log_data[id]['CSSetUnorderedAccessViews']['0'] == src_uav_hash
+        ]
+
+        cs_hash       = self.get_compute_shader_hash(shapekey_ids[0])
+        cst0_hash     = self.log_data[shapekey_ids[0]]['CSSetShaderResources']['0']
+        cst0_filename = self.compile_cs_t_filepath(shapekey_ids[0], cst0_hash, 0, cs_hash, '.buf')
+
+        for shapekey_id in shapekey_ids:
+            assert('CSSetConstantBuffers' in self.log_data[shapekey_id])
+            assert(cs_hash == self.get_compute_shader_hash(shapekey_id))
+
+            for slot, cb_hash in self.log_data[shapekey_id]['CSSetConstantBuffers'].items():
+                cb_filename_buf = self.compile_cs_cb_filepath(shapekey_id, cb_hash, slot, cs_hash, '.buf')
+                cb_filepath_buf = self.frame_analysis_path / cb_filename_buf
+
+                # Default marking_actions at the time of writing does NOT include `dump_cb`
+                # If constant buffers are indeed missing, warn the user and give up on 
+                # shapekeys for this extraction
+                if not cb_filepath_buf.exists():
+                    self.terminal.print(f'<PATH>{cb_filepath_buf.name}</PATH><WARNING> does not exist. Discovered shapekey data cannot be extracted!</WARNING>')
+                    component.shapekey_cb_paths = []
+                    return
+
+                component.shapekey_cb_paths.append(cb_filepath_buf)
+
+        component.cs_hash              = cs_hash
+        component.uav_hash             = src_uav_hash
+        component.shapekey_buffer_hash = cst0_hash
+        component.shapekey_buffer_path = self.frame_analysis_path / cst0_filename
 
     def set_textures_id(self, component: Component, game='zzz'):
         '''
@@ -289,6 +356,14 @@ class LogAnalysis():
         if ps_hash: resources.append(('ps', ps_hash))
         return self.compile_filepath(draw_id, resources, ext)
 
+    def compile_cs_t_filepath(self, draw_id, texture_hash, slot, cs_hash, ext='.txt'):
+        resources = [(f'cs-t{slot}', texture_hash), ('cs', cs_hash)]
+        return self.compile_filepath(draw_id, resources, ext)
+
+    def compile_cs_cb_filepath(self, draw_id, cb_hash, slot, cs_hash, ext='.txt'):
+        resources = [(f'cs-cb{slot}', cb_hash), ('cs', cs_hash)]
+        return self.compile_filepath(draw_id, resources, ext)
+
     def compile_filepath(self, draw_id, resources: list[tuple[str,str]], ext='.txt'):
         filename = '{}-{}{}'.format(
             draw_id,
@@ -303,6 +378,11 @@ class LogAnalysis():
         if draw_id == 1: raise Exception()
         return str(draw_id - 1).zfill(6)
     
+    def get_compute_shader_hash(self, draw_id: str):
+        while 'CSSetShader' not in self.log_data[draw_id]:
+            draw_id = self.get_prev_draw_id(draw_id)
+        return self.log_data[draw_id]['CSSetShader']
+
     def get_vertex_shader_hash(self, draw_id: str):
         while 'VSSetShader' not in self.log_data[draw_id]:
             draw_id = self.get_prev_draw_id(draw_id)
@@ -387,8 +467,6 @@ def parse_frame_analysis_log_file(log_path: Path):
                     'IASetVertexBuffers', 'SOSetTargets',
                     'CSSetUnorderedAccessViews', 'CSSetShaderResources',
                     'CSSetConstantBuffers',
-                    # 'CopyResource', CopyResource could be invoked multiple times in the same call with keys src, dst failing the assert
-                    # should be handled separately but I dont currently need it for anything so its commented out
                 ]:
                     if keyword not in log_data[draw_id]:
                         log_data[draw_id][keyword] = {}
@@ -402,6 +480,15 @@ def parse_frame_analysis_log_file(log_path: Path):
                         line = log_file.readline()
                     log_file.seek(pos)
                 
+                elif keyword in ['CopyResource']:
+                    # CopyResource could be called multiple times in the same call with distinct key pairs (src, dst)
+                    if keyword not in log_data[draw_id]:
+                        log_data[draw_id][keyword] = []
+                    
+                    src_hash = log_file.readline().strip().split('hash=')[1]
+                    dst_hash = log_file.readline().strip().split('hash=')[1]
+                    log_data[draw_id][keyword].append((src_hash, dst_hash))
+
                 elif keyword in ['IASetIndexBuffer', 'PSSetShader', 'VSSetShader', 'CSSetShader']:
                     hash_match = re.search(r'hash=([a-f0-9]+)', line)
                     if not hash_match: continue

@@ -81,8 +81,15 @@ def get_decoder(dxgi_format: str):
     raise Exception('Unrecognized dxgi format: {}'.format(dxgi_format))
 
 
-def collect_binary_buffer_data(buffer_path: Path, buffer_formats: list[str], buffer_stride: int):
+def collect_binary_buffer_data(
+        buffer_path: Path, buffer_formats: list[str], buffer_stride: int, terminal, *,
+        shapekey_buffer_path: Path = None, shapekey_cb_paths: list[Path] = None
+    ):
     buffer = buffer_path.read_bytes()
+
+    # May only be used for hsr/zzz extractions
+    if shapekey_buffer_path and shapekey_cb_paths:
+        buffer = reverse_applied_shapekeys(bytearray(buffer), shapekey_buffer_path.read_bytes(), shapekey_cb_paths, terminal)
 
     byte_offset    = 0
     decoder_offset = []
@@ -91,6 +98,7 @@ def collect_binary_buffer_data(buffer_path: Path, buffer_formats: list[str], buf
         byte_offset += get_byte_width(format)
 
     vertex_count = len(buffer) // buffer_stride
+    # assert(byte_offset == buffer_stride)
 
     buffer_data = [
         [
@@ -101,3 +109,34 @@ def collect_binary_buffer_data(buffer_path: Path, buffer_formats: list[str], buf
     ]
 
     return buffer_data
+
+
+# Hardcoded specifically for hsr/zzz extraction and shapekey reversal
+# s = (Position, Normal, Tangent) Shapekey
+def reverse_applied_shapekeys(position_buffer, shapekey_buffer, shapekey_cb_paths: list[Path], terminal):
+    STRIDE = 40
+
+    terminal.print("Reversing Applied Shapkeys")
+
+    prev_offset = 0
+    prev_count  = 0
+    for cb_filepath in shapekey_cb_paths:
+        offset, vertex_count, multiplier, garbage = struct.unpack_from('<LLff', cb_filepath.read_bytes(), offset=0)
+
+        if prev_offset + prev_count != offset:
+            terminal.print("        <WARNING>Warning: missing shapekey metadata</WARNING>")
+        terminal.print(f"        <PATH>{cb_filepath.name}</PATH> [Offset: {offset:4}, Vertex Count: {vertex_count:4}, Multiplier: {multiplier}]")
+
+        prev_offset = offset
+        prev_count  = vertex_count
+
+        for i in range(vertex_count):
+            idx, *s = struct.unpack_from('<L9f', shapekey_buffer,  i*STRIDE + offset*STRIDE)
+            base    = struct.unpack_from('<9f', position_buffer, idx*STRIDE)
+
+            struct.pack_into(
+                '<9f', position_buffer, idx*STRIDE,
+                *[a - (b * multiplier) for a, b in zip(base, s)]
+            )
+    
+    return position_buffer

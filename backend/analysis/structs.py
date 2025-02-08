@@ -227,6 +227,12 @@ class Component():
     blend_path   : Path = None
     texcoord_path: Path = None
 
+    shapekey_buffer_path: Path  = None
+    shapekey_buffer_hash: str   = ''
+    shapekey_cb_paths   : list[Path] = field(default_factory=lambda:[])
+    cs_hash : str = ''
+    uav_hash: str = ''
+
     ids                  : list[str]  = field(default_factory=lambda:[])
     ib_paths             : list[Path] = field(default_factory=lambda:[])
     object_indices       : list[int]  = field(default_factory=lambda:[])
@@ -260,6 +266,11 @@ class Component():
             'Texcoord Path: <PATH>{}</PATH>'.format(self.texcoord_path.with_suffix('.buf').name if self.texcoord_path else ''),
             '   Blend Path: <PATH>{}</PATH>'.format(self.blend_path.with_suffix('.buf').name if self.blend_path else ''),
         ]
+
+        if self.shapekey_buffer_path:
+            s.append(
+                'Shapekey Path: <PATH>{}</PATH>'.format(self.shapekey_buffer_path.name),
+            )
 
         terminal = State.get_instance().get_terminal()
         for line in s:
