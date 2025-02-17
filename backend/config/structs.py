@@ -14,6 +14,8 @@ GAME_NAME = {
 class _TargetedConfigOptionData():
     force_dump_dds : bool = False
     dump_rt        : bool = True
+    symlink        : bool = False
+    share_dupes    : bool = False
 
 @dataclass
 class _GameConfigOptionData():
@@ -65,7 +67,7 @@ class ConfigData():
         for g in GAME_NAME:
             _validate_helper(d, default_config_data, ['game', g], {'extract_path', 'frame_analysis_parent_path', 'game_options', 'targeted_options'})
             _validate_helper(d, default_config_data, ['game', g, 'game_options'], {'clean_extract_folder', 'open_extract_folder', 'delete_frame_analysis'})
-            _validate_helper(d, default_config_data, ['game', g, 'targeted_options'], {'force_dump_dds', 'dump_rt'})
+            _validate_helper(d, default_config_data, ['game', g, 'targeted_options'], {'force_dump_dds', 'dump_rt', 'symlink', 'share_dupes'})
             
 
 def _validate_helper(d: dict, dd: dict, path: list[str], keys_to_be_added: set[str]):

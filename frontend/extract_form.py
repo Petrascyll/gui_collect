@@ -83,14 +83,27 @@ class ExtractForm(tk.Frame):
         def handle_change_1(newValue: bool):
             self.terminal.print('Set Config: /game/{}/targeted_options/dump_rt = {}'.format(self.variant.value, newValue))
             targeted_options.dump_rt = newValue
+        def handle_change_2(newValue: bool):
+            self.terminal.print('Set Config: /game/{}/targeted_options/symlink = {}'.format(self.variant.value, newValue))
+            targeted_options.symlink = newValue
+        def handle_change_3(newValue: bool):
+            self.terminal.print('Set Config: /game/{}/targeted_options/share_dupes = {}'.format(self.variant.value, newValue))
+            targeted_options.share_dupes = newValue
+
+        checkbox_frame = tk.Frame(self.targeted_dump, height=100,  bg=self.targeted_dump['bg'])
+        checkbox_frame.pack(fill='both', expand=True, pady=(0, 12))
+        checkbox_frame.grid_rowconfigure(0, weight=1)
+        checkbox_frame.grid_rowconfigure(1, weight=1)
+        checkbox_frame.grid_columnconfigure(0, weight=1)
+        checkbox_frame.grid_columnconfigure(1, weight=0)
 
         checkbox_0 = CompactCheckbox(
-            self.targeted_dump, height=30, active_bg=self.accent_color, on_change=handle_change_0,
+            checkbox_frame, height=30, width=260, bg='#222', active_bg=self.accent_color, on_change=handle_change_0,
             active=targeted_options.force_dump_dds, text='Force dump textures as .dds',
             tooltip_text='Some textures default to dumping as .jpg. Enable this option to ask 3dm to dump all texture as .dds which may improve their quality over their .jpg counterpart.'
         )
         checkbox_1 = CompactCheckbox(
-            self.targeted_dump, height=30, active_bg=self.accent_color, on_change=handle_change_1,
+            checkbox_frame, height=30, width=260, bg='#222', active_bg=self.accent_color, on_change=handle_change_1,
             active=targeted_options.dump_rt, text='Dump render targets',
             tooltip_text=(
                 'Render targets are helpful to try guess what draw call has the desired textures and have that as the initially selected draw call in the texture picker. '
@@ -98,9 +111,25 @@ class ExtractForm(tk.Frame):
                 'selected one for any textures you\'d be interested in. If you disable dumping render targets, checking those other draw calls is even more important.'
             )
         )
-        
-        checkbox_0.pack(side='top', pady=(3, 0), anchor='w', fill='x')
-        checkbox_1.pack(side='top', pady=(3, 0), anchor='w', fill='x')
+        checkbox_2 = CompactCheckbox(
+            checkbox_frame, height=30, width=170, bg='#222', active_bg=self.accent_color, on_change=handle_change_2,
+            active=targeted_options.symlink, text='Symlink',
+            tooltip_text=(
+                'Sets the symlink option in targeted analyse_options. Can significantly reduce frame analysis file size. '
+                'Will fall back to hard links if symlinks are not supported. Extraction with hard links will NOT work with gui_collect.'
+                'Refer to d3dx.ini for further information about the symlink option.'
+            )
+        )
+        checkbox_3 = CompactCheckbox(
+            checkbox_frame, height=30, width=170, bg='#222', active_bg=self.accent_color, on_change=handle_change_3,
+            active=targeted_options.share_dupes, text='Share dupes',
+            tooltip_text='Sets the share_dupes option in targeted analyse_options. Refer to d3dx.ini for further information about the share_dupes options.'
+        )
+
+        checkbox_0.grid(row=0, column=0, padx=(3, 8), pady=(3, 0), sticky='nsew')
+        checkbox_1.grid(row=1, column=0, padx=(3, 8), pady=(3, 0), sticky='nsew')
+        checkbox_2.grid(row=0, column=1, padx=(3, 8), pady=(3, 0), sticky='nsew')
+        checkbox_3.grid(row=1, column=1, padx=(3, 8), pady=(3, 3), sticky='nsew')
 
         generate_targeted_button = FlatButton(self.targeted_dump, text='Generate', bg=self.accent_color, hover_bg=brighter(self.accent_color))
         generate_targeted_button.bind('<Button-1>', lambda _: self.generated_targeted_dump_ini())
@@ -194,7 +223,17 @@ class ExtractForm(tk.Frame):
             d3dx_path = None
 
         targeted_options = self.cfg.data.game[self.variant.value].targeted_options
-        targeted_analysis.generate(extract_name, input_component_hashes, input_component_names, d3dx_path, self.terminal, dump_rt=targeted_options.dump_rt, force_dump_dds=targeted_options.force_dump_dds)
+        targeted_analysis.generate(
+            extract_name,
+            input_component_hashes,
+            input_component_names,
+            d3dx_path,
+            self.terminal,
+            dump_rt        = targeted_options.dump_rt,
+            force_dump_dds = targeted_options.force_dump_dds,
+            symlink        = targeted_options.symlink,
+            share_dupes    = targeted_options.share_dupes,
+        )
 
     def clear_targeted_dump_ini(self):
         targeted_analysis.clear(self.terminal)

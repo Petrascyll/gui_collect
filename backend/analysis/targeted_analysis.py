@@ -17,7 +17,7 @@ def clear(terminal=None):
     if terminal:
         terminal.print(f'Cleared targeted ini content from <PATH>{_filepath.absolute()}</PATH>')
 
-def generate(export_name, model_hashes, component_names, d3dx_path: Path, terminal, dump_rt = True, force_dump_dds = False):
+def generate(export_name, model_hashes, component_names, d3dx_path: Path, terminal, dump_rt = True, force_dump_dds = False, symlink = False, share_dupes = False):
     targeted_content = '\n\n'.join([
         '\n'.join([
             '[TextureOverrideModel{}]'.format(i+1),
@@ -92,8 +92,22 @@ def generate(export_name, model_hashes, component_names, d3dx_path: Path, termin
         +'endif\n'
     )
 
+    targeted = TARGETED
+    if symlink or share_dupes:
+        extra_options = '{}{}'.format(
+            ' symlink'     if symlink     else '',
+            ' share_dupes' if share_dupes else '',
+        )
+
+        targeted = '\n'.join([
+            line
+            if not line.startswith('analyse_options')
+            else line + extra_options
+            for line in TARGETED.splitlines()
+        ] + [''])
+
     with open(_filepath, 'w') as f:
-        f.write(TARGETED)
+        f.write(targeted)
         f.write(targeted_content)
         f.write('\n\n')
         f.write(TEXT_PRINT)
