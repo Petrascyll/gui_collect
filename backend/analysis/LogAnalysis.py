@@ -149,11 +149,21 @@ class LogAnalysis():
             and '0' in self.log_data[id]['SOSetTargets']
             and self.log_data[id]['SOSetTargets']['0'] == component.draw_hash
         ]
-        if not pose_ids: return None
+        if len(pose_ids) == 0: return None
+        if len(pose_ids) == 1: return pose_ids[0]
+
+        if len(pose_ids) > 1:
+            # Draw hash may be shared.
+            # Pick the pose_id with the matching texcoord_hash as well
+            # TODO: Only handling hsr/zzz case currently. Investigate further later
+            prepose_buffer_count = len(self.log_data[pose_ids[0]]['IASetVertexBuffers'])
+            if prepose_buffer_count == 3:
+                pose_ids = [
+                    id for id in pose_ids
+                    if self.log_data[id]['IASetVertexBuffers']['1'] == component.texcoord_hash
+                ]
 
         # Yunli weapon is posed twice for some reason?
-        # if len(pose_ids) != 1: raise Exception()
-
         return pose_ids[0]
 
     def set_prepose_data(self, component: Component, pose_id: str):
