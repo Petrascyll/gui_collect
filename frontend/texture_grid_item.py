@@ -11,6 +11,10 @@ from frontend.state import State
 from .xtk.ScrollableFrame import ScrollableFrame
 from .xtk.EntryWithPlaceholder import EntryWithPlaceholder
 
+
+FILEBROWSER_PATH = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
+
+
 class TextureGridItem(tk.Canvas):
     def __init__(self, parent, texture: Texture, get_ref, *args, **kwargs):
         tk.Canvas.__init__(self, parent)
@@ -44,6 +48,7 @@ class TextureGridItem(tk.Canvas):
         self.tag_bind(self.invis_event_target, '<Enter>', add='+', func=lambda e: e.widget.config(cursor='hand2'))
         self.tag_bind(self.invis_event_target, '<Leave>', add='+', func=lambda e: e.widget.config(cursor=''))
         self.tag_bind(self.invis_event_target, '<Button-1>', func=self.show_texture_type_picker)
+        self.tag_bind(self.invis_event_target, '<Button-3>', func=do_popup)
 
     def create_texture_hash_label(self):
         if not self.texture.contamination:
@@ -53,6 +58,21 @@ class TextureGridItem(tk.Canvas):
             substrs = ('ps-t', str(self.texture.slot), '=', self.texture.contamination, '=', self.texture.hash)
             substrs_color = ('#e8eaed', '#0FF', '#e8eaed', '#FF0', '#e8eaed', '#0FF')
         create_colored_text(self, 272-12, substrs, substrs_color, bg_color='#222')
+
+    def create_context_menu(self):
+        m = tk.Menu(self, tearoff=0) 
+
+        def do_popup(event): 
+            try:  m.tk_popup(event.x_root, event.y_root) 
+            finally:m.grab_release() 
+        def handle_copy():
+            self.clipboard_clear()
+            self.clipboard_append(self.texture.hash)
+        def handle_show():
+            subprocess.Popen(f'{FILEBROWSER_PATH} /select,"{self.texture.path}"')
+
+        m.add_command(label="Copy Texture Hash",     command=handle_copy) 
+        m.add_command(label="Show in File Explorer", command=handle_show)
 
         return do_popup
 

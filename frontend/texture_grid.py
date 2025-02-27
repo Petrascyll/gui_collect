@@ -56,6 +56,18 @@ class TextureGrid(tk.Frame):
         self.vs_label.grid(row=0, column=0, sticky='nsw', padx=(0, 32))
         self.ps_label.grid(row=1, column=0, sticky='nsw', padx=(0, 32))
 
+        m = tk.Menu(self, tearoff=0) 
+        def do_popup(event): 
+            try:  m.tk_popup(event.x_root, event.y_root) 
+            finally: m.grab_release()
+        def handle_copy(label):
+            self.clipboard_clear()
+            self.clipboard_append(label.cget('text').split(': ')[1])
+        m.add_command(label="Copy Vertex Shader Hash", command=partial(handle_copy, self.vs_label))
+        m.add_command(label="Copy Pixel Shader Hash", command=partial(handle_copy, self.ps_label))
+        self.vs_label.bind('<Button-3>', func=do_popup)
+        self.ps_label.bind('<Button-3>', func=do_popup)
+
         size_values = (16*1024, 256*1024, 1024*1024, 4096*1024)
         size_value_labels = ('16KiB', '256KiB', '1MiB', '4MiB')
 
