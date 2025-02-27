@@ -12,7 +12,7 @@ class State():
     multiple nested levels
     '''
     __instance = None
-    K = Enum('K', 'FRAME_ANALYSIS F_ARIAL16')
+    K = Enum('K', 'FRAME_ANALYSIS F_ARIAL16 F_ARIAL12')
 
     def __init__(self):
         if State.__instance != None:

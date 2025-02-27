@@ -218,7 +218,7 @@ class TextureGrid(tk.Frame):
         for texture in textures:
             TextureGridItem(
                 scrollable_frame.interior,
-                texture, width=272, height=328,
+                texture, width=272, height=272,
                 get_ref=lambda: self.get_ref(component_index, first_index)
             )
 

@@ -4,8 +4,8 @@
 @REM learn if the minimum required python version is available
 @REM and to run the collect script using it
 
-@REM Try every single python version starting from 3.13 to 3.9
-set "valid-python-version-list=3.13 3.12 3.11 3.10 3.9"
+@REM Try every single python version starting from 3.14 to 3.9
+set "valid-python-version-list=3.14 3.13 3.12 3.11 3.10 3.9"
 set "python-version=0"
 
 @REM https://stackoverflow.com/a/40192472
