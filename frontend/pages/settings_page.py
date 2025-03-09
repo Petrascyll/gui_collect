@@ -30,7 +30,20 @@ class SettingsPage(tk.Frame):
         enable_targeted_checkbox = LabeledCheckbox(self, 'Targeted Frame Analysis (Advanced)', ('Arial', 18, 'bold'), initial_state=self.cfg.data.targeted_analysis_enabled)
         enable_targeted_checkbox.on_toggle(lambda v: self.update_cfg('targeted_analysis_enabled', v))
         enable_targeted_checkbox.pack(padx=(8, 0), anchor='nw')
-    
+
+        hsr_shapekey_reversal_checkbox = LabeledCheckbox(
+            self, '[HSR] Reverse Applied Shapekeys for extraction (requires dump_cb marking_actions or targeted dumping)',
+            ('Arial', 18, 'bold'), initial_state=self.cfg.data.reverse_shapekeys_hsr
+        )
+        hsr_shapekey_reversal_checkbox.on_toggle(lambda v: self.update_cfg('reverse_shapekeys_hsr', v))
+        hsr_shapekey_reversal_checkbox.pack(padx=(8, 0), anchor='nw')
+
+        zzz_shapekey_reversal_checkbox = LabeledCheckbox(
+            self, '[ZZZ] Reverse Applied Shapekeys for extraction (requires dump_cb marking_actions or targeted dumping)',
+            ('Arial', 18, 'bold'), initial_state=self.cfg.data.reverse_shapekeys_zzz
+        )
+        zzz_shapekey_reversal_checkbox.on_toggle(lambda v: self.update_cfg('reverse_shapekeys_zzz', v))
+        zzz_shapekey_reversal_checkbox.pack(padx=(8, 0), anchor='nw')
 
     def update_cfg(self, key, value):
         self.terminal.print('Set Config: {} = {}'.format(key, value))

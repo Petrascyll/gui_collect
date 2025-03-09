@@ -39,6 +39,8 @@ class _GameConfigData():
 class ConfigData():
     active_game: str = 'zzz'
     targeted_analysis_enabled: bool = False
+    reverse_shapekeys_hsr: bool = True
+    reverse_shapekeys_zzz: bool = False
     game: dict[str, _GameConfigData] = field(
         default_factory= lambda: {
             'zzz': _GameConfigData(),
@@ -62,7 +64,7 @@ class ConfigData():
         '''
         default_config_data = asdict(ConfigData())
 
-        _validate_helper(d, default_config_data, [],       {'active_game', 'targeted_analysis_enabled', 'game'})
+        _validate_helper(d, default_config_data, [],       {'active_game', 'targeted_analysis_enabled', 'reverse_shapekeys_hsr', 'reverse_shapekeys_zzz', 'game'})
         _validate_helper(d, default_config_data, ['game'], {'zzz', 'hsr', 'gi', 'hi3'})
         for g in GAME_NAME:
             _validate_helper(d, default_config_data, ['game', g], {'extract_path', 'frame_analysis_parent_path', 'game_options', 'targeted_options'})

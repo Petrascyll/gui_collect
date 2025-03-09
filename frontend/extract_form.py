@@ -210,6 +210,18 @@ class ExtractForm(tk.Frame):
             input_component_names   .append(input_component.name)
             input_components_options.append(input_component.options)
 
+        # return (
+        #     'fofo',
+        #     ['e9aecd0b'],
+        #     ['Body'],
+        #     [{
+        #         'collect_model_data': True,
+        #         'collect_model_hashes': True,
+        #         'collect_texture_data': True,
+        #         'collect_texture_hashes': True,
+        #     }],
+        #     path
+        # )
         return extract_name, input_component_hashes, input_component_names, input_components_options, path
 
     def generated_targeted_dump_ini(self):
@@ -254,7 +266,15 @@ class ExtractForm(tk.Frame):
 
         frame_analysis = FrameAnalysis(path)
         self.state.set_var(State.K.FRAME_ANALYSIS, frame_analysis)
-        extracted_components = frame_analysis.extract(input_component_hashes, input_component_names, input_components_options, game=self.variant.value)
+        extracted_components = frame_analysis.extract(
+            input_component_hashes, input_component_names, input_components_options,
+            game=self.variant.value,
+            reverse_shapekeys=(
+                     self.cfg.data.reverse_shapekeys_hsr if self.variant.value == 'hsr'
+                else self.cfg.data.reverse_shapekeys_zzz if self.variant.value == 'zzz'
+                else False
+            )
+        )
         if extracted_components is None:
             self.terminal.print('<ERROR>Frame Analysis Failed!</ERROR>')
             return

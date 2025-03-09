@@ -20,7 +20,7 @@ class LogAnalysis():
         self.texture_manager = TextureManager.get_instance()
 
 
-    def extract(self, extract_component: Component, component_hash: str, component_hash_type: str = None, game = 'zzz') -> None:
+    def extract(self, extract_component: Component, component_hash: str, component_hash_type: str = None, game = 'zzz', reverse_shapekeys=False) -> None:
         st = time.time()
         if not component_hash_type:
             component_hash_type = self.guess_hash_type(component_hash)
@@ -36,7 +36,7 @@ class LogAnalysis():
 
         if pose_id := self.get_pose_id(extract_component):
             self.set_prepose_data (extract_component, pose_id)
-            if game == 'hsr':
+            if reverse_shapekeys:
                 self.set_shapekey_data(extract_component, pose_id)
 
         self.set_textures_id  (extract_component, game)

@@ -32,7 +32,7 @@ class FrameAnalysis():
 
         self.terminal.print(f'Starting Frame Analysis: <PATH>{frame_analysis_path}</PATH>\n')
 
-    def extract(self, input_component_hashes, input_component_names, input_components_options, game='zzz') -> list[Component]:
+    def extract(self, input_component_hashes, input_component_names, input_components_options, game='zzz', reverse_shapekeys=False) -> list[Component]:
         components: list[Component] = []
         for name, target_hash, options in zip(input_component_names, input_component_hashes, input_components_options):
             c = Component(name=name, options=options)
@@ -47,7 +47,7 @@ class FrameAnalysis():
             
             self.terminal.print('Extracting model data of [{}]{}'.format(target_hash, f' - {name}' if name else ''))
             try:
-                self.log_analysis.extract(c, target_hash, game=game)
+                self.log_analysis.extract(c, target_hash, game=game, reverse_shapekeys=reverse_shapekeys)
                 c.print()
             except BufferError:
                 self.terminal.print('<ERROR>Log Analysis Failed!</ERROR>')
