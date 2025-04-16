@@ -130,7 +130,7 @@ include = ./Internal.ini
 
 [Hunting]
 hunting = 1
-analyse_options = stereo
+analyse_options = mono
 
 [ShaderRegexEnableTargetedTextureOverrides]
 shader_model = vs_4_0 vs_4_1 vs_5_0 vs_5_1
@@ -174,15 +174,36 @@ hash = 10905ed856e6b621
 allow_duplicate_hash = overrule
 analyse_options = dump_vb txt buf
 
-[ShaderOverrideShapekey.CS_ZZZ]
+[ShaderOverrideShapekey.CS_SK_ZZZ]
 hash = 743108cc03f39cbf
 allow_duplicate_hash = overrule
 analyse_options = dump_rt dump_tex dump_cb buf txt
 
-[ShaderOverrideShapekey.CS_HSR]
+[ShaderOverrideShapekey.CS_SK_HSR]
 hash = 893b6d8f0a84ca0d
 allow_duplicate_hash = overrule
 analyse_options = dump_rt dump_tex dump_cb buf txt
+
+[ShaderRegexEnableAnalysis_CS]
+shader_model = cs_4_0 cs_4_1 cs_5_0 cs_5_1
+if DRAW_TYPE == 8
+    analyse_options = dump_rt dump_tex dump_cb buf txt
+endif
+
+; [ShaderOverrideShapekey.CS_POSE_HSR_01]
+; hash = 1c932707d4d8df41
+; allow_duplicate_hash = overrule
+; analyse_options = dump_rt dump_tex dump_cb buf txt
+
+; [ShaderOverrideShapekey.CS_POSE_HSR_02]
+; hash = fee307b98a965c16
+; allow_duplicate_hash = overrule
+; analyse_options = dump_rt dump_tex dump_cb buf txt
+
+; [ShaderOverrideShapekey.CS_POSE_HSR_03]
+; hash = d50694eedd2a8595
+; allow_duplicate_hash = overrule
+; analyse_options = dump_rt dump_tex dump_cb buf txt
 
 ;----------PRESET COMMANDS----------
 [CommandListModel]

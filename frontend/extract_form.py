@@ -210,16 +210,22 @@ class ExtractForm(tk.Frame):
             input_component_names   .append(input_component.name)
             input_components_options.append(input_component.options)
 
+        # all_options = {
+        #     'collect_model_data': True, 'collect_model_hashes': True,
+        #     'collect_texture_data': True, 'collect_texture_hashes': True,
+        # }
         # return (
-        #     'fofo',
-        #     ['e9aecd0b'],
-        #     ['Body'],
-        #     [{
-        #         'collect_model_data': True,
-        #         'collect_model_hashes': True,
-        #         'collect_texture_data': True,
-        #         'collect_texture_hashes': True,
-        #     }],
+        #     'Castorice',
+        #     ['c5794477', 'f2584f98', 'fd990f82', '82e3ac33'],
+        #     ['Hair', 'Face', 'Body', 'Scythe'],
+        #     [{**all_options}] * 4,
+        #     path
+        # )
+        # return (
+        #     'Anaxa',
+        #     ['88914f28', 'e0d51cde', '62a2c7ac', '364073b1', '7dd2153f'],
+        #     ['Hair', 'Face', 'Body', 'Gun', 'Core'],
+        #     [{**all_options}] * 5,
         #     path
         # )
         return extract_name, input_component_hashes, input_component_names, input_components_options, path

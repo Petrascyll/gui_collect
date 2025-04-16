@@ -11,6 +11,7 @@ from backend.utils.buffer_utils.buffer_reader import get_buffer_elements
 from backend.utils.buffer_utils.buffer_encoder import merge_buffers, handle_no_weight_blend
 from backend.utils.buffer_utils.buffer_decoder import collect_binary_buffer_data
 from backend.utils.buffer_utils.exceptions import InvalidTextBufferException
+from backend.utils.buffer_utils.structs import BufferElement, POSITION_FMT, BLEND_4VGX_FMT, BLEND_2VGX_FMT, BLEND_1VGX_FMT
 
 from backend.config.Config import Config
 
@@ -64,6 +65,59 @@ class FrameAnalysis():
         return components
 
 
+    def get_position_data(self, buffer_paths: list[Path], shapekey_args={}):
+        if len(buffer_paths) == 0: return None, None
+
+        buffer_stride   = 40
+        buffer_elements = POSITION_FMT
+
+        if txt_buffer_paths := [p for p in buffer_paths if p.suffix != '.buf']:
+            try:
+                buffer_stride, buffer_elements = get_buffer_elements(txt_buffer_paths)
+            except InvalidTextBufferException:
+                self.terminal.print(f'<WARNING>WARNING: SKIPPING Invalid TEXCOORD text buffer!</WARNING>')
+                for p in buffer_paths:
+                    self.terminal.print(f'<WARNING>{p.name}</WARNING>', timestamp=False)
+        
+        buffer_path    = buffer_paths[0].with_suffix('.buf')
+        buffer_formats = [element.Format for element in buffer_elements]
+        buffer         = collect_binary_buffer_data(buffer_path, buffer_formats, buffer_stride, self.terminal, **shapekey_args)
+
+        return buffer, buffer_elements
+
+    def get_blend_data(self, buffer_paths: list[Path], expected_vertex_count: int):
+        if len(buffer_paths) == 0: return None, None
+
+        for buffer_stride, buffer_elements in [(32, BLEND_4VGX_FMT), (16, BLEND_2VGX_FMT), (4, BLEND_1VGX_FMT)]:
+            buffer_path    = buffer_paths[0].with_suffix('.buf')
+            buffer_formats = [element.Format for element in buffer_elements]
+            buffer         = collect_binary_buffer_data(buffer_path, buffer_formats, buffer_stride, self.terminal)
+
+            if len(buffer) == expected_vertex_count:
+                break
+
+        buffer, buffer_elements = handle_no_weight_blend(buffer, buffer_elements)
+
+        return buffer, buffer_elements
+
+    def get_texcoord_data(self, buffer_paths: list[Path]):
+        if len(buffer_paths) == 0: return None, None
+
+        try:
+            buffer_stride, buffer_elements = get_buffer_elements(buffer_paths)
+        except InvalidTextBufferException:
+            self.terminal.print(f'<WARNING>WARNING: SKIPPING Invalid TEXCOORD text buffer!</WARNING>')
+            for p in buffer_paths:
+                self.terminal.print(f'<WARNING>{p.name}</WARNING>', timestamp=False)
+            return None, None
+        else:
+            buffer_path    = buffer_paths[0].with_suffix('.buf')
+            buffer_formats = [element.Format for element in buffer_elements]
+            buffer         = collect_binary_buffer_data(buffer_path, buffer_formats, buffer_stride, self.terminal)
+
+            return buffer, buffer_elements
+    
+
     def export(self, export_name, components: list[Component], textures = None, *, game: str):
         json_builder = JsonBuilder()
 
@@ -94,44 +148,33 @@ class FrameAnalysis():
                 buffers  = []
                 elements = []
 
-                merged_buffer_paths = (
-                    ('position', [component.position_path] if component.position_path else component.backup_position_paths),
-                    ('blend',    [component.blend_path   ] if component.blend_path    else []),
-                    ('texcoord', [component.texcoord_path] if component.texcoord_path else component.backup_texcoord_paths),
+                position_paths = [component.position_path] if component.position_path else component.backup_position_paths
+                blend_paths    = [component.blend_path]    if component.blend_path    else []
+                texcoord_paths = [component.texcoord_path] if component.texcoord_path else component.backup_texcoord_paths
+
+                position_data, position_elements = self.get_position_data(position_paths, {
+                        'shapekey_buffer_path': component.shapekey_buffer_path,
+                        'shapekey_cb_paths':    component.shapekey_cb_paths
+                    } if component.shapekey_buffer_path and component.shapekey_cb_paths else {}
                 )
+                blend_data, blend_elements       = self.get_blend_data(blend_paths, len(position_data))
+                texcoord_data, texcoord_elements = self.get_texcoord_data(texcoord_paths)
 
-                for buffer_type, buffer_paths in merged_buffer_paths:
-                    if len(buffer_paths) > 0:
-                        try:
-                            buffer_stride, buffer_elements = get_buffer_elements(buffer_paths)
-                        except InvalidTextBufferException:
-                            self.terminal.print(f'<WARNING>WARNING: SKIPPING Invalid {buffer_type.upper()} text buffer!</WARNING>')
-                            for p in buffer_paths:
-                                self.terminal.print(f'<WARNING>{p.name}</WARNING>', timestamp=False)
-                            json_builder.components[-1].__setattr__(f'{buffer_type}_vb', '')
-                            continue
-                        else:
-                            # Used to reverse applied shapekeys on position buffer for hsr/zzz only
-                            shapekey_args = {
-                                'shapekey_buffer_path': component.shapekey_buffer_path,
-                                'shapekey_cb_paths':    component.shapekey_cb_paths
-                            } if (
-                                buffer_type == 'position'
-                                and game in ('hsr', 'zzz')
-                                and component.shapekey_buffer_path
-                                and component.shapekey_cb_paths
-                            ) else {}
+                if not position_data:
+                    json_builder.components[-1].__setattr__(f'position_vb', '')
+                if not blend_data:
+                    json_builder.components[-1].__setattr__(f'blend_vb', '')
+                if not texcoord_data:
+                    json_builder.components[-1].__setattr__(f'texcoord_vb', '')
 
-                            buffer_path    = buffer_paths[0].with_suffix('.buf')
-                            buffer_formats = [element.Format for element in buffer_elements]
-                            buffer         = collect_binary_buffer_data(buffer_path, buffer_formats, buffer_stride, self.terminal, **shapekey_args)
+                if position_data: buffers .append(position_data)
+                if blend_data   : buffers .append(blend_data)
+                if texcoord_data: buffers .append(texcoord_data)
+            
+                if position_elements: elements.append(position_elements)
+                if blend_elements   : elements.append(blend_elements)
+                if texcoord_elements: elements.append(texcoord_elements)
 
-                            if buffer_type == 'blend':
-                                handle_no_weight_blend(buffer, buffer_elements)
-
-                            buffers .append(buffer)
-                            elements.append(buffer_elements)
-                
                 self.terminal.print(f'Constructing combined buffer for [{component.ib_hash}] - {component.name}')
                 vb_merged = merge_buffers(buffers, elements) if buffers else None
             

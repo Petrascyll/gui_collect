@@ -240,16 +240,21 @@ class Component():
 
     backup_position_paths: list[Path] = None
     backup_texcoord_paths: list[Path] = None
+    backup_draw_vb2_paths: list[Path] = None
 
     tex_index_id: dict[int, str]                = field(default_factory=lambda:{})
     draw_data   : dict[int, dict[str, ID_Data]] = field(default_factory=lambda:{})
 
+    root_cs_hash  : str = ''
+    pose_cs_hash  : str = ''
     root_vs_hash  : str = ''
     draw_hash     : str = ''
     position_hash : str = ''
     blend_hash    : str = ''
     texcoord_hash : str = ''
     ib_hash       : str = ''
+
+    draw_vb2_hash: str = ''
 
     def print(self, tabs=0):
         s = [
@@ -259,8 +264,9 @@ class Component():
                 '     {:8} - <PATH>{}</PATH>'.format(first_index, ib_path.name)
                 for ib_path, first_index in zip(self.ib_paths, self.object_indices)
             ],
-            'Backup Position Path: <PATH>{}</PATH>'.format(self.backup_position_paths[0].with_suffix('.buf').name if self.backup_position_paths else ''),
-            'Backup Texcoord Path: <PATH>{}</PATH>'.format(self.backup_texcoord_paths[0].with_suffix('.buf').name if self.backup_texcoord_paths else ''),
+            'Draw VB0 Path: <PATH>{}</PATH>'.format(self.backup_position_paths[0].with_suffix('.buf').name if self.backup_position_paths else ''),
+            'Drwa VB1 Path: <PATH>{}</PATH>'.format(self.backup_texcoord_paths[0].with_suffix('.buf').name if self.backup_texcoord_paths else ''),
+            'Draw VB2 Path: <PATH>{}</PATH>'.format(self.backup_draw_vb2_paths[0].with_suffix('.buf').name if self.backup_draw_vb2_paths else ''),
             '',
             'Position Path: <PATH>{}</PATH>'.format(self.position_path.with_suffix('.buf').name if self.position_path else ''),
             'Texcoord Path: <PATH>{}</PATH>'.format(self.texcoord_path.with_suffix('.buf').name if self.texcoord_path else ''),

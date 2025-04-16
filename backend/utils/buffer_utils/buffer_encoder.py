@@ -89,21 +89,28 @@ def handle_no_weight_blend(blend, blend_elements: list[BufferElement]):
         and blend_elements[0].Name   == 'BLENDINDICES'
         and blend_elements[0].Format == 'R32_UINT'
     ):
-        blend_elements.append(BufferElement({
-            'Name':          'BLENDWEIGHTS',
-            'SemanticName':  'BLENDWEIGHTS',
-            'SemanticIndex': '0',
-            'Format':        'R32_UINT',
-            'ByteWidth': 4
-        }))
-        for vertex_i in range(len(blend)):
-            blend[vertex_i] += ['1']
-
         terminal = State.get_instance().get_terminal()
         terminal.print('BENDINDICES has only 1 index (R32_UINT), and no BLENDWEIGHTS exist.')
         terminal.print('Manually inserted BLENDWEIGHTS = 1 for each vertex.')
         terminal.print()
 
+        blend = [
+            blend[vertex_idx] + ['1']
+            for vertex_idx in range(len(blend))
+        ]
+
+        blend_elements = [
+            *blend_elements,
+            BufferElement({
+                'Name':          'BLENDWEIGHTS',
+                'SemanticName':  'BLENDWEIGHTS',
+                'SemanticIndex': '0',
+                'Format':        'R32_UINT',
+                'ByteWidth': 4
+            })
+        ]
+
+    return blend, blend_elements
 
 def parse_buffer_file_name(file_name: str):
     draw_id, file_name = file_name.split('-', maxsplit=1)

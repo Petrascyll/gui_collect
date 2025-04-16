@@ -38,6 +38,8 @@ class LogAnalysis():
             self.set_prepose_data (extract_component, pose_id)
             if reverse_shapekeys:
                 self.set_shapekey_data(extract_component, pose_id)
+        elif root_pose_id_pair := self.get_cs_pose_id(extract_component):
+            self.set_cs_prepose_data (extract_component, root_pose_id_pair[0], root_pose_id_pair[1])
 
         self.set_textures_id  (extract_component, game)
 
@@ -92,6 +94,7 @@ class LogAnalysis():
 
         backup_position_paths: list[Path] = []
         backup_texcoord_paths: list[Path] = []
+        backup_draw_vb2_paths: list[Path] = []
 
         for id in component.ids:
             vs_hash = self.get_vertex_shader_hash(id)
@@ -124,9 +127,15 @@ class LogAnalysis():
                 backup_texcoord_path = self.compile_vb_filepath(id, texcoord_hash, 1, vs_hash, ps_hash)
                 if backup_texcoord_path.exists():
                     backup_texcoord_paths.append(backup_texcoord_path)
+            
+            if vb2_hash := self.get_vb_hash(id, 2):
+                backup_draw_vb2_path = self.compile_vb_filepath(id, vb2_hash, 2, vs_hash, ps_hash)
+                if backup_draw_vb2_path.exists():
+                    backup_draw_vb2_paths.append(backup_draw_vb2_path)
 
         component.backup_position_paths = backup_position_paths
         component.backup_texcoord_paths = backup_texcoord_paths
+        component.backup_draw_vb2_paths = backup_draw_vb2_paths
 
         component.ib_paths = [
             ib_filepath for ib_filepath, _ in sorted(
@@ -138,6 +147,76 @@ class LogAnalysis():
         component.ib_hash        = self.get_ib_hash(component.ids[0])
         component.draw_hash      = self.get_vb_hash(component.ids[0], 0)
         component.texcoord_hash  = self.get_vb_hash(component.ids[0], 1)
+        component.draw_vb2_hash  = self.get_vb_hash(component.ids[0], 2)
+
+    def get_cs_pose_id(self, component: Component):
+        if not component.draw_vb2_hash:
+            return None
+        
+        # Unposed position data may be initialized by some cs long before the posing draw call.
+        root_cs_ids = sorted([
+            id for id in self.log_data
+            if 'CSSetUnorderedAccessViews' in self.log_data[id]
+            and component.draw_hash in self.log_data[id]['CSSetUnorderedAccessViews'].values()
+        ])
+        if len(root_cs_ids) == 0:
+            return None
+
+        pose_ids = [
+            id for id in root_cs_ids
+            if 'CSSetShaderResources' in self.log_data[id]
+            and component.draw_vb2_hash in self.log_data[id]['CSSetShaderResources'].values()
+        ]
+        if len(pose_ids) == 0:
+            return None
+        
+        return root_cs_ids[0], pose_ids[0]
+
+    def set_cs_prepose_data(self, component: Component, root_cs_id: str, pose_id: str):
+        root_cs_hash = self.get_compute_shader_hash(root_cs_id)
+        pose_cs_hash = self.get_compute_shader_hash(pose_id)
+
+        if 'CopyResource' in self.log_data[root_cs_id] and (src_uav_hashes := [
+                src_hash for src_hash, dst_hash in self.log_data[root_cs_id]['CopyResource']
+                if dst_hash == component.draw_hash
+            ]):
+                position_slot = '0'
+                position_hash = src_uav_hashes[0]
+                position_path = self.compile_cs_u_filepath(root_cs_id, component.draw_hash, position_slot, root_cs_hash, ext='.buf')
+
+                cst0_hash     = self.log_data[root_cs_id]['CSSetShaderResources']['0']
+                cst0_filename = self.compile_cs_t_filepath(root_cs_id, cst0_hash, 0, root_cs_hash, '.buf')
+
+                component.shapekey_buffer_path = self.frame_analysis_path / cst0_filename
+                for slot, cb_hash in self.log_data[root_cs_id]['CSSetConstantBuffers'].items():
+                    cb_filename_buf = self.compile_cs_cb_filepath(root_cs_id, cb_hash, slot, root_cs_hash, '.buf')
+                    cb_filepath_buf = self.frame_analysis_path / cb_filename_buf
+                    component.shapekey_cb_paths.append(cb_filepath_buf)
+        
+        else:
+            position_slot = [
+                slot for slot in self.log_data[root_cs_id]['CSSetUnorderedAccessViews'].keys()
+                if self.log_data[root_cs_id]['CSSetUnorderedAccessViews'][slot] == component.draw_hash
+            ][0]
+            position_hash = self.log_data[root_cs_id]['CSSetShaderResources'][position_slot]
+            position_path = self.compile_cs_t_filepath(root_cs_id, position_hash, position_slot, root_cs_hash, ext='.buf')
+
+        blend_slot    = [
+            slot for slot in self.log_data[pose_id]['CSSetShaderResources'].keys()
+            if self.log_data[pose_id]['CSSetShaderResources'][slot] == component.draw_vb2_hash
+        ][0]
+        blend_hash    = self.log_data[pose_id]['CSSetShaderResources'][blend_slot]
+        blend_path    = self.compile_cs_t_filepath(pose_id, blend_hash, blend_slot, pose_cs_hash, ext='.buf')
+
+        component.root_cs_hash  = root_cs_hash
+        component.pose_cs_hash  = pose_cs_hash
+
+        component.position_hash = position_hash
+        component.position_path = position_path
+
+        component.blend_hash    = blend_hash
+        component.blend_path    = blend_path
+
 
     def get_pose_id(self, component: Component):
         if not component.draw_hash:
@@ -368,6 +447,10 @@ class LogAnalysis():
 
     def compile_cs_t_filepath(self, draw_id, texture_hash, slot, cs_hash, ext='.txt'):
         resources = [(f'cs-t{slot}', texture_hash), ('cs', cs_hash)]
+        return self.compile_filepath(draw_id, resources, ext)
+
+    def compile_cs_u_filepath(self, draw_id, uav_hash, slot, cs_hash, ext='.txt'):
+        resources = [(f'u{slot}', uav_hash), ('cs', cs_hash)]
         return self.compile_filepath(draw_id, resources, ext)
 
     def compile_cs_cb_filepath(self, draw_id, cb_hash, slot, cs_hash, ext='.txt'):
