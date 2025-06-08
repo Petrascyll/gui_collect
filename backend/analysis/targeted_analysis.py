@@ -179,31 +179,36 @@ hash = 743108cc03f39cbf
 allow_duplicate_hash = overrule
 analyse_options = dump_rt dump_tex dump_cb buf txt
 
-[ShaderOverrideShapekey.CS_SK_HSR]
+[ShaderOverride.HSR.CS.Shapekey]
 hash = 893b6d8f0a84ca0d
 allow_duplicate_hash = overrule
 analyse_options = dump_rt dump_tex dump_cb buf txt
 
-[ShaderRegexEnableAnalysis_CS]
-shader_model = cs_4_0 cs_4_1 cs_5_0 cs_5_1
-if DRAW_TYPE == 8
-    analyse_options = dump_rt dump_tex dump_cb buf txt
-endif
+[ShaderOverride.HSR.CS.SingleSK4VGs]
+hash = fee307b98a965c16
+allow_duplicate_hash = overrule
+analyse_options = dump_rt dump_tex dump_cb buf txt
 
-; [ShaderOverrideShapekey.CS_POSE_HSR_01]
-; hash = 1c932707d4d8df41
-; allow_duplicate_hash = overrule
-; analyse_options = dump_rt dump_tex dump_cb buf txt
+[ShaderOverride.HSR.CS.MultiNoSK4VGs]
+hash = 1c932707d4d8df41
+allow_duplicate_hash = overrule
+analyse_options = dump_rt dump_tex dump_cb buf txt
 
-; [ShaderOverrideShapekey.CS_POSE_HSR_02]
-; hash = fee307b98a965c16
-; allow_duplicate_hash = overrule
-; analyse_options = dump_rt dump_tex dump_cb buf txt
+[ShaderOverride.HSR.CS.MultiYesSK4VGs]
+hash = d50694eedd2a8595
+allow_duplicate_hash = overrule
+analyse_options = dump_rt dump_tex dump_cb buf txt
 
-; [ShaderOverrideShapekey.CS_POSE_HSR_03]
-; hash = d50694eedd2a8595
-; allow_duplicate_hash = overrule
-; analyse_options = dump_rt dump_tex dump_cb buf txt
+[ShaderOverride.HSR.CS.Multi1VGs]
+hash = 4d9c23fd387846c7
+allow_duplicate_hash = overrule
+analyse_options = dump_rt dump_tex dump_cb buf txt
+
+[ShaderOverride.HSR.CS.Multi2VGs]
+hash = c9f2b46571d22858
+allow_duplicate_hash = overrule
+analyse_options = dump_rt dump_tex dump_cb buf txt
+
 
 ;----------PRESET COMMANDS----------
 [CommandListModel]
