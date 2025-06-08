@@ -37,15 +37,7 @@ class FrameAnalysis():
         components: list[Component] = []
         for name, target_hash, options in zip(input_component_names, input_component_hashes, input_components_options):
             c = Component(name=name, options=options)
-            c.object_classification = [
-                'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
-                'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
-                'U', 'V', 'W', 'X', 'Y', 'Z',
-                'A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1', 'J1',
-                'K1', 'L1', 'M1', 'N1', 'O1', 'P1', 'Q1', 'R1', 'S1', 'T1',
-                'U1', 'V1', 'W1', 'X1', 'Y1', 'Z1',
-            ] if game != 'gi' else ['Head', 'Body', 'Dress', 'Extra']
-            
+
             self.terminal.print('Extracting model data of [{}]{}'.format(target_hash, f' - {name}' if name else ''))
             try:
                 self.log_analysis.extract(c, target_hash, game=game, reverse_shapekeys=reverse_shapekeys)
@@ -62,6 +54,21 @@ class FrameAnalysis():
                 return
 
             components.append(c)
+        
+        if game != 'gi' or (game == 'gi' and any(len(c.object_indices) > 4 for c in components)):
+            for c in components:
+                c.object_classification = [
+                    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+                    'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
+                    'U', 'V', 'W', 'X', 'Y', 'Z',
+                    'A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1', 'J1',
+                    'K1', 'L1', 'M1', 'N1', 'O1', 'P1', 'Q1', 'R1', 'S1', 'T1',
+                    'U1', 'V1', 'W1', 'X1', 'Y1', 'Z1',
+                ]
+        else:
+            for c in components:
+                c.object_classification = ['Head', 'Body', 'Dress', 'Extra']
+
         return components
 
 
