@@ -55,8 +55,8 @@ class FrameAnalysis():
 
             components.append(c)
         
-        if game != 'gi' or (game == 'gi' and any(len(c.object_indices) > 4 for c in components)):
-            for c in components:
+        for c in components:
+            if game != 'gi' or (game == 'gi' and (len(c.object_indices) > 5 or c.name)):
                 c.object_classification = [
                     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
                     'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
@@ -65,11 +65,11 @@ class FrameAnalysis():
                     'K1', 'L1', 'M1', 'N1', 'O1', 'P1', 'Q1', 'R1', 'S1', 'T1',
                     'U1', 'V1', 'W1', 'X1', 'Y1', 'Z1',
                 ]
-        else:
-            for c in components:
-                c.object_classification = ['Head', 'Body', 'Dress', 'Extra']
+            else:
+                c.object_classification = ['Head', 'Body', 'Dress', 'Extra', "Extra2"]
 
         return components
+
 
 
     def get_position_data(self, buffer_paths: list[Path], shapekey_args={}):
@@ -103,7 +103,7 @@ class FrameAnalysis():
             if len(buffer) == expected_vertex_count:
                 break
 
-        buffer, buffer_elements = handle_no_weight_blend(buffer, buffer_elements)
+        # buffer, buffer_elements = handle_no_weight_blend(buffer, buffer_elements)
 
         return buffer, buffer_elements
 
