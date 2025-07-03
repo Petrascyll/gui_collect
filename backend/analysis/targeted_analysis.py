@@ -179,6 +179,11 @@ hash = 743108cc03f39cbf
 allow_duplicate_hash = overrule
 analyse_options = dump_rt dump_tex dump_cb buf txt
 
+[ShaderOverride.HSR.CS.GodKnows]
+hash = f72bbc44b525a73a
+allow_duplicate_hash = overrule
+analyse_options = dump_rt dump_tex dump_cb buf txt
+
 [ShaderOverride.HSR.CS.Shapekey]
 hash = 893b6d8f0a84ca0d
 allow_duplicate_hash = overrule
