@@ -174,6 +174,12 @@ hash = 10905ed856e6b621
 allow_duplicate_hash = overrule
 analyse_options = dump_vb txt buf
 
+[ShaderOverridePose5]
+; HI Pose Shader One
+hash = 4123d77c48627b98
+allow_duplicate_hash = overrule
+analyse_options = dump_vb txt buf
+
 [ShaderOverrideShapekey.CS_SK_ZZZ]
 hash = 743108cc03f39cbf
 allow_duplicate_hash = overrule
