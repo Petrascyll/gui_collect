@@ -524,7 +524,7 @@ def parse_frame_analysis_log_file(log_path: Path):
     st = time.time()
     log_data = {}
 
-    with open(log_path, encoding='utf-8') as log_file:
+    with open(log_path, 'r', encoding='cp1252') as log_file:
         log_file.readline()  # skip first line
 
         while line := log_file.readline():
