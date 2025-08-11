@@ -90,6 +90,7 @@ class LogAnalysis():
 
     def set_draw_data(self, component: Component):
         object_indices: list[int] = []
+        object_indices_counts: list[int] = []
         ib_filepaths  : list[Path] = []
 
         backup_position_paths: list[Path] = []
@@ -102,6 +103,7 @@ class LogAnalysis():
             ib_hash = self.get_ib_hash(id)
 
             ib_first_index = self.get_ib_first_index(id)
+            ib_index_count = self.get_ib_index_count(id)
 
             if ib_first_index not in object_indices:
                 component.draw_data[ib_first_index] = {
@@ -113,8 +115,9 @@ class LogAnalysis():
                     self.terminal.print('Your `analyse_options` [Hunting] 3dm key is missing required values.', timestamp=False)
                     raise BufferError()
 
-                ib_filepaths  .append(ib_filepath)
-                object_indices.append(ib_first_index)
+                ib_filepaths         .append(ib_filepath)
+                object_indices       .append(ib_first_index)
+                object_indices_counts.append(ib_index_count)
             else:
                 component.draw_data[ib_first_index][id] = ID_Data(vs_hash, ps_hash)
 
@@ -143,11 +146,14 @@ class LogAnalysis():
                 key=lambda item: item[1]
             )
         ]
-        component.object_indices = sorted(object_indices)
-        component.ib_hash        = self.get_ib_hash(component.ids[0])
-        component.draw_hash      = self.get_vb_hash(component.ids[0], 0)
-        component.texcoord_hash  = self.get_vb_hash(component.ids[0], 1)
-        component.draw_vb2_hash  = self.get_vb_hash(component.ids[0], 2)
+        pairs = sorted(zip(object_indices, object_indices_counts), key=lambda p: p[0])
+        first_sorted, counts_sorted = map(list, zip(*pairs))
+        component.object_indices        = first_sorted
+        component.object_indices_counts = counts_sorted
+        component.ib_hash               = self.get_ib_hash(component.ids[0])
+        component.draw_hash             = self.get_vb_hash(component.ids[0], 0)
+        component.texcoord_hash         = self.get_vb_hash(component.ids[0], 1)
+        component.draw_vb2_hash         = self.get_vb_hash(component.ids[0], 2)
 
     def get_cs_pose_id(self, component: Component):
         if not component.draw_vb2_hash:
