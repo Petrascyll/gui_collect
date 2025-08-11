@@ -146,7 +146,7 @@ class LogAnalysis():
                 key=lambda item: item[1]
             )
         ]
-        pairs = sorted(zip(first_indexes, index_counts), key=lambda p: p[0])
+        pairs = sorted(zip(object_indices, object_indices_counts), key=lambda p: p[0])
         first_sorted, counts_sorted = map(list, zip(*pairs))
         component.object_indices        = first_sorted
         component.object_indices_counts = counts_sorted
