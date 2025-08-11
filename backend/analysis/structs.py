@@ -236,7 +236,7 @@ class Component():
     ids                  : list[str]  = field(default_factory=lambda:[])
     ib_paths             : list[Path] = field(default_factory=lambda:[])
     object_indices       : list[int]  = field(default_factory=lambda:[])
-    object_indices_count : list[int]  = field(default_factory=lambda:[])
+    object_indices_counts: list[int]  = field(default_factory=lambda:[])
     object_classification: list[str]  = field(default_factory=lambda:[])
 
     backup_position_paths: list[Path] = None
