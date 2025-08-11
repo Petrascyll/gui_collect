@@ -14,6 +14,7 @@ class JsonComponent():
     ib             : str = ''
     
     object_indexes        : list[int] = field(default_factory=lambda:[])
+    object_index_counts   : list[int] = field(default_factory=lambda:[])
     object_classifications: list[str] = field(default_factory=lambda:[])
     
     texture_hashes: list[list[tuple[str]]] = field(default_factory=lambda:[])
@@ -35,6 +36,7 @@ class JsonBuilder():
 
         json_component.texture_hashes         = [[] for _ in component.object_indices]
         json_component.object_indexes         = component.object_indices
+        json_component.object_index_counts    = component.object_index_counts
         json_component.object_classifications = component.object_classification[:len(component.object_indices)]
 
         if component.options['collect_texture_hashes']:
