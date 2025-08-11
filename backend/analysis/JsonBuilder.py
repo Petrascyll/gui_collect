@@ -36,7 +36,7 @@ class JsonBuilder():
 
         json_component.texture_hashes         = [[] for _ in component.object_indices]
         json_component.object_indexes         = component.object_indices
-        json_component.object_index_counts    = component.object_index_counts
+        json_component.object_index_counts    = component.object_indices_counts
         json_component.object_classifications = component.object_classification[:len(component.object_indices)]
 
         if component.options['collect_texture_hashes']:
