@@ -1,18 +1,24 @@
+import re
 import tkinter as tk
-from tkinter import filedialog
-from tkinter.font import Font
 
 from pathlib import Path
 
 from backend.config.Config import Config
 
-from ..state import State
-from ..xtk.Checkbox import LabeledCheckbox
-from ..xtk.FlatImageButton import FlatImageButton
+from frontend.install_connector_window import open_install_connector_window
 
-class SettingsPage(tk.Frame):
+from ..state import State
+from ..xtk.ScrollableFrame import ScrollableFrame
+from ..xtk.CompactCheckbox import CompactCheckbox
+from ..xtk.FlatButton import FlatButton
+from ..xtk.PathPicker import PathPicker
+from ..style import brighter, darker
+
+
+
+class SettingsPage(ScrollableFrame):
     def __init__(self, parent, *args, **kwargs):
-        tk.Frame.__init__(self, parent, padx=16, pady=16)
+        ScrollableFrame.__init__(self, parent, padx=16, pady=16, bg='#111', scrollbar_pad_x=(8, 0))
         self.config(bg='#111')
         self.config(*args, **kwargs)
         self.parent = parent
@@ -20,69 +26,105 @@ class SettingsPage(tk.Frame):
         self.state    = State.get_instance()
         self.cfg      = Config.get_instance()
         self.terminal = self.state.get_terminal()
+        self.targeted_analysis_linker_buttons = []
 
         self.create_widgets()
 
     def create_widgets(self):
-        header = tk.Label(self, text='Warning: only enable advanced features if you know what you\'re doing!', anchor='center', fg='#FD5', bg=self['bg'], font=('Arial', 20, 'bold'))
-        header.pack(pady=(0, 8), fill='x')
+        def create_section_header(text: str, accent_color='#CCC', pady=(0, 0)):
+            header = tk.Label(self.interior, text=text, font=('Arial', 20), fg=accent_color, bg=self['bg'], anchor='w')
+            header_border = tk.Frame(self.interior, bg=accent_color, height=2)
+            header.pack(fill='x', pady=(pady[0], 0))
+            header_border.pack(fill='x', pady=(0, pady[1]))
 
-        enable_targeted_checkbox = LabeledCheckbox(self, 'Targeted Frame Analysis (Advanced)', ('Arial', 18, 'bold'), initial_state=self.cfg.data.targeted_analysis_enabled)
-        enable_targeted_checkbox.on_toggle(lambda v: self.update_cfg('targeted_analysis_enabled', v))
-        enable_targeted_checkbox.pack(padx=(8, 0), anchor='nw')
+        def create_3dm_path_path_picker(game: str, accent_color):
+            frame = tk.Frame(self.interior, bg=self['bg'])
+            frame.pack(fill='x')
 
-        hsr_shapekey_reversal_checkbox = LabeledCheckbox(
-            self, '[HSR] Reverse Applied Shapekeys for extraction (requires dump_cb marking_actions or targeted dumping)',
-            ('Arial', 18, 'bold'), initial_state=self.cfg.data.reverse_shapekeys_hsr
-        )
-        hsr_shapekey_reversal_checkbox.on_toggle(lambda v: self.update_cfg('reverse_shapekeys_hsr', v))
-        hsr_shapekey_reversal_checkbox.pack(padx=(8, 0), anchor='nw')
+            lbl = tk.Label(frame, text='3dmigoto Path:', font=('Arial', 16), fg='#CCC', bg=self['bg'], relief='flat')
+            pp = PathPicker(
+                frame,
+                cfg_key_path=['game', game, 'frame_analysis_parent_path'],
+                editable=True,
+                editable_label_text='Change',
+                is_valid=lambda path: (path/'d3dx.ini').exists(),
+                terminal=self.terminal,
+                bg=frame['bg'],
+                text_fg=darker(accent_color),
+                hover_text_fg=accent_color,
+                button_bg=darker(accent_color),
+            )
 
-        zzz_shapekey_reversal_checkbox = LabeledCheckbox(
-            self, '[ZZZ] Reverse Applied Shapekeys for extraction (requires dump_cb marking_actions or targeted dumping)',
-            ('Arial', 18, 'bold'), initial_state=self.cfg.data.reverse_shapekeys_zzz
-        )
-        zzz_shapekey_reversal_checkbox.on_toggle(lambda v: self.update_cfg('reverse_shapekeys_zzz', v))
-        zzz_shapekey_reversal_checkbox.pack(padx=(8, 0), anchor='nw')
+            frame.grid_columnconfigure(index=0, weight=0)
+            frame.grid_columnconfigure(index=1, weight=1)
+            lbl.grid(row=0, column=0, sticky='nsew', padx=(0, 0))
+            pp.grid(row=0, column=1, sticky='nsew')
 
-    def update_cfg(self, key, value):
-        self.terminal.print('Set Config: {} = {}'.format(key, value))
-        self.cfg.data.__setattr__(key, value)
-        self.state.refresh_all_extract_forms()
+        def create_checkbox(text: str, *, cfg_key_path: list[str], pady=(0, 0), callback=None, accent_color='#CCC'):
+            def handle_change(new_value: bool):
+                self.cfg.set_config_key_value(self.terminal, cfg_key_path, new_value)
+                if callback:
+                    callback(new_value)
 
-# class PathPicker(tk.Frame):
-#     def __init__(self, parent, placeholder='Path', dialog_title='Select path', *args, **kwargs):
-#         tk.Frame.__init__(self, parent)
-#         self.config(*args, **kwargs)
-#         self.parent = parent
-        
-#         self.font = Font(family='Arial', size=20, weight='bold')
-#         self.placeholder  = placeholder
-#         self.dialog_title = dialog_title
-#         self.path = ''
+            checkbox = CompactCheckbox(
+                self.interior, height=30, bg=self['bg'], active_bg=accent_color,
+                on_change=handle_change,
+                active=self.cfg.get_config_key_value(cfg_key_path),
+                flip=True, fill=True,
+                text=text,
+            )
+            checkbox.pack(padx=(0, 0), pady=pady, fill='x', anchor='nw')
 
-#         self.create_widgets()
+        def create_button(text, game, enabled_state_cfg_key_path: list[str], accent_color='#CCC', pady=(0, 0), ):
+            button = FlatButton(
+                self.interior,
+                text=text, justify='left', anchor='w', font=('Arial', 16),
+                bg=self['bg'], hover_bg='#222', fg=accent_color, hover_fg='#FFF',
+                disabled_fg='#555',
+                on_click=lambda _, game: install_targeted_analysis_connection(game),
+                on_click_kwargs={'game': game},
+                is_active=self.cfg.get_config_key_value(enabled_state_cfg_key_path),
+            )
+            button.pack(padx=(0, 0), ipadx=0, pady=pady, fill='x', anchor='nw')
 
-#     def create_widgets(self):
-#         self.folder_path_label = tk.Label(self, text=self.placeholder, fg='#555', font=self.font)
-#         if self.path:
-#             self.folder_path_label.config(text=self.path)
+            self.cfg.register_config_update_handler(enabled_state_cfg_key_path, lambda new_value: button.enable() if new_value else button.disable())
 
-#         img = tk.PhotoImage(file=Path('./resources/images/buttons/folder_open.256.png').absolute()).subsample(8)
-#         pick_folder_btn = FlatImageButton(self, width=40, height=40, img_width=32, img_height=32, bg='#3fb76b', image=img)
-#         pick_folder_btn.bind('<Button-1>', lambda _: self.handle_pick_path())
+        def install_targeted_analysis_connection(game):
+            root_path = self.cfg.get_config_key_value(['game', game, 'frame_analysis_parent_path'])
 
-#         self.folder_path_label .pack(side='left')
-#         pick_folder_btn        .pack(side='right', padx=0, pady=0)
-
-#     def handle_pick_path(self):
-#         path_text = filedialog.askdirectory(mustexist=True, title=self.dialog_title)
-#         if path_text:
-#             self.set_path(path_text)
+            if (
+                not root_path
+                or not (Path(root_path)/'d3dx.ini').exists()
+                or not (Path(root_path)/'mods').exists()
+            ):
+                self.terminal.print('<ERROR>Set a valid 3dmigoto path for the connector .ini to be installed in first. It must contain a d3dx.ini file and a mods folder.</ERROR>')
+                return
     
-#     def set_path(self, text: str):
-#         self.path = str(Path(text).resolve())
-#         print('Set frame analysis path: {}'.format(str(self.path)))
-        
-#         self.folder_path_label.config(text=self.path)
-#         # self.parent.on_address_change(text=self.path)
+            ret = open_install_connector_window(self.winfo_toplevel(), Path(root_path, 'mods'))
+            if ret == 0:
+                self.terminal.print('Installed connector .ini for {}!'.format(game))
+            elif ret == 1:
+                self.terminal.print('Canceled connector .ini installation for {}!'.format(game))
+            else:
+                self.terminal.print('<ERROR>Failed to install connector .ini for {}!</ERROR>'.format(game))
+
+        create_section_header('General Settings', pady=(0, 8))
+        create_checkbox('Enable Targeted Frame Analysis', cfg_key_path=['targeted_analysis_enabled'], callback=lambda _: self.state.refresh_all_extract_forms())
+
+        create_section_header('ZZZ Settings', '#e2751e', pady=(8, 8))
+        create_3dm_path_path_picker('zzz', '#e2751e')
+        create_button('Install connector .ini. Required for gui_collect targeted analysis to work.', game='zzz', enabled_state_cfg_key_path=['targeted_analysis_enabled'], pady=(4, 0))
+        create_checkbox('Reverse applied shapekeys. Requires `dump_cb` in d3dx.ini analyse_options or targeted analysis.', cfg_key_path=['reverse_shapekeys_zzz'], accent_color='#e2751e', pady=(4, 0))
+
+        create_section_header('HSR Settings', '#7a6ce0', pady=(8, 8))
+        create_3dm_path_path_picker('hsr', '#7a6ce0')
+        create_button('Install connector .ini. Required for gui_collect targeted analysis to work.', game='hsr', enabled_state_cfg_key_path=['targeted_analysis_enabled'], pady=(4, 0))
+        create_checkbox('Reverse applied shapekeys. Requires `dump_cb` in d3dx.ini analyse_options or targeted analysis.', cfg_key_path=['reverse_shapekeys_hsr'], accent_color='#7a6ce0', pady=(4, 0))
+
+        create_section_header('GI Settings', '#5fb970', pady=(8, 8))
+        create_3dm_path_path_picker('gi', '#5fb970')
+        create_button('Install connector .ini. Required for gui_collect targeted analysis to work.', game='gi', enabled_state_cfg_key_path=['targeted_analysis_enabled'], pady=(4, 0))
+
+        create_section_header('HI3 Settings', '#c660cf', pady=(8, 8))
+        create_3dm_path_path_picker('hi3', '#c660cf')
+        create_button('Install connector .ini. Required for gui_collect targeted analysis to work.', game='hi3', enabled_state_cfg_key_path=['targeted_analysis_enabled'], pady=(4, 0))

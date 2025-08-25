@@ -10,6 +10,7 @@ from .xtk.InputComponentList import InputComponentFrameList
 from .xtk.CompactCheckbox import CompactCheckbox
 from .xtk.PathPicker import PathPicker
 from .xtk.ScrollableFrame import ScrollableFrame
+from .address_frame import AddressFrame
 
 from .style import brighter
 from .state import State
@@ -46,12 +47,14 @@ class ExtractForm(tk.Frame):
     def configure_grid(self):
         self   .grid_rowconfigure(0, weight=0)
         self   .grid_rowconfigure(1, weight=0)
-        self   .grid_rowconfigure(2, weight=1)
+        self   .grid_rowconfigure(2, weight=0)
+        self   .grid_rowconfigure(3, weight=1)
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=0)
 
     def create_widgets(self):
+        self.address_frame           = AddressFrame(self, self.variant.value)
         self.component_options_frame = ScrollableFrame(self, bg='#222', width=600)
         self.extract_options_frame   = tk.Frame(self, bg='#222', padx=16, pady=16)
         self.targeted_dump           = tk.Frame(self, bg='#222', padx=16, pady=16)
@@ -73,7 +76,7 @@ class ExtractForm(tk.Frame):
         targeted_dump_frame_title = tk.Label(self.targeted_dump, text='Targeted Frame Analysis', bg='#222', fg='#555', anchor='w', font=('Arial', '16', 'bold'))
         targeted_dump_frame_title.pack(fill='x')
         
-        pp = PathPicker(self.targeted_dump, value=Path('include', 'auto_generated.ini'), callback=None, bg='#333', button_bg=self.accent_color)
+        pp = PathPicker(self.targeted_dump, value=Path('include', 'auto_generated.ini'), terminal=self.terminal, callback=None, editable=False, bg='#333', button_bg=self.accent_color)
         pp.pack(side='top', fill='x', pady=(0, 12))
 
         targeted_options = self.cfg.data.game[self.variant.value].targeted_options
@@ -147,11 +150,7 @@ class ExtractForm(tk.Frame):
         )
         self.extract_name.pack(side='top', fill='x', pady=(0, 2))
 
-        def handle_path_change(newPath: str):
-            self.cfg.data.game[self.variant.value].extract_path = newPath
-            self.terminal.print('Set Config: /game/extract/{}/extract_path = <PATH>{}</PATH>'.format(self.variant.value, newPath))
-
-        pp = PathPicker(self.extract_options_frame, value=self.cfg.data.game[self.variant.value].extract_path, callback=handle_path_change, bg='#333', button_bg=self.accent_color)
+        pp = PathPicker(self.extract_options_frame, cfg_key_path=['game', self.variant.value, 'extract_path'], editable=True, terminal=self.terminal, bg='#333', button_bg=self.accent_color)
         pp.pack(side='top', fill='x', pady=(0, 12))
 
         game_options = self.cfg.data.game[self.variant.value].game_options
@@ -172,24 +171,23 @@ class ExtractForm(tk.Frame):
         checkbox_1.pack(side='top', pady=(3, 0), anchor='w', fill='x')
         checkbox_2.pack(side='top', pady=(3, 0), anchor='w', fill='x')
 
-
-
     def grid_forget_widgets(self):
         for child in self.winfo_children():
             child.grid_forget()
             # print('Forgot {}'.format(child))
 
     def grid_widgets(self):
-        self.component_options_frame .grid(column=0, row=0, padx=(16, 0), pady=16, sticky='nsew', rowspan=3)
-        self.extract_options_frame   .grid(column=1, row=0, padx=16, pady=(16, 0), sticky='nsew')
+        self.address_frame           .grid(column=0, row=0, padx=0, pady=0, sticky='nsew', columnspan=2, rowspan=1)
+        self.component_options_frame .grid(column=0, row=1, padx=(16, 0), pady=16, sticky='nsew', rowspan=3)
+        self.extract_options_frame   .grid(column=1, row=1, padx=16, pady=(16, 0), sticky='nsew')
         if self.cfg.data.targeted_analysis_enabled:
-            self.targeted_dump.grid(column=1, row=1, padx=16, pady=(16, 0), sticky='nsew')
-            self.extract_frame.grid(column=1, row=2, padx=16, pady=16, sticky='nsew')
+            self.targeted_dump.grid(column=1, row=2, padx=16, pady=(16, 0), sticky='nsew')
+            self.extract_frame.grid(column=1, row=3, padx=16, pady=16, sticky='nsew')
         else:
-            self.extract_frame.grid(column=1, row=1, rowspan=2, padx=16, pady=16, sticky='nsew')
+            self.extract_frame.grid(column=1, row=2, rowspan=2, padx=16, pady=16, sticky='nsew')
 
     def collect_input(self, skip_collect_nothing=True):
-        path = Path(self.parent.address_frame.path)
+        path = Path(self.address_frame.path)
         extract_name = self.extract_name.get().strip().replace(' ', '')
 
         input_component_hashes   = []
@@ -221,13 +219,6 @@ class ExtractForm(tk.Frame):
         #     [{**all_options}] * 4,
         #     path
         # )
-        # return (
-        #     'Anaxa',
-        #     ['88914f28', 'e0d51cde', '62a2c7ac', '364073b1', '7dd2153f'],
-        #     ['Hair', 'Face', 'Body', 'Gun', 'Core'],
-        #     [{**all_options}] * 5,
-        #     path
-        # )
         return extract_name, input_component_hashes, input_component_names, input_components_options, path
 
     def generated_targeted_dump_ini(self):
@@ -245,7 +236,6 @@ class ExtractForm(tk.Frame):
             extract_name,
             input_component_hashes,
             input_component_names,
-            d3dx_path,
             self.terminal,
             dump_rt        = targeted_options.dump_rt,
             force_dump_dds = targeted_options.force_dump_dds,
@@ -258,7 +248,6 @@ class ExtractForm(tk.Frame):
 
     def start_extraction(self):
         st = time.time()
-
         extract_name, input_component_hashes, input_component_names, input_components_options, path = self.collect_input()
         if not input_component_hashes:
             self.terminal.print('<ERROR>Frame Analysis Aborted! No valid hashes provided.</ERROR>')
@@ -308,7 +297,7 @@ class ExtractForm(tk.Frame):
             frame_analysis = self.state.get_var(State.K.FRAME_ANALYSIS)
             frame_analysis.export(extract_name, extracted_components, collected_textures, game=self.variant.value)
             if not frame_analysis.path.exists():
-                self.parent.address_frame.load_latest_frame_analysis()
+                self.address_frame.load_latest_frame_analysis()
             self.state.del_var(State.K.FRAME_ANALYSIS)
 
         except Exception as X:

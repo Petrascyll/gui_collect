@@ -13,32 +13,34 @@ from .xtk.FlatImageButton import FlatImageButton
 
 
 class AddressFrame(tk.Frame):
-    def __init__(self, parent, target: Page, *args, **kwargs):
+    def __init__(self, parent, game: str, *args, **kwargs):
         tk.Frame.__init__(self, parent)
         self.config(*args, **kwargs)
         self.parent = parent
 
         self._state = State.get_instance()
+        self.cfg = Config.get_instance()
         self.terminal = self._state.get_terminal()
 
         self.font = Font(family='Arial', size=20, weight='bold')
         self.grid_columnconfigure(0, weight=1)
 
-        self.target = target
+        self.game = game
         self.path: str = ''
         self.path_text = ''
 
         self.create_widgets()
         self.load_latest_frame_analysis()
-    
-    def refresh_path_text(self):
+        self.cfg.register_config_update_handler(['game', self.game, 'frame_analysis_parent_path'], self.refresh_path_from_config)
+
+    def refit_path_text(self):
         if not self.path: return
         self.path_text = get_trunc_path(self.path, self.font, self.folder_path_label.winfo_width())
         self.folder_path_label.config(text=self.path_text)
 
     def create_widgets(self):
         self.folder_path_label = tk.Label(self, text='Select Frame Analysis Folder', fg='#555', anchor='w', font=self.font)
-        self.folder_path_label.bind('<Configure>', lambda _: self.refresh_path_text())
+        self.folder_path_label.bind('<Configure>', lambda _: self.refit_path_text())
 
         img = tk.PhotoImage(file=Path('./resources/images/buttons/folder_open.32.png').absolute())
         pick_folder_btn = FlatImageButton(self, width=40, height=40, img_width=32, img_height=32, bg='#3fb76b', image=img)
@@ -52,20 +54,33 @@ class AddressFrame(tk.Frame):
         pick_latest_dump_btn   .grid(row=0, column=1, sticky='nsew')
         pick_folder_btn        .grid(row=0, column=2, sticky='nsew')
 
-    def set_path(self, text: str):
-        self.path = str(Path(text).resolve())
-        self.terminal.print('Set frame analysis path: <PATH>{}</PATH>'.format(str(self.path)))
-        
-        self.refresh_path_text()
-        self.parent.on_address_change(text=self.path)
+    def refresh_path_from_config(self, text):
+        self.path = self.set_path(text)
+        self.load_latest_frame_analysis()
 
     def handle_frame_dump_pick(self):
+        # Update 3dm parent folder in config when user picks a frame dump
         path = filedialog.askdirectory(mustexist=True, title='Select Frame Analysis Folder')
         if path:
-            self.set_path(path)
+            path = Path(path)
+            
+            # Check if current directory is a frame analysis in which case the parent is 3dm's
+            if 'FrameAnalysis' in path.name and (path/'log.txt').exists():
+                self.cfg.data.game[self.game].frame_analysis_parent_path = str(path.parent)
+                self.cfg.trigger_callbacks(['game', self.game, 'frame_analysis_parent_path'], str(path.parent), skip_callback=self.set_path)
+                self.set_path(path)
+                return
+
+            # Check if the current directory is that of 3dm
+            has_d3dx = (path/'d3dx.ini').exists()
+            if has_d3dx:
+                self.cfg.data.game[self.game].frame_analysis_parent_path = str(path)
+                self.cfg.trigger_callbacks(['game', self.game, 'frame_analysis_parent_path'], str(path), skip_callback=self.set_path)
+                self.load_latest_frame_analysis()
+                return
 
     def load_latest_frame_analysis(self):
-        saved_path = Config.get_instance().data.game[self.target.value].frame_analysis_parent_path
+        saved_path = self.cfg.data.game[self.game].frame_analysis_parent_path
         if not saved_path:
             return
         frame_analysis_parent_path = Path(saved_path)
@@ -86,6 +101,11 @@ class AddressFrame(tk.Frame):
             self.set_path(saved_path)
 
         return
+
+    def set_path(self, text: str):
+        self.path = str(Path(text).resolve())
+        self.refit_path_text()
+        self.terminal.print('Set frame analysis path: <PATH>{}</PATH>'.format(self.path))
 
 # Maybe just a bit overkill
 def get_trunc_path(s: str, font: Font, max_width: int):

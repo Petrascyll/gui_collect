@@ -4,8 +4,21 @@ from ..style import brighter
 from .Tooltip import Tooltip
 
 class FlatImageButton(tk.Canvas):
-    def __init__(self, parent, image, img_width, img_height, width, height, value=None, tooltip_text='', key='', dual_state=False, active_bg='', *args, **kwargs):
-        tk.Canvas.__init__(self, parent, width=width, height=height, cursor='hand2', relief='flat', highlightthickness=0, *args, **kwargs)
+    def __init__(self, parent, image, img_width, img_height, width, height, value=None, tooltip_text='', key='', dual_state=False, active_bg='', text=None, text_dims=None, *args, **kwargs):
+        
+        if text and text_dims:
+            self.text = text
+            self.text_width = text_dims[0]
+            self.text_padx = text_dims[1]
+            self.text_pady = text_dims[2]
+        else:
+            self.text = None
+            self.text_width = 0
+            self.text_padx = (0,0)
+            self.text_pady = (0,0)
+
+        total_width = width + self.text_width + self.text_padx[0] + self.text_padx[1]
+        tk.Canvas.__init__(self, parent, width=total_width, height=height, cursor='hand2', relief='flat', highlightthickness=0, *args, **kwargs)
 
         self.key   = key
         self.value = value
@@ -17,6 +30,7 @@ class FlatImageButton(tk.Canvas):
             self.bind('<Button-1>', add='+', func=self.toggle)
 
         self.set_image(image, img_width, img_height, width, height)
+        if self.text: self.create_text(self.text_padx[0], height//2, anchor='w', text=self.text, font=('Arial', 16), fill='#CCC')
         if 'bg' in kwargs: self.refresh()
 
         if tooltip_text:
@@ -27,7 +41,7 @@ class FlatImageButton(tk.Canvas):
         padx = (width - img_width) // 2
         pady = (height - img_height) // 2
         self.delete('all')
-        self.create_image(padx, pady, anchor='nw', image=self.image)
+        self.create_image(self.text_width + self.text_padx[0] + self.text_padx[1] + padx, pady, anchor='nw', image=self.image)
 
     def refresh(self):
         self.config(cursor='hand2')

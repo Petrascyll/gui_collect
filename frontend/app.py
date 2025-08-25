@@ -16,7 +16,7 @@ class App(tk.Tk):
 
         self.state = State()
 
-        version_str = '1.2.6'
+        version_str = '1.3.0 - dev'
         self.title(f'GUI Collect v{version_str}')
         self.geometry('1368x840')
         # self.geometry('1650x800')
@@ -34,14 +34,21 @@ class App(tk.Tk):
         self.grid_columnconfigure(1, weight=1)
 
     def create_widgets(self):
-        self.terminal = Terminal(parent=self)
+        self.mt_paned_window = tk.PanedWindow(self, orient=tk.VERTICAL, opaqueresize=True, showhandle=False, sashwidth=4, bd=0, relief='flat', bg='#444')
+
+        self.terminal = Terminal(parent=self.mt_paned_window)
+        self.main     =     Main(parent=self.mt_paned_window, active_page=self.state.active_page)
         self.sidebar  =  Sidebar(parent=self, active_page=self.state.active_page)
-        self.main     =     Main(parent=self, active_page=self.state.active_page)
+
+        self.mt_paned_window.add(self.main)
+        self.mt_paned_window.add(self.terminal)
 
     def grid_widgets(self):
-        self.sidebar .grid(column=0, row=0, rowspan=2, sticky='nsew')
-        self.main    .grid(column=1, row=0, sticky='nsew')
-        self.terminal.grid(column=1, row=1, sticky='nsew')
+        self.sidebar        .grid(column=0, row=0, sticky='nsew')
+        self.mt_paned_window.grid(column=1, row=0, sticky='nsew')
+
+        self.update()
+        self.after_idle(lambda: self.mt_paned_window.sash_place(0, 0, int(self.winfo_height() * 0.75)))
 
     def configure_style(self):
         # styling tk.Scrollbar via parameters didn't work

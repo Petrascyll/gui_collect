@@ -26,16 +26,15 @@ class Terminal(tk.Frame):
         self.create_widgets()
 
     def create_widgets(self):
-        self   .grid_rowconfigure(1, weight=1)
+        self   .grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
         self.text_wdgt = tk.Text(
             self,
-            wrap='word', height=12,
+            wrap='word',
             insertbackground='#0FF', takefocus=False,
             insertofftime=500, insertontime=1000,
-            # bg=self['bg'],
-            bg='#080808',
+            bg=self['bg'],
             fg='#e8eaed',
             font=('Lucida Sans Typewriter', 10),
             relief='flat', highlightthickness=0
@@ -59,12 +58,15 @@ class Terminal(tk.Frame):
 
     def toggle_terminal_visible(self, event):
         self.terminal_visible = not self.terminal_visible
+        root_height = self.master.master.winfo_height()
         if self.terminal_visible:
             self.btn.set_image(self.chevron_down_img, img_width=16, img_height=16, width=32, height=32)
-            self.text_wdgt.config(height=12)
+            self.master.sash_place(0, 0, int(root_height * 0.75))
+
         else:
             self.btn.set_image(self.chevron_up_img, img_width=16, img_height=16, width=32, height=32)
-            self.text_wdgt.config(height=2)
+            self.master.sash_place(0, 0, int(root_height - 32 - 4))
+
         self.update_idletasks()
         self.text_wdgt.see(tk.END)
 

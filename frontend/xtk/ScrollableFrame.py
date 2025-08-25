@@ -12,7 +12,7 @@ class ScrollableFrame(tk.Frame):
 
     Add content to the scrollable area by making self.interior the root object.
     """
-    def __init__(self, parent, scrollable_parent=None, *args, **kwargs):
+    def __init__(self, parent, scrollable_parent=None, scrollbar_pad_x=(0, 0), *args, **kwargs):
         tk.Frame.__init__(self, parent)
         self.config(*args, **kwargs)
         self.parent = parent
@@ -31,7 +31,7 @@ class ScrollableFrame(tk.Frame):
         # print(self._scrollbar.configure(elementborderwidth=0, highlightcolor='#f00', bg='#0f0', activebackground='#00f', relief='flat', troughcolor='#f00'))
         # exit()
         # self._scrollbar = tk.Scrollbar(self, orient='vertical')
-        self._scrollbar.grid(row=0, column=1, sticky="nes")
+        self._scrollbar.grid(row=0, column=1, sticky="nes", padx=scrollbar_pad_x)
 
         # The Canvas which supports the Scrollbar Interface, layout to the left
         # Width of scrollbar is 14px
