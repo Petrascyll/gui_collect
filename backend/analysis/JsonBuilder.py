@@ -18,6 +18,7 @@ class JsonComponent():
     object_classifications: list[str] = field(default_factory=lambda:[])
     
     texture_hashes: list[list[tuple[str]]] = field(default_factory=lambda:[])
+    texture_extras: list[list[tuple[str]]] = field(default_factory=lambda:[])
 
 
 class JsonBuilder():
@@ -46,6 +47,13 @@ class JsonBuilder():
                         [texture_type, texture.path.suffix, texture.hash]
                         for (texture, texture_type) in textures[first_index]
                     ] for first_index in textures
+                ]
+                json_component.texture_extras = [
+                    [
+                        {
+                            'slot': int(texture.slot)
+                        } for (texture, _) in textures[first_index]
+                    ]  for first_index in textures
                 ]
             if game == 'zzz': json_component.ib = component.ib_hash
 
