@@ -50,7 +50,6 @@ class PathPicker(tk.Frame):
             'size': 16
         }
         self.terminal = terminal
-        self.path_text = str(self.path)
 
         self.configure_grid()
         if self.editable:
@@ -95,8 +94,9 @@ class PathPicker(tk.Frame):
         self.pick_folder_btn.bind('<Button-1>', handle_click)
 
     def create_label(self):
-        self.path_label = tk.Label(self, text=self.path_text, fg=self.text_fg, bg=self['bg'], font=Font(**self.font_args), cursor='hand2', relief='flat', anchor='w')
+        self.path_label = tk.Label(self, fg=self.text_fg, bg=self['bg'], font=Font(**self.font_args), cursor='hand2', relief='flat', anchor='w')
         self.path_label.grid(row=0, column=0, sticky='nsew')
+        self.set_path_label_text()
         
         img = tk.PhotoImage(file=Path('./resources/images/buttons/open_in_new.32.png').absolute())
         self.open_folder_btn = FlatImageButton(self, width=32, height=32, img_width=32, img_height=32, bg=self['bg'], image=img)
@@ -118,17 +118,17 @@ class PathPicker(tk.Frame):
         self.path_label.bind('<Button-1>', handle_click)
         self.path_label.bind('<Enter>', handle_enter)
         self.path_label.bind('<Leave>', handle_leave)
-        self.path_label.bind('<Configure>', lambda _: self.set_path_text())
+        self.path_label.bind('<Configure>', lambda _: self.set_path_label_text())
 
         
     def set_path(self, text):
         self.path = Path(text)
-        self.set_path_text()
+        self.set_path_label_text()
 
-    def set_path_text(self):
+    def set_path_label_text(self):
         if not self.path: return
-        self.path_text = get_short_path(str(self.path.absolute()), self.path_label.winfo_width(), **self.font_args)
-        self.path_label.config(text=self.path_text)
+        path_text = get_short_path(str(self.path.absolute()), self.path_label.winfo_width(), **self.font_args)
+        self.path_label.config(text=path_text)
 
 
 @cache
