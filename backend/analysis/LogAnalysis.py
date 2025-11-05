@@ -1,5 +1,6 @@
 import re
 import time
+from collections import OrderedDict
 from pathlib import Path
 
 from backend.utils.buffer_utils.structs import BufferType
@@ -376,6 +377,30 @@ class LogAnalysis():
                     if Path(texture_str_filepath).exists()
                 ], key=lambda t: int(t.slot))
 
+                # User may have dumped the texture as both jpg and dds. Dedupe keeping the dds.
+                deduped_textures = OrderedDict()
+                for tex in component.draw_data[first_index][id].textures:
+                    if tex.slot not in deduped_textures:
+                        deduped_textures[tex.slot] = tex
+                        continue
+                    
+                    # It should never be the case that there are 2 textures with different
+                    # hashes at the same slot within the same draw call but handle anyways..
+                    if deduped_textures[tex.slot].hash != tex.hash:
+                        self.terminal.print(
+                            '<WARNING>Skipping texture with hash {} at slot {} colliding with texture {} at the same slot.</WARNING>'
+                                .format(tex.hash, tex.slot, deduped_textures[tex.slot].hash)
+                        )
+                    # Override existing if the texture we're proccessing now is .dds
+                    elif tex.extension == 'dds':
+                        self.terminal.print(
+                            '<WARNING>Discarded {} variant of texture {} in favor of dds variant.</WARNING>'
+                                .format(deduped_textures[tex.slot].extension, tex.hash)
+                        )
+                        deduped_textures[tex.slot] = tex
+                
+                component.draw_data[first_index][id].textures = list(deduped_textures.values())
+
                 # Preload textures from the id with the most useful textures discovered
                 # These textures are going to be loaded by the texture picker after
                 # analysis is done so preloading them early could save some time
@@ -532,6 +557,27 @@ def parse_frame_analysis_log_file(log_path: Path):
                 draw_id = m.group()
                 if draw_id not in log_data:
                     log_data[draw_id] = {}
+
+                    # Bleed some hashes into the previous ID
+                    # The data of the previous draw call has been fully captured
+                    # However, the game can bleed resources if they are used in consecutive draw calls instead
+                    # of re-assigning. This happens with the hsr log in screen train, the ib hash bleeds through
+                    # draw calls intentionally.
+                    # TODO this "bleed reconcilation" isnt called for the last draw call but I dont want to bother now
+                    if int(draw_id) > 1:
+                        prev_draw_id      = '{:06}'.format(int(draw_id) - 1)
+                        prev_prev_draw_id = '{:06}'.format(int(draw_id) - 2)
+                        try:
+                            if (
+                                'DrawIndexedInstanced' in log_data[prev_draw_id]
+                                or 'DrawIndexed' in log_data[prev_draw_id] 
+                            ) and 'IASetIndexBuffer' not in log_data[prev_draw_id]:
+                                log_data[prev_draw_id]['IASetIndexBuffer'] = log_data[prev_prev_draw_id]['IASetIndexBuffer']
+                        except:
+                            # nop not handling this for the 1 in a thousand that a draw call is supposed to have an
+                            # ib hash but the previous draw doesnt either. This shouldnt happen but just in case it
+                            # ever does, pretend you saw nothing
+                            pass
 
                 if line[7:15] == '3DMigoto':
                     if m := LOG_TEXTURE_PATTERN.match(line):
