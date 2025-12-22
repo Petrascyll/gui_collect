@@ -42,22 +42,12 @@ class MainPage(tk.Frame):
         self.extract_form   .grid(column=0, row=1, sticky='nsew')
         self.texture_picker .grid(column=0, row=0, rowspan=2, sticky='nsew')
         
-    # def grid_forget_widgets(self):
-    #     self .address_frame.grid_forget()
-    #     self  .extract_form.grid_forget()
-    #     self.texture_picker.grid_forget()
 
     def show_texture_picker(self):
         self.texture_picker.tkraise()
-        # self.texture_picker_visible = True
-        # self.grid_forget_widgets()
-        # self.grid_widgets()
 
     def hide_texture_picker(self):
         self.texture_picker.lower()
-        # self.texture_picker_visible = False
-        # self.grid_forget_widgets()
-        # self.grid_widgets()
 
     def on_address_change(self, text: str):
         # Update 3dm parent folder in config when user picks a frame dump
