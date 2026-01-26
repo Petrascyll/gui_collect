@@ -153,7 +153,7 @@ class ExtractForm(tk.Frame):
             self.cfg.data.game[self.variant.value].extract_path = newPath
             logger.info('Set Config: /game/extract/%s/extract_path = <PATH>%s</PATH>', self.variant.value, newPath)
 
-        pp = PathPicker(self.extract_options_frame, value=self.cfg.data.game[self.variant.value].extract_path, callback=handle_path_change, bg='#333', button_bg=self.accent_color)
+        pp = PathPicker(self.extract_options_frame, value=self.cfg.data.game[self.variant.value].extract_path, callback=handle_path_change, bg='#333', button_bg=self.accent_color, editable=True)
         pp.pack(side='top', fill='x', pady=(0, 12))
 
         game_options = self.cfg.data.game[self.variant.value].game_options
@@ -247,7 +247,6 @@ class ExtractForm(tk.Frame):
             extract_name,
             input_component_hashes,
             input_component_names,
-            d3dx_path,
             dump_rt        = targeted_options.dump_rt,
             force_dump_dds = targeted_options.force_dump_dds,
             symlink        = targeted_options.symlink,

@@ -100,7 +100,7 @@ class App(tk.Tk):
             lightcolor="#222",
             darkcolor ="#222",
 
-            bordercolor="#111",
+            bordercolor="#222",
             
             arrowcolor="#222",
             troughcolor="#0D0D0D",

@@ -1,9 +1,14 @@
 import os
+import logging
 import json
 from dataclasses import asdict
+from typing import Callable
 
 from gui_collect.backend.config.structs import ConfigData
 from gui_collect.backend.config.exceptions import InvalidConfigData
+
+
+logger = logging.getLogger(__name__)
 
 
 class Config():
@@ -29,7 +34,50 @@ class Config():
 
         self._load_config()
         print('\t- Loaded')
-    
+
+        self.config_key_callbacks: dict[str, list[Callable]] = {}
+
+    def set_config_key_value(self, key_path: list[str], value, is_path=False, echo=True):
+        d = self.data
+        for i, key in enumerate(key_path):
+            if i == len(key_path) - 1:
+                if type(d) is dict: d[key] = value
+                else: d.__setattr__(key, value)
+
+            if type(d) is dict: d = d[key]
+            else: d = d.__getattribute__(key)
+
+        self.trigger_callbacks(key_path, value)
+
+        if echo:
+            if is_path: value = '<PATH>{}</PATH>'.format(value)
+            logger.info('Set Config: {} = {}'.format('/' + '/'.join(key_path), value))
+
+    def trigger_callbacks(self, key_path: list[str], value, skip_callback=None):
+        key_path = '/' + '/'.join(key_path)
+        if key_path in self.config_key_callbacks:
+            for callback in self.config_key_callbacks[key_path]:
+                if skip_callback == callback: continue
+                callback(value)
+
+    def get_config_key_value(self, key_path: list[str]):
+        d = self.data
+        for key in key_path:
+            if type(d) is dict: d = d[key]
+            else: d = d.__getattribute__(key)
+        return d
+
+    def register_config_update_handler(self, key_path: list[str], callback: Callable):
+        key_path = '/' + '/'.join(key_path)
+        if key_path not in self.config_key_callbacks:
+            self.config_key_callbacks[key_path] = []
+        self.config_key_callbacks[key_path].append(callback)
+
+    def deregister_config_update_handler(self, key_path: list[str]):
+        key_path = '/' + '/'.join(key_path)
+        if key_path in self.config_key_callbacks:
+            self.config_key_callbacks.pop(key_path)
+
 
     @staticmethod
     def get_instance():

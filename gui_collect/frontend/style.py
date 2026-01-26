@@ -37,7 +37,12 @@ def hex_to_rgb(hex_code: str):
     RGB output is a triplet of floats in the range [0.0...1.0]
     '''
     hex_code = hex_code.lstrip('#')
-    if len(hex_code) == 3: hex_code += hex_code
+    if len(hex_code) == 3:
+        hex_code = ''.join([
+            hex_code[0], hex_code[0],
+            hex_code[1], hex_code[1],
+            hex_code[2], hex_code[2],
+        ])
     return tuple(int(hex_code[i:i+2], 16)/256 for i in (0, 2, 4))
 
 
