@@ -24,7 +24,7 @@ class App(tk.Tk):
 
         self.state = State()
 
-        version_str = '1.2.7-better-terminal'
+        version_str = '1.3.0'
         self.title(f'GUI Collect v{version_str}')
         self.geometry('1368x840')
         # self.geometry('1650x800')
