@@ -12,6 +12,13 @@ COLOR = {
     'ZZZ Orange': '#e2751e'
 }
 
+GAME_ACCENT_MAPPING = {
+    'hsr': '#7a6ce0',
+    'zzz': '#e2751e',
+    'gi':  '#5fb970',
+    'hi3': '#c660cf',
+}
+
 def clamp(n, min_n, max_n):
     return max(min(max_n, n), min_n)
 

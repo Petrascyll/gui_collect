@@ -5,7 +5,7 @@ from pathlib import Path
 from webbrowser import open_new_tab
 
 from .data import Page
-from .style import APP_STYLE, brighter, darker
+from .style import APP_STYLE, brighter, darker, GAME_ACCENT_MAPPING
 from .xtk.FlatImageButton import FlatImageButton
 from .xtk.Tooltip import Tooltip
 from .state import State
@@ -61,10 +61,10 @@ class Sidebar(tk.Frame):
             side = 'bottom' if bottom else 'top'
             b.pack(side=side)
 
-        add_button(page=Page.zzz, bg_color='#e2751e', img_path='./resources/images/icons/Corin.png',   tooltip_text=f"Collect for {GAME_NAME[Page.zzz.value]}")
-        add_button(page=Page.hsr, bg_color='#7a6ce0', img_path='./resources/images/icons/Fofo.png',    tooltip_text=f"Collect for {GAME_NAME[Page.hsr.value]}")
-        add_button(page=Page.gi,  bg_color='#5fb970', img_path='./resources/images/icons/Sucrose.png', tooltip_text=f"Collect for {GAME_NAME[Page.gi.value]}")
-        add_button(page=Page.hi3, bg_color='#c660cf', img_path='./resources/images/icons/Mobius.png',  tooltip_text=f"Collect for {GAME_NAME[Page.hi3.value]}")
+        add_button(page=Page.zzz, bg_color=GAME_ACCENT_MAPPING[Page.zzz], img_path='./resources/images/icons/Corin.png',   tooltip_text=f"Collect for {GAME_NAME[Page.zzz]}")
+        add_button(page=Page.hsr, bg_color=GAME_ACCENT_MAPPING[Page.hsr], img_path='./resources/images/icons/Fofo.png',    tooltip_text=f"Collect for {GAME_NAME[Page.hsr]}")
+        add_button(page=Page.gi,  bg_color=GAME_ACCENT_MAPPING[Page.gi], img_path='./resources/images/icons/Sucrose.png', tooltip_text=f"Collect for {GAME_NAME[Page.gi]}")
+        add_button(page=Page.hi3, bg_color=GAME_ACCENT_MAPPING[Page.hi3], img_path='./resources/images/icons/Mobius.png',  tooltip_text=f"Collect for {GAME_NAME[Page.hi3]}")
         add_button(page=Page.settings, bg_color='#AAA', img_path='./resources/images/buttons/settings.1.64.png', tooltip_text="Settings", bottom=True)
         add_button(key='Help', bg_color='#AAA', img_path='./resources/images/buttons/help.1.64.png', tooltip_text="Opens in a new tab of the default browser the link to a usage guide", bottom=True)
 

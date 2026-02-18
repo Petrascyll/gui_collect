@@ -5,6 +5,8 @@ from pathlib import Path
 from .EntryWithPlaceholder import EntryWithPlaceholder
 from .FlatImageButton import FlatImageButton
 from .Tooltip import Tooltip
+from ..style import GAME_ACCENT_MAPPING
+
 
 @dataclass
 class InputComponent():
@@ -103,12 +105,8 @@ class InputComponentFrame(tk.Frame):
         self.component_options_frame.grid(row=0, column=1, rowspan=2,  sticky='nsew', padx=(2,0))
         self.remove_button          .grid(row=0, column=2, rowspan=2, sticky='nsew')
 
-        # TODO stop being lazy and hard coding colors
         variant_value = self.parent.parent.master.master.master.variant.value
-        if variant_value   == 'hsr': active_bg = '#7a6ce0'
-        elif variant_value == 'zzz': active_bg = '#e2751e'
-        elif variant_value ==  'gi': active_bg = '#5fb970'
-        elif variant_value == 'hi3': active_bg = '#c660cf'
+        active_bg = GAME_ACCENT_MAPPING[variant_value]
 
         boolean_options = [
             ('collect_model_data',     True, tk.PhotoImage(file=Path('resources', 'images', 'buttons', 'cube.inverted.74.png')), 'Collect model data. Model data will be extracted to the output folder.',),

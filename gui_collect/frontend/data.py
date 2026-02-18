@@ -1,7 +1,7 @@
 # from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
-class Page(Enum):
+class Page(StrEnum):
     zzz      = 'zzz'
     hsr      = 'hsr'
     gi       = 'gi'

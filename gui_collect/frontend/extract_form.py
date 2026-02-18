@@ -12,7 +12,7 @@ from .xtk.CompactCheckbox import CompactCheckbox
 from .xtk.PathPicker import PathPicker
 from .xtk.ScrollableFrame import ScrollableFrame
 
-from .style import brighter
+from .style import brighter, GAME_ACCENT_MAPPING
 from .state import State
 
 from gui_collect.backend.config.Config import Config
@@ -32,10 +32,7 @@ class ExtractForm(tk.Frame):
         self.parent = parent
         self.variant = variant
 
-        if   self.variant.value == 'hsr': self.accent_color = '#7a6ce0'
-        elif self.variant.value == 'zzz': self.accent_color = '#e2751e'
-        elif self.variant.value ==  'gi': self.accent_color = '#5fb970'
-        elif self.variant.value == 'hi3': self.accent_color = '#c660cf'
+        self.accent_color = GAME_ACCENT_MAPPING[self.variant.value]
 
         self.cfg = Config.get_instance()
         self.state = State.get_instance()
