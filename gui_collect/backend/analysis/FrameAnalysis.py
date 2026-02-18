@@ -29,13 +29,16 @@ logger = logging.getLogger(__name__)
 
 class FrameAnalysis():
     def __init__(self, frame_analysis_path: Path):
+        logger.info("Starting Frame Analysis: <PATH>%s</PATH>\n", frame_analysis_path)
         self.path         = frame_analysis_path
         self.log_analysis = LogAnalysis(self.path)
         self.cfg          = Config.get_instance().data
 
-        logger.info("Starting Frame Analysis: <PATH>%s</PATH>\n", frame_analysis_path)
-
     def extract(self, input_component_hashes, input_component_names, input_components_options, game='zzz', reverse_shapekeys=False) -> list[Component]:
+        if self.log_analysis.log_data is None:
+            logger.error("Log Analysis Failed!")
+            return
+
         components: list[Component] = []
         for name, target_hash, options in zip(input_component_names, input_component_hashes, input_components_options):
             c = Component(name=name, options=options)

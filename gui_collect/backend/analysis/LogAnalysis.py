@@ -550,7 +550,18 @@ def parse_frame_analysis_log_file(log_path: Path):
     st = time.time()
     log_data = {}
 
-    with open(log_path, 'r', encoding='cp1252') as log_file:
+    # "Guess" the encoding by attempting to read the log file
+    for encoding in ['UTF-8', 'cp1252']:
+        try:
+            log_path.read_text(encoding=encoding)
+            break
+        except UnicodeDecodeError as X:
+            continue
+    else:
+        logger.error('Malformed log.txt. Failed to decode log file using UTF-8 or cp1252 encodings')
+        return None
+
+    with open(log_path, 'r', encoding=encoding) as log_file:
         log_file.readline()  # skip first line
 
         while line := log_file.readline():
