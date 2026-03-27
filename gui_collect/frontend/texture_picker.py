@@ -67,18 +67,23 @@ class TexturePicker(tk.Frame):
         self.texture_grid.load(component_index=0, first_index=0, components=texture_components)
         self.texture_bar .load(component_index=0, first_index=0, components=texture_components)
         self.bind_keys()
+        self.bind_modifiers()
 
     def bind_keys(self):
         self.bind_all('<s>', self.texture_bar.go_to_next)
         self.bind_all('<w>', self.texture_bar.go_to_prev)
+    def bind_modifiers(self):
+        # unlike keys, modifiers should not be unbounded when text is focused in the texture picker
+        self.bind_all('<KeyPress-Shift_L>', self.texture_grid.enable_multi_mode)
+        self.bind_all('<KeyRelease-Shift_L>', self.texture_grid.disable_multi_mode)
 
     def unbind_keys(self):
         self.unbind_all('<s>')
         self.unbind_all('<w>')
+    def unbind_modifiers(self):
+        self.unbind_all('<KeyPress-Shift_L>')
+        self.unbind_all('<KeyRelease-Shift_L>')
 
-        # self.bind_all('<s>', lambda _: self.do_fake_click(self.next_canvas))
-        # self.bind_all('<w>', lambda _: self.do_fake_click(self.prev_canvas))
-    
     # TODO improve later
     # def do_fake_click(self, widget, *args):
     #     widget.event_generate('<Button-1>')
@@ -99,6 +104,7 @@ class TexturePicker(tk.Frame):
         self.texture_bar .unload()
 
         self.unbind_keys()
+        self.unbind_modifiers()
 
 class TextureBar(tk.Frame):
     def __init__(self, parent, *args, **kwargs):

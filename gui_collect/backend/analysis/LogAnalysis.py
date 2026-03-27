@@ -353,15 +353,15 @@ class LogAnalysis():
             optional as well...
         '''
         for first_index in component.draw_data:
-            for id in component.draw_data[first_index]:
-                if game == 'gi' and int(id) >= 15:
-                    component.tex_index_id[first_index] = id
+            for draw_call_id in component.draw_data[first_index]:
+                if game == 'gi' and int(draw_call_id) >= 15:
+                    component.tex_index_id[first_index] = draw_call_id
                     break
 
-                if game != 'gi' and 'render_targets' in self.log_data[id]:
-                    has_o0 = any([rt['slot'] == '0' for rt in self.log_data[id]['render_targets'].values()])
+                if game != 'gi' and 'render_targets' in self.log_data[draw_call_id]:
+                    has_o0 = any([rt['slot'] == '0' for rt in self.log_data[draw_call_id]['render_targets'].values()])
                     if has_o0:
-                        component.tex_index_id[first_index] = id
+                        component.tex_index_id[first_index] = draw_call_id
                         break
 
             # Default to first draw id if no good draw id can be found
@@ -519,7 +519,10 @@ class LogAnalysis():
         return self.log_data[draw_id]['PSSetShader']
 
     def get_vb_hash(self, draw_id: str, slot: int):
-        if str(slot) in self.log_data[draw_id]['IASetVertexBuffers']:
+        if (
+            'IASetVertexBuffers' in self.log_data[draw_id]
+            and str(slot) in self.log_data[draw_id]['IASetVertexBuffers']
+        ):
             return self.log_data[draw_id]['IASetVertexBuffers'][str(slot)]
         return ''
 
@@ -541,16 +544,16 @@ class LogAnalysis():
             raise Exception()
 
 
-# Group 1: Frame analysis path
-# Group 2: Texture file name
-# Group 3: 'ps-t' or 'o' (PS texture or RT)
-# Group 4: Texture slot
-# Group 5: Contamination [Optional]
-# Group 6: Texture hash
-# Group 7: Extension
-# Group 8: Texture Format
-# texture_pattern = re.compile(r'^[\d]{6} 3DMigoto Dumping Texture2D (.*?FrameAnalysis-.*?\\)(\d{6}-(ps-t|o)(\d+)=(!.!=)?([a-f0-9]{8}).*?\.(.{3})) -> \1deduped\\[a-f0-9]{8}-(.*)\..{3}$')
-LOG_TEXTURE_PATTERN = re.compile(r'^[\d]{6} 3DMigoto Dumping Texture2D (.*?FrameAnalysis-.*?\\)(\d{6}-(ps-t|o)(\d+)=(!.!=)?([a-f0-9]{8}).*?\.(.{3})) -> .*\\[a-f0-9]{8}-(.*)\..{3}$')
+LOG_TEXTURE_PATTERN = re.compile(
+    r"""
+    ^
+    \d{6}\ 3DMigoto\ Dumping\ Texture2D\ .*?FrameAnalysis-.*?\\
+    (?P<texture_filename>\d{6}-(?P<resource_prefix>ps-t|o)(?P<texture_slot>\d+)=(?P<contamination>!.!=)?(?P<texture_hash>[a-f0-9]{8}).*?\.(?P<extension>.{3}))
+    \ ->\ .*\\[a-f0-9]{8}-(?P<texture_format>.*)\..{3}
+    $
+    """,
+    flags=re.VERBOSE
+)
 
 def parse_frame_analysis_log_file(log_path: Path):
     st = time.time()
@@ -599,22 +602,27 @@ def parse_frame_analysis_log_file(log_path: Path):
 
                 if line[7:15] == '3DMigoto':
                     if m := LOG_TEXTURE_PATTERN.match(line):
-                        filepath = Path(log_path.parent, m.group(2)).absolute()
-                        if m.group(3) == 'ps-t':
+                        filepath = Path(log_path.parent, m.group('texture_filename')).absolute()
+                        if m.group('resource_prefix') == 'ps-t':
                             if 'textures' not in log_data[draw_id]:
                                 log_data[draw_id]['textures'] = {}
                             log_data[draw_id]['textures'][str(filepath)] = {
-                                'texture_slot'  : m.group(4),
-                                'texture_hash'  : m.group(6),
-                                'texture_format': m.group(8),
-                                'contamination' : m.group(5)[:-1] if m.group(5) else '',
-                                'extension'     : m.group(7)
+                                'texture_slot'  : m.group('texture_slot'),
+                                'texture_hash'  : m.group('texture_hash'),
+                                'texture_format': m.group('texture_format'),
+                                'contamination' : m.group('contamination')[:-1] if m.group('contamination') else '',
+                                'extension'     : m.group('extension'),
+                                'bleed'         : (
+                                    True if 'PSSetShaderResources' not in log_data[draw_id]
+                                    else True if m.group('texture_slot') not in log_data[draw_id]['PSSetShaderResources']
+                                    else m.group('texture_hash') not in log_data[draw_id]['PSSetShaderResources'][m.group('texture_slot')]
+                                )
                             }
                         else:
                             if 'render_targets' not in log_data[draw_id]:
                                 log_data[draw_id]['render_targets'] = {}
                             log_data[draw_id]['render_targets'][str(filepath)] = {
-                                'slot': m.group(4)
+                                'slot': m.group('texture_slot')
                             }
 
                     continue
@@ -623,7 +631,7 @@ def parse_frame_analysis_log_file(log_path: Path):
                 if keyword in [
                     'IASetVertexBuffers', 'SOSetTargets',
                     'CSSetUnorderedAccessViews', 'CSSetShaderResources',
-                    'CSSetConstantBuffers',
+                    'CSSetConstantBuffers', 'PSSetShaderResources',
                 ]:
                     if keyword not in log_data[draw_id]:
                         log_data[draw_id][keyword] = {}
@@ -631,7 +639,7 @@ def parse_frame_analysis_log_file(log_path: Path):
                     pos  = log_file.tell()
                     line = log_file.readline()
                     while s := re.match(r'^\s*(.*):(?: view=0x.*?)? resource=.*? hash=(.*)$', line):
-                        assert(s.group(1) not in log_data[draw_id][keyword])
+                        # assert(s.group(1) not in log_data[draw_id][keyword])
                         log_data[draw_id][keyword][s.group(1)] = s.group(2)
                         pos  = log_file.tell()
                         line = log_file.readline()

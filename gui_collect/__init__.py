@@ -1,7 +1,11 @@
 import logging
+import sys
 import tempfile
 import tkinter as tk
 import tkinter.ttk as ttk
+import ctypes
+
+from pathlib import Path
 
 from gui_collect.common import get_terminal_logging_handler
 
@@ -16,16 +20,16 @@ from gui_collect.backend.analysis import targeted_analysis
 from gui_collect.backend.utils.texture_utils.TextureManager import TextureManager
 
 
+logger = logging.getLogger()
+
+
 class App(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self)
         self.config(*args, **kwargs)
         self.config(background=APP_STYLE['app_background'])
-
         self.state = State()
 
-        version_str = '1.3.0'
-        self.title(f'GUI Collect v{version_str}')
         self.geometry('1368x840')
         # self.geometry('1650x800')
         self.configure_style()
@@ -45,8 +49,6 @@ class App(tk.Tk):
         self.mt_paned_window = tk.PanedWindow(self, orient=tk.VERTICAL, opaqueresize=True, showhandle=False, sashwidth=4, bd=0, relief='flat', bg='#444')
 
         self.terminal = Terminal(parent=self.mt_paned_window)
-        logger = logging.getLogger()
-        logger.setLevel(logging.DEBUG)
         logger.addHandler(get_terminal_logging_handler(self.terminal.print))
 
         self.main     =     Main(parent=self.mt_paned_window, active_page=self.state.active_page)
@@ -107,14 +109,30 @@ class App(tk.Tk):
         )
 
 
+
 def main():
+    version = '1.3.0'
+    app_id = f'petrascyll.gui_collect.{version}'
     print('3dmigoto GUI collect script')
     cfg = Config()
+
+    if cfg.data.debugging is True:
+        logging_level = logging.DEBUG
+    else:
+        logging_level = logging.INFO
+    logger.setLevel(logging_level)
+
     targeted_analysis.clear(emit_log=False)
     with tempfile.TemporaryDirectory() as temp_dir:
         cfg.temp_data['temp_dir'] = temp_dir
         app = App()
         TextureManager(temp_dir)
+
+        # https://stackoverflow.com/a/1552105
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+        app.iconbitmap(Path("./resources/images/icons/Fofo.ico"))
+        app.title(f'GUI Collect v{version}')
+
         app.mainloop()
     cfg.save_config()
     targeted_analysis.clear(emit_log=False)

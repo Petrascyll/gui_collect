@@ -1,9 +1,11 @@
 import os
+import logging
 import subprocess
 import tkinter as tk
 from functools import partial
 
 from gui_collect.backend.utils.texture_utils.TextureManager import TextureManager
+from gui_collect.backend.config.Config import Config
 from gui_collect.backend.analysis.structs import Texture
 
 from gui_collect.frontend.state import State
@@ -12,19 +14,30 @@ from .xtk.ScrollableFrame import ScrollableFrame
 from .xtk.EntryWithPlaceholder import EntryWithPlaceholder
 
 
+logger = logging.getLogger(__name__)
+
+
 FILEBROWSER_PATH = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
 
 
 class TextureGridItem(tk.Canvas):
-    def __init__(self, parent, texture: Texture, get_ref, *args, **kwargs):
+    def __init__(self, parent, texture: Texture, component_index: int, first_index: int, get_ref, *args, **kwargs):
         tk.Canvas.__init__(self, parent)
         self.config(*args, **kwargs)
         self.config(bg='#222', highlightthickness=0)
         self.parent = parent
         self.texture = texture
+        self.component_index = component_index
+        self.first_index = first_index
         self.get_ref = get_ref
 
         self._texture_picker = State.get_instance().get_texture_picker()
+
+        self.cfg: Config = Config.get_instance()
+        self.multi_texture_select_options = self.cfg.data.game[State.get_instance().active_page].multi_texture_select_options
+
+        self._texture_bar  = self._texture_picker.texture_bar
+        self._texture_grid = self.parent.master.master.master
 
         self.create_canvas_widgets()
 
@@ -57,7 +70,8 @@ class TextureGridItem(tk.Canvas):
         else:
             substrs = ('ps-t', str(self.texture.slot), '=', self.texture.contamination, '=', self.texture.hash)
             substrs_color = ('#e8eaed', '#0FF', '#e8eaed', '#FF0', '#e8eaed', '#0FF')
-        create_colored_text(self, 272-12, substrs, substrs_color, bg_color='#222')
+        bg_color = '#222' if not self.texture.bleed else '#420'
+        create_colored_text(self, 272-12, substrs, substrs_color, bg_color=bg_color)
 
     def create_context_menu(self):
         m = tk.Menu(self, tearoff=0) 
@@ -141,6 +155,37 @@ class TextureGridItem(tk.Canvas):
     def handle_texture_type_click(self, texture_type: str, *args):
         self._texture_picker.bind_keys()
         self.get_ref().add_texture(self.texture, texture_type)
+
+        # Get all textures with the same hash for different components from the texture grid
+        max_draw_call_id        = self.multi_texture_select_options.max_draw_call_id
+        min_draw_call_id        = self.multi_texture_select_options.min_draw_call_id
+        ignore_texture_bleed    = self.multi_texture_select_options.ignore_texture_bleed
+        only_selected_draw_call = self.multi_texture_select_options.only_selected_draw_call
+
+        if self._texture_grid.multi_mode_enabled:
+            for component_index, component in enumerate(self._texture_grid.components):
+                for first_index in component.object_indices:
+                    if component_index == self.component_index and first_index == self.first_index:
+                        continue
+
+                    if only_selected_draw_call:
+                        draw_call_ids = [self._texture_grid.frames[component_index][first_index]['active_id']]
+                    else:
+                        draw_call_ids = [*component.draw_data[first_index].keys()]
+
+                    for draw_call_id in draw_call_ids:
+                        if max_draw_call_id is not None and int(draw_call_id) > max_draw_call_id:
+                            continue
+                        if min_draw_call_id is not None and int(draw_call_id) < min_draw_call_id:
+                            continue
+
+                        for texture in component.draw_data[first_index][draw_call_id].textures:
+                            if texture.bleed and ignore_texture_bleed:
+                                continue
+                            if texture.hash == self.texture.hash:
+                                self._texture_bar.component_textures[component_index][first_index].add_texture(texture, texture_type)
+                                break
+
         self.border_frame.destroy()
 
 

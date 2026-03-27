@@ -15,14 +15,15 @@ class Texture():
     def __init__(
             self, filepath: Path, *,
             texture_slot:str, texture_hash:str, texture_format:str=None,
-            contamination:str, extension:str
+            contamination:str, extension:str, bleed: bool,
         ):
         self.path: Path = filepath
 
-        self.slot         : str = texture_slot
-        self.hash         : str = texture_hash
-        self.contamination: str = contamination
-        self.extension    : str = extension
+        self.slot         : str  = texture_slot
+        self.hash         : str  = texture_hash
+        self.contamination: str  = contamination
+        self.extension    : str  = extension
+        self.bleed        : bool = bleed
 
         self._read_lock      = threading.Lock()
         self._read_thread    = None

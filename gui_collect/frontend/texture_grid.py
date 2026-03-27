@@ -1,4 +1,5 @@
 import tkinter as tk
+import logging
 from functools import partial
 from pathlib import Path
 
@@ -10,6 +11,9 @@ from .xtk.TextFilter        import TextFilter
 from .texture_grid_item import TextureGridItem
 
 from gui_collect.backend.analysis.structs import Texture, Component
+
+
+logger = logging.getLogger(__name__)
 
 
 class TextureGrid(tk.Frame):
@@ -33,6 +37,8 @@ class TextureGrid(tk.Frame):
         self.id_picker.grid(row=0, column=0, rowspan=2, padx=(1,0), sticky='nsew')
         self.header   .grid(row=0, column=1, sticky='nsew', padx=4, pady=4)
 
+        self.multi_mode_enabled = False
+
         self.frames: dict[int, dict[int, dict[str, ScrollableFrame]]] = {
             # component_index: {
             #     first_index: {
@@ -40,6 +46,16 @@ class TextureGrid(tk.Frame):
             #     },
             #  },
         }
+
+    def enable_multi_mode(self, *_, **__):
+        # logger.debug('Shift pressed down')
+        self.multi_mode_indicator.config(bg='#A00')
+        self.multi_mode_enabled = True
+
+    def disable_multi_mode(self, *_, **__):
+        # logger.debug('Shift released')
+        self.multi_mode_indicator.config(bg='#666')
+        self.multi_mode_enabled = False
 
     def create_id_picker(self):
         self.id_picker = tk.Frame(self, width=74, bg='#333')
@@ -49,12 +65,15 @@ class TextureGrid(tk.Frame):
         self.header = tk.Frame(self, bg='#111')
         self.header   .grid_rowconfigure(0, weight=1)
         self.header   .grid_rowconfigure(1, weight=1)
-        self.header.grid_columnconfigure(0, weight=1)
+        self.header.grid_columnconfigure(0, weight=0)
+        self.header.grid_columnconfigure(1, weight=1)
 
+        self.multi_mode_indicator = tk.Label(self.header, text='M', font=('Arial', 16, 'bold'), width=3, fg='#e8eaed', bg='#666')
         self.vs_label = tk.Label(self.header, text='VS Hash:', fg='#e8eaed', bg='#111', font=('Arial', 10, 'bold'), anchor='w')
         self.ps_label = tk.Label(self.header, text='PS Hash:', fg='#e8eaed', bg='#111', font=('Arial', 10, 'bold'), anchor='w')
-        self.vs_label.grid(row=0, column=0, sticky='nsw', padx=(0, 32))
-        self.ps_label.grid(row=1, column=0, sticky='nsw', padx=(0, 32))
+        self.multi_mode_indicator.grid(row=0, rowspan=2, column=0, padx=(0,8), sticky='nsew')
+        self.vs_label.grid(row=0, column=1, sticky='nsw', padx=(0, 32))
+        self.ps_label.grid(row=1, column=1, sticky='nsw', padx=(0, 32))
 
         m = tk.Menu(self, tearoff=0) 
         def do_popup(event): 
@@ -230,7 +249,7 @@ class TextureGrid(tk.Frame):
         for texture in textures:
             TextureGridItem(
                 scrollable_frame.interior,
-                texture, width=272, height=272,
+                texture, component_index, first_index, width=272, height=272,
                 get_ref=lambda: self.get_ref(component_index, first_index)
             )
 

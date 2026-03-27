@@ -1,6 +1,7 @@
 import re
 import logging
 import tkinter as tk
+import tkinter.ttk as ttk
 
 from pathlib import Path
 from typing import Literal, TypeAlias
@@ -13,8 +14,7 @@ from ..xtk.ScrollableFrame import ScrollableFrame
 from ..xtk.CompactCheckbox import CompactCheckbox
 from ..xtk.FlatButton import FlatButton
 from ..xtk.PathPicker import PathPicker
-from ..style import brighter, darker
-
+from ..style import brighter, darker, GAME_ACCENT_MAPPING
 
 logger = logging.getLogger(__name__)
 
@@ -117,13 +117,20 @@ class SettingsRouter(ScrollableFrame):
         self.cfg      = Config.get_instance()
 
         self.interior.grid_columnconfigure(0, weight=1)
+        self.interior.grid_rowconfigure(0, weight=1)
+
+        self.frame = tk.Frame(self.interior, bg=self['bg'])
+        self.frame.grid_columnconfigure(0, weight=1)
+        self.frame.grid(column=0, row=0, sticky='nsew')
         self.route(initial_tab)
 
     def route(self, tab: tab_type):
-        children = self.interior.winfo_children()
-        for child in children:
-            child.grid_forget()
-            child.destroy()
+        # Swap front and back frames to eliminate flickering
+        old_frame = self.frame
+        self.frame = tk.Frame(self.interior, bg=self['bg'])
+        self.frame.lower(belowThis=old_frame)
+        self.frame.grid_columnconfigure(0, weight=1)
+        self.frame.grid(column=0, row=0, sticky='nsew')
 
         {
             'general': self.create_widgets_general,
@@ -133,25 +140,93 @@ class SettingsRouter(ScrollableFrame):
             'hi3': self.create_widgets_hi3,
         }[tab]()
 
+        self.update_idletasks()
+        self.frame.tkraise(aboveThis=old_frame)
+        old_frame.destroy()
+
     def create_widgets_general(self):
+        def handle_logging_level(debugging: bool):
+            if debugging:
+                logging_level = logging.DEBUG
+            else:
+                logging_level = logging.INFO
+            logger.root.setLevel(logging_level)
+
+        self.create_checkbox('Debugging Mode', cfg_key_path=['debugging'], callback=handle_logging_level, pady=(0, 8))
         self.create_checkbox('Enable Targeted Frame Analysis', cfg_key_path=['targeted_analysis_enabled'], callback=lambda _: self.state.refresh_all_extract_forms(), pady=(0, 8))
-        connector_button = ConnectorButton(self.interior, enabled_cfg_path=['targeted_analysis_enabled'], bg='#222', padx=8, pady=8)
+
+        connector_button = ConnectorButton(self.frame, enabled_cfg_path=['targeted_analysis_enabled'], bg='#222', padx=8, pady=8)
         connector_button.grid(sticky='nsew')
+
+    def create_multi_texture_select_options(self, accent_color: str, cfg_key_dir: list[str]):
+        lbl = tk.Label(self.frame, text='Multi-texture Select Options', anchor='w', font=('Arial', 18, 'bold'), fg='#CCC', bg='#222', relief='flat', padx=8, pady=8)
+        lbl.grid(sticky='nsew', pady=0)
+
+        for cfg_key_path, text in [
+            (cfg_key_dir + ['only_selected_draw_call'], "Only use textures from the selected draw call in the texture picker"),
+            (cfg_key_dir + ['ignore_texture_bleed'],    "Ignore textures which where not explicitly bound to the shader within the draw call (texture bleed)"),
+        ]:
+            self.create_checkbox(text, cfg_key_path=cfg_key_path, accent_color=accent_color, pady=(2, 0))
+
+
+        multi_texture_select_cfg = self.cfg.get_config_key_value(cfg_key_dir)
+        draw_call_id_entry_validate_command = self.register(lambda new_text: len(new_text) <= 5 and (new_text == '' or new_text.isdecimal()))
+
+        def save_text_to_cfg(_var):
+            cfg_key = _var.cfg_key
+            entry_text = _var.get() or None
+            if entry_text:
+                entry_text = int(entry_text)
+
+            setattr(multi_texture_select_cfg, cfg_key, entry_text)
+            logger.info(f'Set Config /{"/".join(cfg_key_dir)}/{cfg_key}={entry_text}')
+
+        for key, text in [
+            ('min_draw_call_id', "Minimum draw call index to automatically select textures from. Leave empty to use no minimum."),
+            ('max_draw_call_id', "Maximum draw call index to automatically select textures from. Leave empty to use no maximum."),
+        ]:
+            frame = tk.Frame(self.frame, bg='#222', padx=8)
+            frame.grid(sticky='nsew', pady=(2, 0))
+            frame.grid_columnconfigure(0, weight=1)
+            frame.grid_rowconfigure(0, weight=1)
+
+            lbl = tk.Label(frame, text=text, anchor='w', font=('Arial', 16), fg='#CCC', bg='#222', relief='flat')
+            lbl.grid(row=0, column=0, rowspan=2, sticky='nsew')
+
+            border = tk.Frame(frame, bg=accent_color, height=4)
+            border.grid(row=1, column=1, sticky='nsew')
+
+            cfg_draw_call_id = getattr(multi_texture_select_cfg, key) or ''
+            string_var = tk.StringVar(value=cfg_draw_call_id)
+            string_var.cfg_key = key
+            string_var.trace_add('write', callback=lambda a, b, c, _var=string_var: save_text_to_cfg(_var))
+
+            entry = tk.Entry(
+                frame, textvariable=string_var, fg='#e8eaed', bg='#181818', relief='flat',
+                font=('arial', 20), width=5, insertbackground='grey', justify='center',
+                # https://tkdocs.com/shipman/entry-validation.html
+                validate='key', validatecommand=(draw_call_id_entry_validate_command, '%P'),
+            )
+            entry.grid(row=0, column=1, sticky='nsew', ipadx=8)
 
 
     def create_widgets_zzz(self):
-        self.create_checkbox('Reverse applied shapekeys. Requires `dump_cb` in d3dx.ini analyse_options or targeted analysis.', cfg_key_path=['reverse_shapekeys_zzz'], accent_color='#e2751e')
+        accent_color = GAME_ACCENT_MAPPING['zzz']
+        self.create_checkbox('Reverse applied shapekeys. Requires `dump_cb` in d3dx.ini analyse_options or targeted analysis.', cfg_key_path=['reverse_shapekeys_zzz'], accent_color=accent_color, pady=(0,8))
+        self.create_multi_texture_select_options(accent_color=accent_color, cfg_key_dir=['game', 'zzz', 'multi_texture_select_options'])
 
     def create_widgets_hsr(self):
-        self.create_checkbox('Reverse applied shapekeys. Requires `dump_cb` in d3dx.ini analyse_options or targeted analysis.', cfg_key_path=['reverse_shapekeys_hsr'], accent_color='#7a6ce0')
+        accent_color = GAME_ACCENT_MAPPING['hsr']
+        self.create_checkbox('Reverse applied shapekeys. Requires `dump_cb` in d3dx.ini analyse_options or targeted analysis.', cfg_key_path=['reverse_shapekeys_hsr'], accent_color=accent_color, pady=(0,8))
+        self.create_multi_texture_select_options(accent_color=accent_color, cfg_key_dir=['game', 'hsr', 'multi_texture_select_options'])
 
     def create_widgets_gi(self):
-        lbl = tk.Label(self.interior, text='Nothing here...', anchor='w', font=('Arial', 16), fg='#CCC', bg=self['bg'], relief='flat')
-        lbl.grid(sticky='nsew')
+        accent_color = GAME_ACCENT_MAPPING['gi']
+        self.create_multi_texture_select_options(accent_color=accent_color, cfg_key_dir=['game', 'gi', 'multi_texture_select_options'])
 
     def create_widgets_hi3(self):
-        lbl = tk.Label(self.interior, text='Nothing here...', anchor='w', font=('Arial', 16), fg='#CCC', bg=self['bg'], relief='flat')
-        lbl.grid(sticky='nsew')
+        accent_color = GAME_ACCENT_MAPPING['hi3']
+        self.create_multi_texture_select_options(accent_color=accent_color, cfg_key_dir=['game', 'hi3', 'multi_texture_select_options'])
 
 
     def create_checkbox(self, text: str, *, cfg_key_path: list[str], pady=(0, 0), callback=None, accent_color='#CCC'):
@@ -160,13 +235,13 @@ class SettingsRouter(ScrollableFrame):
             if callback:
                 callback(new_value)
 
-        frame = tk.Frame(self.interior, bg='#222', padx=8, pady=8)
+        frame = tk.Frame(self.frame, bg='#222', padx=8, pady=8)
         frame.grid(sticky='nsew',  pady=pady, column=0)
         frame.grid_columnconfigure(0, weight=1)
 
         checkbox = CompactCheckbox(
             frame, height=30, bg=frame['bg'], active_bg=accent_color,
-            font=('Arial', 16, 'bold'),
+            font=('Arial', 16),
             on_change=handle_change,
             active=self.cfg.get_config_key_value(cfg_key_path),
             flip=True, fill=True,
