@@ -7,12 +7,13 @@ import traceback
 import subprocess
 
 from pathlib import Path
+from typing import List
 
 from gui_collect.backend.utils.buffer_utils.buffer_reader import get_buffer_elements
 from gui_collect.backend.utils.buffer_utils.buffer_encoder import merge_buffers, handle_no_weight_blend
 from gui_collect.backend.utils.buffer_utils.buffer_decoder import collect_binary_buffer_data
 from gui_collect.backend.utils.buffer_utils.exceptions import InvalidTextBufferException
-from gui_collect.backend.utils.buffer_utils.structs import BufferElement, POSITION_FMT, BLEND_4VGX_FMT, BLEND_2VGX_FMT, BLEND_1VGX_FMT
+from gui_collect.backend.utils.buffer_utils.structs import BufferElement, POSITION_FMT, POSITION_EXTRA_TANGENT_FMT, BLEND_4VGX_FMT, BLEND_2VGX_FMT, BLEND_1VGX_FMT
 
 from gui_collect.backend.config.Config import Config
 
@@ -77,17 +78,20 @@ class FrameAnalysis():
 
 
 
-    def get_position_data(self, buffer_paths: list[Path], shapekey_args={}):
+    def get_position_data(self, buffer_paths: list[Path], buffer_stride: int=None, shapekey_args={}):
         if len(buffer_paths) == 0: return None, None
 
-        buffer_stride   = 40
-        buffer_elements = POSITION_FMT
+        if buffer_stride is None:
+            buffer_elements = POSITION_FMT
+        else:
+            buffer_elements = {40: POSITION_FMT, 56: POSITION_EXTRA_TANGENT_FMT}[buffer_stride]
+
 
         if txt_buffer_paths := [p for p in buffer_paths if p.suffix != '.buf']:
             try:
                 buffer_stride, buffer_elements = get_buffer_elements(txt_buffer_paths)
             except InvalidTextBufferException:
-                logger.info(f'<WARNING>WARNING: SKIPPING Invalid TEXCOORD text buffer!</WARNING>')
+                logger.info(f'<WARNING>WARNING: SKIPPING Invalid POSITION text buffer!</WARNING>')
                 for p in buffer_paths:
                     logger.info(f'<WARNING>{p.name}</WARNING>', extra={'TIMESTAMP': False})
         
@@ -99,16 +103,15 @@ class FrameAnalysis():
 
     def get_blend_data(self, buffer_paths: list[Path], expected_vertex_count: int):
         if len(buffer_paths) == 0: return None, None
-
+        logger.debug(f"Attempting blend data extraction expecting vertex count = {expected_vertex_count}")
         for buffer_stride, buffer_elements in [(32, BLEND_4VGX_FMT), (16, BLEND_2VGX_FMT), (4, BLEND_1VGX_FMT)]:
             buffer_path    = buffer_paths[0].with_suffix('.buf')
             buffer_formats = [element.Format for element in buffer_elements]
             buffer         = collect_binary_buffer_data(buffer_path, buffer_formats, buffer_stride)
 
+            logger.debug(f"\tGot {len(buffer)} vertex count with buffer stride = {buffer_stride}")
             if len(buffer) == expected_vertex_count:
                 break
-
-        # buffer, buffer_elements = handle_no_weight_blend(buffer, buffer_elements)
 
         return buffer, buffer_elements
 
@@ -128,7 +131,6 @@ class FrameAnalysis():
             buffer         = collect_binary_buffer_data(buffer_path, buffer_formats, buffer_stride)
 
             return buffer, buffer_elements
-    
 
     def export(self, export_name, components: list[Component], textures = None, *, game: str):
         json_builder = JsonBuilder()
@@ -164,7 +166,35 @@ class FrameAnalysis():
                 blend_paths    = [component.blend_path]    if component.blend_path    else []
                 texcoord_paths = [component.texcoord_path] if component.texcoord_path else component.backup_texcoord_paths
 
-                position_data, position_elements = self.get_position_data(position_paths, {
+
+                # In HSR, the position buffer can either be 56 or 40 stride. In addition, the blend stride can be
+                # strides 32 or 16 or 4 We can infer the correct stride with no ambiguity for each by matching the
+                # position vertex counts to the blend vertex counts computed from the different strides. This works
+                # because no ratio of position/blend stride within our possibilities is equal.
+                #     POSITION_SIZE/position_stride = BLEND_SIZE/blend_stride = vertex_count
+                #  => POSITION_SIZE/BLEND_SIZE = position_stride/blend_stride
+
+                position_stride = None
+                if component.position_path and component.blend_path:
+                    position_size = os.path.getsize(component.position_path.with_suffix('.buf'))
+                    blend_size    = os.path.getsize(component.blend_path.with_suffix('.buf'))
+                    position_blend_ratio = {
+                        1.25: (40, 32),
+                         2.5: (40, 16),
+                          10: (40, 4),
+                        1.75: (56, 32),
+                         3.5: (56, 16),
+                          14: (56, 4),
+                    }
+                    try:
+                        position_stride, blend_stride = position_blend_ratio[position_size/blend_size]
+                    except KeyError:
+                        raise Exception('Unexpected position and blend buffer sizes given known strides')
+
+                    logger.debug(f'Inferred position stride={position_stride} and blend stride={blend_stride}')
+                    logger.debug(f'Vertex Count = {position_size//position_stride}')
+
+                position_data, position_elements = self.get_position_data(position_paths, position_stride, {
                         'shapekey_buffer_path': component.shapekey_buffer_path,
                         'shapekey_cb_paths':    component.shapekey_cb_paths
                     } if component.shapekey_buffer_path and component.shapekey_cb_paths else {}
@@ -179,9 +209,9 @@ class FrameAnalysis():
                 if not texcoord_data:
                     json_builder.components[-1].__setattr__(f'texcoord_vb', '')
 
-                if position_data: buffers .append(position_data)
-                if blend_data   : buffers .append(blend_data)
-                if texcoord_data: buffers .append(texcoord_data)
+                if position_data: buffers.append(position_data)
+                if blend_data   : buffers.append(blend_data)
+                if texcoord_data: buffers.append(texcoord_data)
             
                 if position_elements: elements.append(position_elements)
                 if blend_elements   : elements.append(blend_elements)

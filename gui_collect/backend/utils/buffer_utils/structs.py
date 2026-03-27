@@ -62,6 +62,37 @@ POSITION_FMT = [
     }),
 ]
 
+POSITION_EXTRA_TANGENT_FMT = [
+    BufferElement({
+        'Name': 'POSITION',
+        'SemanticName': 'POSITION',
+        'SemanticIndex': '0',
+        'Format': 'R32G32B32_FLOAT',
+        'ByteWidth': 12
+    }),
+    BufferElement({
+        'Name': 'NORMAL',
+        'SemanticName': 'NORMAL',
+        'SemanticIndex': '0',
+        'Format': 'R32G32B32_FLOAT',
+        'ByteWidth': 12
+    }),
+    BufferElement({
+        'Name': 'TANGENT',
+        'SemanticName': 'TANGENT',
+        'SemanticIndex': '0',
+        'Format': 'R32G32B32A32_FLOAT',
+        'ByteWidth': 16
+    }),
+    BufferElement({
+        'Name': 'TANGENT1',
+        'SemanticName': 'TANGENT',
+        'SemanticIndex': '1',
+        'Format': 'R32G32B32A32_FLOAT',
+        'ByteWidth': 16
+    }),
+]
+
 BLEND_4VGX_FMT = [
     BufferElement({
         'Name': 'BLENDWEIGHTS',

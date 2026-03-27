@@ -8,8 +8,11 @@ logger = logging.getLogger(__name__)
 
 
 def merge_buffers(buffers, buffer_formats: list[list[BufferElement]]):
-    vertex_count = len(buffers[0])
+    vertex_counts = [len(buffer) for buffer in buffers]
+    if len(set(vertex_counts)) != 1:
+        raise Exception(f'Buffer vertex count mismatch: {vertex_counts}')
 
+    vertex_count  = vertex_counts[0]
     merged_data = []
     for j in range(vertex_count):
         temp = []

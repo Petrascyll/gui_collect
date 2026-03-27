@@ -172,6 +172,8 @@ def get_buffer_elements(buffer_paths: list[Path]):
     max_expressed_stride      = -1
     buffer_stride             = -1
 
+    logger.debug("Iterating over buffer paths to find best fitting format for extraction")
+
     for buffer_path in buffer_paths:
         header, buffer_elements = read_clean_header(buffer_path)
 
@@ -180,6 +182,19 @@ def get_buffer_elements(buffer_paths: list[Path]):
 
         expressed_stride = sum(element.ByteWidth for element in buffer_elements)
         buffer_stride    = int(header['stride'])
+
+        logger.debug(
+            "    "
+            + ' '.join(f"""
+                - <PATH>{buffer_path.name}</PATH>: 
+                - first vertex={header['first vertex']}
+                - vertex_count={header['vertex count']} 
+                - buffer_stride={buffer_stride}
+                - expressed_stride={expressed_stride}
+                - {[(element.Name, element.ByteWidth) for element in buffer_elements]}
+            """.split()),
+            extra={'TIMESTAMP': False}
+        )
 
         if buffer_stride == expressed_stride:
             return buffer_stride, buffer_elements
@@ -192,14 +207,16 @@ def get_buffer_elements(buffer_paths: list[Path]):
         logger.error("ERROR: Failed to find any valid buffer format.")
         raise InvalidTextBufferException
 
-    logger.warning(
-            "<WARNING>WARNING: Failed to find ideal buffer format. "
-            "Buffer <PATH>%(buffer_name)s</PATH><WARNING> has stride = %(buffer_stride)s, "
-            "but only %(max_expressed_stride)s bytes out of those %(buffer_stride)s can be extracted.",
-        buffer_name=buffer_paths[0].with_suffix(".buf").name,
-        buffer_stride=buffer_stride,
-        max_expressed_stride=max_expressed_stride,
-    )
+    logger.warning(' '.join("""
+        <WARNING>WARNING: Failed to find ideal buffer format. Buffer </WARNING><PATH>{buffer_name}</PATH><WARNING>
+        has stride = {buffer_stride}, but only {max_expressed_stride} bytes out of those {buffer_stride} can be
+        extracted.</WARNING>
+        """.format(
+            buffer_name=buffer_paths[0].with_suffix(".buf").name,
+            buffer_stride=buffer_stride,
+            max_expressed_stride=max_expressed_stride,
+        ).split()
+    ))
     return buffer_stride, min_trash_buffer_elements
 
 
