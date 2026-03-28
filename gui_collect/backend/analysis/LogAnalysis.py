@@ -59,13 +59,22 @@ class LogAnalysis():
     def guess_hash_type(self, target_hash):
         for id in self.log_data:
             if 'IASetIndexBuffer' in self.log_data[id] and self.log_data[id]['IASetIndexBuffer'] == target_hash:
+                logger.debug(f"Got IB Hash [{target_hash}]")
                 return BufferType.IB
             if (
                 'IASetVertexBuffers' in self.log_data[id]
                 and '0' in self.log_data[id]['IASetVertexBuffers']
                 and self.log_data[id]['IASetVertexBuffers']['0'] == target_hash
             ):
+                logger.debug(f"Got Draw Hash [{target_hash}]")
                 return BufferType.Draw_VB
+            if (
+                'IASetVertexBuffers' in self.log_data[id]
+                and '2' in self.log_data[id]['IASetVertexBuffers']
+                and self.log_data[id]['IASetVertexBuffers']['2'] == target_hash
+            ):
+                logger.debug(f"Got Blend Hash [{target_hash}]")
+                return BufferType.Blend_VB
         return None
 
     def get_relevant_ids(self, target_hash, target_hash_type: BufferType):
@@ -81,6 +90,13 @@ class LogAnalysis():
                 if 'IASetVertexBuffers' in self.log_data[id]
                 and '0' in self.log_data[id]['IASetVertexBuffers']
                 and self.log_data[id]['IASetVertexBuffers']['0'] == target_hash
+            ]
+        elif target_hash_type == BufferType.Blend_VB:
+            return [
+                id for id in self.log_data
+                if 'IASetVertexBuffers' in self.log_data[id]
+                and '2' in self.log_data[id]['IASetVertexBuffers']
+                and self.log_data[id]['IASetVertexBuffers']['2'] == target_hash
             ]
         else:
             raise Exception()

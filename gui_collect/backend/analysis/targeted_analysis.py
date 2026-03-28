@@ -139,6 +139,11 @@ if !$costume_mods
     if vb0 == 70111102111
         checktextureoverride = vb0
     endif
+
+    if vb2 == 70111102111
+        checktextureoverride = vb2
+    endif
+
     if ib == 70111102111
         checktextureoverride = ib
     endif
