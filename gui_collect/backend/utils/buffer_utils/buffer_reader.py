@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 def read_header(buffer: TextIOWrapper):
-    key_value_pattern = re.compile(r'^\s*(.*?): (.*)$')
-    element_pattern   = re.compile(r'^element\[(\d+)\]:$')
+    key_value_pattern = re.compile(r"^\s*(.*?): (.*)$")
+    element_pattern = re.compile(r"^element\[(\d+)\]:$")
 
-    header  : dict[str, str]      = {}
+    header: dict[str, str] = {}
     elements: list[BufferElement] = []
 
     while line := buffer.readline():
@@ -24,19 +24,18 @@ def read_header(buffer: TextIOWrapper):
             header[key] = value
 
         elif element_pattern.match(line):
-
             data = {}
-            pos  = buffer.tell()
+            pos = buffer.tell()
             line = buffer.readline()
             while key_value_match := key_value_pattern.match(line):
                 key, value = key_value_match.groups()
                 data[key] = value
-                pos  = buffer.tell()
+                pos = buffer.tell()
                 line = buffer.readline()
             buffer.seek(pos)
-            
+
             elements.append(BufferElement(data))
-        
+
         else:
             # vertex data starts at this position
             vertex_data_start_pos = buffer.tell()
@@ -50,7 +49,7 @@ def read_header(buffer: TextIOWrapper):
 
 
 def read_active_element_names(buffer: TextIOWrapper, vertex_data_start_pos: int):
-    key_pattern = re.compile(r'vb\d+\[(\d+)\]\+(\d+) (.*)')
+    key_pattern = re.compile(r"vb\d+\[(\d+)\]\+(\d+) (.*)")
     element_names = set()
 
     if vertex_data_start_pos < 0:
@@ -60,23 +59,26 @@ def read_active_element_names(buffer: TextIOWrapper, vertex_data_start_pos: int)
     buffer.readline()
     buffer.readline()
 
-    prev_byte_offset  = -1
+    prev_byte_offset = -1
     while line := buffer.readline():
-        if len(line.strip()) == 0: break
+        if len(line.strip()) == 0:
+            break
 
-        key_match = key_pattern.match(line.split(':')[0])
-        byte_offset  = int(key_match.group(2))
+        key_match = key_pattern.match(line.split(":")[0])
+        byte_offset = int(key_match.group(2))
         if prev_byte_offset >= byte_offset:
             continue
 
         element_name = key_match.group(3)
         element_names.add(element_name)
         prev_byte_offset = byte_offset
-    
+
     return element_names
 
 
-def read_vertex_data(buffer: TextIOWrapper, vertex_data_start_pos: int, valid_element_names: set):
+def read_vertex_data(
+    buffer: TextIOWrapper, vertex_data_start_pos: int, valid_element_names: set
+):
     all_vertex_data = []
 
     if vertex_data_start_pos < 0:
@@ -93,20 +95,20 @@ def read_vertex_data(buffer: TextIOWrapper, vertex_data_start_pos: int, valid_el
             vertex_data = []
             continue
 
-        key, value = line.split(':')
+        key, value = line.split(":")
 
-        element_name = key.split(' ')[1]
+        element_name = key.split(" ")[1]
         if element_name not in valid_element_names:
             continue
 
-        element_values = value.strip().split(', ')
-        if element_name.startswith('TEXCOORD'):
-            element_values = [v if v != '-nan(ind)' else '0' for v in element_values]
+        element_values = value.strip().split(", ")
+        if element_name.startswith("TEXCOORD"):
+            element_values = [v if v != "-nan(ind)" else "0" for v in element_values]
 
-        elif element_name == 'TANGENT':
-            if element_values[-1] not in ['-1', '1']:
+        elif element_name == "TANGENT":
+            if element_values[-1] not in ["-1", "1"]:
                 logger.warning("WARNING: TANGENT has invalid data.")
-        
+
         vertex_data.append(element_values)
 
     all_vertex_data.append(vertex_data)
@@ -114,23 +116,25 @@ def read_vertex_data(buffer: TextIOWrapper, vertex_data_start_pos: int, valid_el
     return all_vertex_data
 
 
-def get_clean_buffer_elements(buffer_elements: list[BufferElement], valid_element_names):
+def get_clean_buffer_elements(
+    buffer_elements: list[BufferElement], valid_element_names
+):
     byte_offset = 0
     filtered_elements: list[BufferElement] = []
 
     for element in buffer_elements:
         element_name = element.SemanticName
-        if element.SemanticIndex != '0':
+        if element.SemanticIndex != "0":
             element_name += element.SemanticIndex
-        
+
         if element_name not in valid_element_names:
             continue
 
-        matches = re.findall(r'([0-9]+)', element.Format.split("_", maxsplit=1)[0])
+        matches = re.findall(r"([0-9]+)", element.Format.split("_", maxsplit=1)[0])
 
-        element.Name              = element_name
+        element.Name = element_name
         # TODO remove
-        element.ByteWidth         = sum([int(x) for x in matches]) // 8
+        element.ByteWidth = sum([int(x) for x in matches]) // 8
         element.AlignedByteOffset = byte_offset
 
         byte_offset += element.ByteWidth
@@ -141,59 +145,70 @@ def get_clean_buffer_elements(buffer_elements: list[BufferElement], valid_elemen
 
 
 def collect_text_buffer_data(buffer_path: Path, filter_element_names: set = None):
-    with open(buffer_path, 'r') as buffer:
+    with open(buffer_path, "r") as buffer:
         header, buffer_elements, vertex_data_start_pos = read_header(buffer)
         active_element_names = read_active_element_names(buffer, vertex_data_start_pos)
-        valid_element_names  = (
+        valid_element_names = (
             filter_element_names.intersection(active_element_names)
-            if filter_element_names else active_element_names
+            if filter_element_names
+            else active_element_names
         )
-        buffer_elements = get_clean_buffer_elements(buffer_elements, valid_element_names)
-        assert(len(buffer_elements) == len(valid_element_names))
+        buffer_elements = get_clean_buffer_elements(
+            buffer_elements, valid_element_names
+        )
+        assert len(buffer_elements) == len(valid_element_names)
 
-        vertex_data = read_vertex_data(buffer, vertex_data_start_pos, valid_element_names)
-        assert(int(header['vertex count']) == len(vertex_data))
+        vertex_data = read_vertex_data(
+            buffer, vertex_data_start_pos, valid_element_names
+        )
+        assert int(header["vertex count"]) == len(vertex_data)
 
     return header, buffer_elements, vertex_data
 
 
 def read_clean_header(buffer_path: Path):
-    with open(buffer_path, 'r') as buffer:
+    with open(buffer_path, "r") as buffer:
         header, buffer_elements, vertex_data_start_pos = read_header(buffer)
         active_element_names = read_active_element_names(buffer, vertex_data_start_pos)
-        buffer_elements = get_clean_buffer_elements(buffer_elements, active_element_names)
-        assert(len(buffer_elements) == len(active_element_names))
+        buffer_elements = get_clean_buffer_elements(
+            buffer_elements, active_element_names
+        )
+        assert len(buffer_elements) == len(active_element_names)
 
     return header, buffer_elements
 
 
 def get_buffer_elements(buffer_paths: list[Path]):
     min_trash_buffer_elements = None
-    max_expressed_stride      = -1
-    buffer_stride             = -1
+    max_expressed_stride = -1
+    buffer_stride = -1
 
-    logger.debug("Iterating over buffer paths to find best fitting format for extraction")
+    logger.debug(
+        "Iterating over buffer paths to find best fitting format for extraction"
+    )
 
     for buffer_path in buffer_paths:
         header, buffer_elements = read_clean_header(buffer_path)
 
-        if int(header['stride']) == 0:
+        if int(header["stride"]) == 0:
             continue
 
         expressed_stride = sum(element.ByteWidth for element in buffer_elements)
-        buffer_stride    = int(header['stride'])
+        buffer_stride = int(header["stride"])
 
         logger.debug(
             "    "
-            + ' '.join(f"""
+            + " ".join(
+                f"""
                 - <PATH>{buffer_path.name}</PATH>: 
-                - first vertex={header['first vertex']}
-                - vertex_count={header['vertex count']} 
+                - first vertex={header["first vertex"]}
+                - vertex_count={header["vertex count"]} 
                 - buffer_stride={buffer_stride}
                 - expressed_stride={expressed_stride}
                 - {[(element.Name, element.ByteWidth) for element in buffer_elements]}
-            """.split()),
-            extra={'TIMESTAMP': False}
+            """.split()
+            ),
+            extra={"TIMESTAMP": False},
         )
 
         if buffer_stride == expressed_stride:
@@ -201,38 +216,43 @@ def get_buffer_elements(buffer_paths: list[Path]):
 
         if expressed_stride > max_expressed_stride:
             min_trash_buffer_elements = buffer_elements
-            max_expressed_stride      = expressed_stride
+            max_expressed_stride = expressed_stride
 
     if buffer_stride == -1:
         logger.error("ERROR: Failed to find any valid buffer format.")
         raise InvalidTextBufferException
 
-    logger.warning(' '.join("""
+    logger.warning(
+        " ".join(
+            """
         <WARNING>WARNING: Failed to find ideal buffer format. Buffer </WARNING><PATH>{buffer_name}</PATH><WARNING>
         has stride = {buffer_stride}, but only {max_expressed_stride} bytes out of those {buffer_stride} can be
         extracted.</WARNING>
         """.format(
-            buffer_name=buffer_paths[0].with_suffix(".buf").name,
-            buffer_stride=buffer_stride,
-            max_expressed_stride=max_expressed_stride,
-        ).split()
-    ))
+                buffer_name=buffer_paths[0].with_suffix(".buf").name,
+                buffer_stride=buffer_stride,
+                max_expressed_stride=max_expressed_stride,
+            ).split()
+        )
+    )
     return buffer_stride, min_trash_buffer_elements
 
 
 def extract_from_txt(key, filepath) -> int:
-    if key not in ['vertex count', 'first index']:
-        raise Exception('Unexpected key: {}'.format(key))
-    
+    if key not in ["vertex count", "first index"]:
+        raise Exception("Unexpected key: {}".format(key))
+
     # Scyll: readline() is **extremely** fast compared to readlines() with early loop break
     with open(filepath, "r") as f:
-        pattern = re.compile(r'^{}: (\d+)$'.format(key))
+        pattern = re.compile(r"^{}: (\d+)$".format(key))
         i = 0
         line = f.readline()
         while line:
             m = pattern.match(line)
-            if m: return int(m.group(1))
-            if i >= 6: break
+            if m:
+                return int(m.group(1))
+            if i >= 6:
+                break
             line = f.readline()
             i += 1
 

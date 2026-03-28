@@ -9,17 +9,17 @@ class TerminalLoggingFormatter(logging.Formatter):
     def __init__(self):
         super().__init__(fmt="%(message)s", datefmt="%H:%M:%S")
         self.tag_by_levelname = [
-            ('<ERROR>', '</ERROR>', logging.getLevelName(logging.ERROR)),
-            ('<WARNING>', '</WARNING>', logging.getLevelName(logging.WARNING))
+            ("<ERROR>", "</ERROR>", logging.getLevelName(logging.ERROR)),
+            ("<WARNING>", "</WARNING>", logging.getLevelName(logging.WARNING)),
         ]
 
     def format(self, record: logging.LogRecord):
         record.message = record.getMessage()
         msg = self.formatMessage(record)
 
-        if getattr(record, 'TIMESTAMP', True) is True:
+        if getattr(record, "TIMESTAMP", True) is True:
             record.asctime = self.formatTime(record, self.datefmt)
-            msg = f'<TIMESTAMP>[{record.asctime}]</TIMESTAMP> {msg}'
+            msg = f"<TIMESTAMP>[{record.asctime}]</TIMESTAMP> {msg}"
         else:
             msg = f"{' ' * 10} {msg}"
 
@@ -40,12 +40,11 @@ class TerminalLoggingFormatter(logging.Formatter):
         parts = tag_pattern.split(msg)
         for tag_start, tag_end, levelname in self.tag_by_levelname:
             if record.levelname == levelname:
-                msg = ''.join([
-                    s if s.startswith('<')
-                    else f"{tag_start}{s}{tag_end}"
-                    for s in parts if len(s) > 0
+                msg = "".join([
+                    s if s.startswith("<") else f"{tag_start}{s}{tag_end}"
+                    for s in parts
+                    if len(s) > 0
                 ])
                 break
 
         return msg
-

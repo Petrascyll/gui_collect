@@ -3,11 +3,13 @@ import logging
 from pathlib import Path
 
 
-logger    = logging.getLogger(__name__)
-_filepath = Path('include', 'auto_generated.ini')
+logger = logging.getLogger(__name__)
+_filepath = Path("include", "auto_generated.ini")
+
 
 def get_include_path():
     return _filepath
+
 
 def get_status():
     exists = _filepath.exists()
@@ -17,113 +19,139 @@ def get_status():
         enabled = len(text) > 0
     return exists, enabled
 
-def clear(emit_log=True):
-    _filepath.write_text('', encoding='utf-8')
-    if emit_log:
-        logger.info("Cleared targeted ini content from <PATH>%s</PATH>", _filepath.absolute())
 
-def generate(export_name, model_hashes, component_names, dump_rt = True, force_dump_dds = False, symlink = False, share_dupes = False):
-    targeted_content = '\n\n'.join([
-        '\n'.join([
-            '[TextureOverrideModel{}]'.format(i+1),
-            'hash = {}'               .format(model_hash),
-            'match_priority = 0',
-            'filter_index = 70111102111',
-            '$model_{} = 1'           .format(i+1),
-            'if vb0 > 0 && ib > 0',
-            '    $modded_model_{} = 1'.format(i+1),
-            'endif',
-            '{}run = CommandListRT'.format('; ' if not dump_rt else ''),
-            'run = CommandListModel',
-            'run = CommandListTexture.jpg.dds' if not force_dump_dds else 'run = CommandListTexture.dds',
+def clear(emit_log=True):
+    _filepath.write_text("", encoding="utf-8")
+    if emit_log:
+        logger.info(
+            "Cleared targeted ini content from <PATH>%s</PATH>", _filepath.absolute()
+        )
+
+
+def generate(
+    export_name,
+    model_hashes,
+    component_names,
+    dump_rt=True,
+    force_dump_dds=False,
+    symlink=False,
+    share_dupes=False,
+):
+    targeted_content = "\n\n".join([
+        "\n".join([
+            "[TextureOverrideModel{}]".format(i + 1),
+            "hash = {}".format(model_hash),
+            "match_priority = 0",
+            "filter_index = 70111102111",
+            "$model_{} = 1".format(i + 1),
+            "if vb0 > 0 && ib > 0",
+            "    $modded_model_{} = 1".format(i + 1),
+            "endif",
+            "{}run = CommandListRT".format("; " if not dump_rt else ""),
+            "run = CommandListModel",
+            "run = CommandListTexture.jpg.dds"
+            if not force_dump_dds
+            else "run = CommandListTexture.dds",
         ])
         for i, model_hash in enumerate(model_hashes)
     ])
 
     text_print_content = (
         f'[ResourceText.Model]\ntype = Buffer\ndata = "Targeted Analysis: {export_name}"\n\n'
-        +'\n'.join([
-            f'[ResourceText.Model{i+1}]\ntype = Buffer\ndata = "- {model_hash}  ({component_name})"\n'
-            for i, (model_hash, component_name) in enumerate(zip(model_hashes, component_names))
+        + "\n".join([
+            f'[ResourceText.Model{i + 1}]\ntype = Buffer\ndata = "- {model_hash}  ({component_name})"\n'
+            for i, (model_hash, component_name) in enumerate(
+                zip(model_hashes, component_names)
+            )
         ])
-        +'\n'
-        +'\n'.join([
-            f'[ResourceText.ModdedModel{i+1}]\ntype = Buffer\ndata = "- {model_hash}  ({component_name}) MOD ACTIVE"\n'
-            for i, (model_hash, component_name) in enumerate(zip(model_hashes, component_names))
+        + "\n"
+        + "\n".join([
+            f'[ResourceText.ModdedModel{i + 1}]\ntype = Buffer\ndata = "- {model_hash}  ({component_name}) MOD ACTIVE"\n'
+            for i, (model_hash, component_name) in enumerate(
+                zip(model_hashes, component_names)
+            )
         ])
-        +'\n'
-        +'[ResourcePosParams.Model]\ntype = StructuredBuffer\narray = 1\ndata = R32_FLOAT  -0.99 -0.00 +1.00 +1.00  0.005 0.005  1 2  0\n\n'
-        +'\n'.join([
-            f'[ResourcePosParams.Model{i+1}]\ntype = StructuredBuffer\narray = 1\ndata = R32_FLOAT  -0.99 {-0.0785*(i+1)} +1.00 +1.00  0.005 0.005  1 2  0\n'
+        + "\n"
+        + "[ResourcePosParams.Model]\ntype = StructuredBuffer\narray = 1\ndata = R32_FLOAT  -0.99 -0.00 +1.00 +1.00  0.005 0.005  1 2  0\n\n"
+        + "\n".join([
+            f"[ResourcePosParams.Model{i + 1}]\ntype = StructuredBuffer\narray = 1\ndata = R32_FLOAT  -0.99 {-0.0785 * (i + 1)} +1.00 +1.00  0.005 0.005  1 2  0\n"
             for i in range(len(model_hashes))
         ])
-        +'\n'
-        +'[CommandListPrintModel]\n'
-        +'Resource\\gui_collect\\internal\\Text          = ref ResourceText.Model\n'
-        +'Resource\\gui_collect\\internal\\TextPosParams = ref ResourcePosParams.Model\n'
-        +'Resource\\gui_collect\\internal\\TextParams    = ref ResourceColorParams.White\n'
-        +'run = CommandList\\gui_collect\\internal\\PrintText\n'
-        +'\n'
-        +'\n'.join([
-            '\n'.join([
-                f'[CommandListPrintModel{i+1}]',
-                f'Resource\\gui_collect\\internal\\TextPosParams  = ref ResourcePosParams.Model{i+1}',
-                f'if $modded_model_{i+1}',
-                f'    Resource\\gui_collect\\internal\\Text       = ref ResourceText.ModdedModel{i+1}',
-                f'    Resource\\gui_collect\\internal\\TextParams = ref ResourceColorParams.YellowGreen',
-                f'elif $model_{i+1}',
-                f'    Resource\\gui_collect\\internal\\Text       = ref ResourceText.Model{i+1}',
-                f'    Resource\\gui_collect\\internal\\TextParams = ref ResourceColorParams.Green',
-                f'else',
-                f'    Resource\\gui_collect\\internal\\Text       = ref ResourceText.Model{i+1}',
-                f'    Resource\\gui_collect\\internal\\TextParams = ref ResourceColorParams.Red',
-                f'endif',
-                f'run = CommandList\\gui_collect\\internal\\PrintText',
-                f''
+        + "\n"
+        + "[CommandListPrintModel]\n"
+        + "Resource\\gui_collect\\internal\\Text          = ref ResourceText.Model\n"
+        + "Resource\\gui_collect\\internal\\TextPosParams = ref ResourcePosParams.Model\n"
+        + "Resource\\gui_collect\\internal\\TextParams    = ref ResourceColorParams.White\n"
+        + "run = CommandList\\gui_collect\\internal\\PrintText\n"
+        + "\n"
+        + "\n".join([
+            "\n".join([
+                f"[CommandListPrintModel{i + 1}]",
+                f"Resource\\gui_collect\\internal\\TextPosParams  = ref ResourcePosParams.Model{i + 1}",
+                f"if $modded_model_{i + 1}",
+                f"    Resource\\gui_collect\\internal\\Text       = ref ResourceText.ModdedModel{i + 1}",
+                f"    Resource\\gui_collect\\internal\\TextParams = ref ResourceColorParams.YellowGreen",
+                f"elif $model_{i + 1}",
+                f"    Resource\\gui_collect\\internal\\Text       = ref ResourceText.Model{i + 1}",
+                f"    Resource\\gui_collect\\internal\\TextParams = ref ResourceColorParams.Green",
+                f"else",
+                f"    Resource\\gui_collect\\internal\\Text       = ref ResourceText.Model{i + 1}",
+                f"    Resource\\gui_collect\\internal\\TextParams = ref ResourceColorParams.Red",
+                f"endif",
+                f"run = CommandList\\gui_collect\\internal\\PrintText",
+                f"",
             ])
             for i in range(len(model_hashes))
         ])
-        +'\n'
-        +'[Constants]\n'
-        +''.join([f'global $model_{i+1} = 0\n' for i in range(len(model_hashes))])
-        +''.join([f'global $modded_model_{i+1} = 0\n' for i in range(len(model_hashes))])
-        +'\n'
-        +'[Present]\n'
-        +''.join([f'post $model_{i+1} = 0\n'            for i in range(len(model_hashes))])
-        +''.join([f'post $modded_model_{i+1} = 0\n'            for i in range(len(model_hashes))])
-        +'if hunting == 1\n'
-        +'    run = CommandListPrintModel\n'
-        +''.join([f'    run = CommandListPrintModel{i+1}\n' for i in range(len(model_hashes))])
-        +'endif\n'
+        + "\n"
+        + "[Constants]\n"
+        + "".join([f"global $model_{i + 1} = 0\n" for i in range(len(model_hashes))])
+        + "".join([
+            f"global $modded_model_{i + 1} = 0\n" for i in range(len(model_hashes))
+        ])
+        + "\n"
+        + "[Present]\n"
+        + "".join([f"post $model_{i + 1} = 0\n" for i in range(len(model_hashes))])
+        + "".join([
+            f"post $modded_model_{i + 1} = 0\n" for i in range(len(model_hashes))
+        ])
+        + "if hunting == 1\n"
+        + "    run = CommandListPrintModel\n"
+        + "".join([
+            f"    run = CommandListPrintModel{i + 1}\n"
+            for i in range(len(model_hashes))
+        ])
+        + "endif\n"
     )
 
     targeted = TARGETED
     if symlink or share_dupes:
-        extra_options = '{}{}'.format(
-            ' symlink'     if symlink     else '',
-            ' share_dupes' if share_dupes else '',
+        extra_options = "{}{}".format(
+            " symlink" if symlink else "",
+            " share_dupes" if share_dupes else "",
         )
 
-        targeted = '\n'.join([
-            line
-            if not line.startswith('analyse_options')
-            else line + extra_options
-            for line in TARGETED.splitlines()
-        ] + [''])
+        targeted = "\n".join(
+            [
+                line if not line.startswith("analyse_options") else line + extra_options
+                for line in TARGETED.splitlines()
+            ]
+            + [""]
+        )
 
-    with open(_filepath, 'w') as f:
+    with open(_filepath, "w") as f:
         f.write(targeted)
         f.write(targeted_content)
-        f.write('\n\n')
+        f.write("\n\n")
         f.write(TEXT_PRINT)
         f.write(text_print_content)
-        f.write('\n\n')
-        f.write(';-------------FILE END--------------\n')
-
+        f.write("\n\n")
+        f.write(";-------------FILE END--------------\n")
 
     logger.info("Wrote targeted ini content to <PATH>%s</PATH>", _filepath.absolute())
 
-TARGETED = '''
+
+TARGETED = """
 ; AUTOGENERATED: DO NOT MANUALLY EDIT
 
 [Includes]
@@ -241,9 +269,9 @@ analyse_options = dump_tex
 analyse_options = dump_tex dds
 
 ;------------TARGET MODEL----------
-'''
+"""
 
-TEXT_PRINT = '''
+TEXT_PRINT = """
 ;-------------TEXT PRINT------------
 [ResourceColorParams.White]
 type = StructuredBuffer
@@ -265,4 +293,4 @@ type = StructuredBuffer
 array = 1
 data = R32_FLOAT 0.80 1 0.00 1   0 0 0 0.8   1.0
 
-'''
+"""

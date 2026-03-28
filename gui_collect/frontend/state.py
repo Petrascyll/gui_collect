@@ -5,49 +5,52 @@ from gui_collect.backend.config.Config import Config
 from .data import Page
 
 
-class State():
-    '''
+class State:
+    """
     Global state management for certain global-ish widgets
     because I'm tired of drilling args and methods through
     multiple nested levels
-    '''
+    """
+
     __instance = None
-    K = Enum('K', 'FRAME_ANALYSIS F_ARIAL16 F_ARIAL12')
+    K = Enum("K", "FRAME_ANALYSIS F_ARIAL16 F_ARIAL12")
 
     def __init__(self):
         if State.__instance != None:
-            raise Exception('State has already been intialized.')
+            raise Exception("State has already been intialized.")
         State.__instance = self
 
         self._cfg = Config.get_instance().data
         self.registered = {}
 
-        self.active_page = Page[self._cfg.active_game] if self._cfg.active_game else Page.zzz
+        self.active_page = (
+            Page[self._cfg.active_game] if self._cfg.active_game else Page.zzz
+        )
         self._active_page_callbacks = []
 
-        self.sidebar  = None
+        self.sidebar = None
         self.texture_picker = None
-        self.extract_forms  = []
+        self.extract_forms = []
 
     @staticmethod
     def get_instance():
         if State.__instance == None:
-            raise Exception('State hasn\'t been initialized.')
+            raise Exception("State hasn't been initialized.")
         return State.__instance
 
     def register_sidebar(self, sidebar):
         if self.sidebar:
-            raise Exception('Sidebar has already been registered')
+            raise Exception("Sidebar has already been registered")
         self.sidebar = sidebar
 
     def register_texture_picker(self, texture_picker):
         if self.texture_picker:
-            raise Exception('TexturePicker has already been registered')
+            raise Exception("TexturePicker has already been registered")
         self.texture_picker = texture_picker
 
     def unregister_texture_picker(self):
         if not self.texture_picker:
-            raise Exception('No TexturePicker registered')
+            raise Exception("No TexturePicker registered")
         self.texture_picker = None
 
     def get_texture_picker(self):
@@ -55,17 +58,17 @@ class State():
 
     def lock_sidebar(self):
         if not self.sidebar:
-            raise Exception('Sidebar not registered')
+            raise Exception("Sidebar not registered")
         self.sidebar.lock()
 
     def unlock_sidebar(self):
         if not self.sidebar:
-            raise Exception('Sidebar not registered')
+            raise Exception("Sidebar not registered")
         self.sidebar.unlock()
 
     def register_extract_form(self, extract_form):
         self.extract_forms.append(extract_form)
-    
+
     def refresh_all_extract_forms(self):
         # print('Refreshing {}'.format(self.extract_forms))
         for extract_form in self.extract_forms:
@@ -77,16 +80,16 @@ class State():
         self._cfg.active_game = active_page.value
         for callback in self._active_page_callbacks:
             callback(active_page)
-        
+
     def subscribe_active_page_updates(self, callback):
         self._active_page_callbacks.append(callback)
-    
+
     def set_var(self, key, value):
         self.registered[key] = value
-    
+
     def get_var(self, key):
         return self.registered[key]
-    
+
     def del_var(self, key):
         del self.registered[key]
 

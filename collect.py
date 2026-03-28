@@ -2,7 +2,7 @@ import traceback
 import gui_collect
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         gui_collect.main()
     except SystemExit as X:
@@ -11,4 +11,3 @@ if __name__ == '__main__':
     except:
         traceback.print_exc()
         input()
-
