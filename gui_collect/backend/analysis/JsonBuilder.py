@@ -17,7 +17,7 @@ class JsonComponent:
     object_index_counts: list[int] = field(default_factory=lambda: [])
     object_classifications: list[str] = field(default_factory=lambda: [])
 
-    texture_hashes: list[list[tuple[str]]] = field(default_factory=lambda: [])
+    texture_hashes: list[list[list[str]]] = field(default_factory=lambda: [])
 
 
 class JsonBuilder:
@@ -52,6 +52,7 @@ class JsonBuilder:
                 ]
             if game == "zzz":
                 json_component.ib = component.ib_hash
+                json_component.blend_vb = component.blend_hash
 
         if component.options["collect_model_hashes"]:
             json_component.ib = component.ib_hash
