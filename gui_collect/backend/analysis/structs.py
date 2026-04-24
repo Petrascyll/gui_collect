@@ -317,7 +317,7 @@ class Component:
 
         if self.shapekey_buffer_path:
             s.append(
-                "Shapekey Path: <PATH>{}</PATH>".format(self.shapekey_buffer_path.name),
+                "Shapekey Path: <PATH>{}</PATH>".format(self.shapekey_buffer_path.name)
             )
 
         for line in s:

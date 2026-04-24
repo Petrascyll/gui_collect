@@ -77,10 +77,7 @@ APP_STYLE = {
     "text_light": COLOR["Alabaster"],
     "text_dark": COLOR["Black.1"],
     "button": {
-        "default": {
-            "foreground": COLOR["Alabaster"],
-            "background": COLOR["Black.2"],
-        },
+        "default": {"foreground": COLOR["Alabaster"], "background": COLOR["Black.2"]},
         "active": {"foreground": COLOR["Black.1"], "background": COLOR["Aquamarine"]},
     },
     "image": {

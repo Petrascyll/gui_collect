@@ -127,8 +127,7 @@ def generate(
     targeted = TARGETED
     if symlink or share_dupes:
         extra_options = "{}{}".format(
-            " symlink" if symlink else "",
-            " share_dupes" if share_dupes else "",
+            " symlink" if symlink else "", " share_dupes" if share_dupes else ""
         )
 
         targeted = "\n".join(

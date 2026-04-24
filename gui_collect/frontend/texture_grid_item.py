@@ -393,12 +393,7 @@ def create_colored_text(
 
     if bg_color:
         canvas.create_rectangle(
-            start - 8,
-            y - 24,
-            start + total_width + 8,
-            y + 4,
-            fill=bg_color,
-            outline="",
+            start - 8, y - 24, start + total_width + 8, y + 4, fill=bg_color, outline=""
         )
 
     for substr, color, width in zip(substrs, substrs_color, substrs_width):

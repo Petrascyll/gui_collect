@@ -196,16 +196,12 @@ class PathPicker(tk.Frame):
         self.path_label.bind(
             "<Enter>",
             lambda _: self.path_label.config(
-                bg=brighter(self.default_bg),
-                fg=self.hover_text_fg,
+                bg=brighter(self.default_bg), fg=self.hover_text_fg
             ),
         )
         self.path_label.bind(
             "<Leave>",
-            lambda _: self.path_label.config(
-                bg=self.default_bg,
-                fg=self.text_fg,
-            ),
+            lambda _: self.path_label.config(bg=self.default_bg, fg=self.text_fg),
         )
 
     def set_path(self, text):

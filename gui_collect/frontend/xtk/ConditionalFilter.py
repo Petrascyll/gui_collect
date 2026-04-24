@@ -42,11 +42,7 @@ class ConditionalFilter(tk.Frame):
 
     def create_rhs(self, text):
         self.label = tk.Label(
-            self,
-            bg=self["bg"],
-            cursor="hand2",
-            text=text,
-            font=("Arial", 16, "bold"),
+            self, bg=self["bg"], cursor="hand2", text=text, font=("Arial", 16, "bold")
         )
 
         def refresh():
@@ -76,11 +72,7 @@ class ConditionalFilter(tk.Frame):
 
     def create_operator(self):
         values = ("≤", ">")
-        self.operator = tk.Label(
-            self,
-            bg=self["bg"],
-            font=("Consolas", 22, "bold"),
-        )
+        self.operator = tk.Label(self, bg=self["bg"], font=("Consolas", 22, "bold"))
         self.operator.value_index = 0
         self.operator.config(text=values[self.operator.value_index])
 

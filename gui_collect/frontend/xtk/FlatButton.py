@@ -30,12 +30,8 @@ class FlatButton(tk.Label):
         self.on_click_kwargs = on_click_kwargs
 
         self.default_args = {"cursor": "hand2", "bg": bg, "fg": fg}
-        self.hover_args = {
-            "cursor": "hand2",
-        }
-        self.disabled_args = {
-            "cursor": "left_ptr",
-        }
+        self.hover_args = {"cursor": "hand2"}
+        self.disabled_args = {"cursor": "left_ptr"}
 
         if hover_bg:
             self.hover_args["bg"] = hover_bg

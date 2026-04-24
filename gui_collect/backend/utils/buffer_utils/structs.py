@@ -134,5 +134,5 @@ BLEND_1VGX_FMT = [
         "SemanticIndex": "0",
         "Format": "R32_UINT",
         "ByteWidth": 4,
-    }),
+    })
 ]

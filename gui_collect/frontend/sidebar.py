@@ -15,24 +15,14 @@ from gui_collect.backend.config.structs import GAME_NAME
 
 logger = logging.getLogger(__name__)
 
-sidebar_button_style = {
-    "width": 72,
-    "height": 72,
-    "img_width": 64,
-    "img_height": 64,
-}
+sidebar_button_style = {"width": 72, "height": 72, "img_width": 64, "img_height": 64}
 
 
 class Sidebar(tk.Frame):
     def __init__(self, parent, active_page: Page, *args, **kwargs):
         tk.Frame.__init__(self, parent)
         self.config(*args, **kwargs)
-        self.config(
-            bg=APP_STYLE["sidebar_background"],
-            padx=0,
-            pady=0,
-            relief=tk.FLAT,
-        )
+        self.config(bg=APP_STYLE["sidebar_background"], padx=0, pady=0, relief=tk.FLAT)
         self.parent = parent
         self.active_page = active_page
         self._locked = False
