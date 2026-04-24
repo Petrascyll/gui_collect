@@ -3,3 +3,4 @@ _Extracted
 config.json
 include/auto_generated.ini
 .venv
+.idea
