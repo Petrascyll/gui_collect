@@ -1,3 +1,4 @@
+import os
 import subprocess
 import threading
 
@@ -121,6 +122,24 @@ class TextureManager:
 
 
 def get_popen_args(texture_filepath, temp_dir_filepath, max_width, width, height):
+    if os.name != "nt":
+        temp_filepath = temp_dir_filepath / "{}.{}.png".format(
+            texture_filepath.with_suffix("").name, max_width
+        )
+        return [
+            "magick",
+            f"{texture_filepath.absolute()}[0]",
+            "-filter",
+            "point",
+            "-resize",
+            f"{width}x{height}",
+            "-channel",
+            "A",
+            "-negate",
+            "+channel",
+            str(temp_filepath.absolute()),
+        ]
+
     return [
         str(Path("modules", "texconv.exe").absolute()),
         str(texture_filepath.absolute()),
