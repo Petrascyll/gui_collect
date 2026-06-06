@@ -49,10 +49,14 @@ class LogAnalysis:
         self.set_relevant_ids(extract_component, component_hash, component_hash_type)
         self.set_draw_data(extract_component)
 
-        if pose_id := self.get_pose_id(extract_component):
+        if self.try_collect_indirect_cs_posing(extract_component):
+            logger.debug('Collected pre-draw buffers via indirect CS posing')
+
+        elif pose_id := self.get_pose_id(extract_component):
             self.set_prepose_data(extract_component, pose_id)
             if reverse_shapekeys:
                 self.set_shapekey_data(extract_component, pose_id)
+
         elif root_pose_id_pair := self.get_cs_pose_id(extract_component):
             self.set_cs_prepose_data(
                 extract_component, root_pose_id_pair[0], root_pose_id_pair[1]
@@ -205,6 +209,98 @@ class LogAnalysis:
         component.draw_hash = self.get_vb_hash(component.ids[0], 0)
         component.texcoord_hash = self.get_vb_hash(component.ids[0], 1)
         component.draw_vb2_hash = self.get_vb_hash(component.ids[0], 2)
+
+    def try_collect_indirect_cs_posing(self, component: Component):
+        # The position buffer is copied to an intermediate buffer which is the target of
+        # the CS posing and is afterward copied to a draw buffer to use in the index draw call.
+        # e.g. Blade
+        # 1. CopyResource: position_buffer -> draw_pose_buffer
+        # 2. Apply Shapekeys on draw_pose_buffer
+        # 3. Apply CS posing on draw_pose_buffer
+        # 4. CopyResource: draw_pose_buffer -> draw_buffer
+        root_id, draw_copy_path = self.traverse_copy_resource(component.draw_hash)
+        if len(draw_copy_path) != 3:
+            return False
+
+        draw_pose_hash = draw_copy_path[1]
+        position_hash  = draw_copy_path[2]
+
+        component.root_cs_hash = self.get_compute_shader_hash(root_id)
+        component.position_hash = position_hash
+
+        pose_id = self.collect_pose_draw_call(component, draw_pose_hash)
+        if not pose_id:
+            return False
+
+        self.collect_shapekey_data(component, pose_id, draw_pose_hash)
+
+        return True
+
+    def traverse_copy_resource(self, start_hash):
+        buffer_copy_path = [start_hash]
+        root_id = None
+
+        for ID in reversed(self.log_data):
+            if "CopyResource" in self.log_data[ID]:
+                for src_hash, dst_hash in reversed(self.log_data[ID]["CopyResource"]):
+                    if buffer_copy_path[-1] == dst_hash:
+                        # Skip if src == dst and its already captured
+                        if buffer_copy_path[-1] == src_hash: continue
+                        buffer_copy_path.append(src_hash)
+                        root_id = ID
+
+        return root_id, buffer_copy_path
+
+    def collect_pose_draw_call(self, component: Component, pose_draw_hash: str):
+        ID = [
+            idx for idx in self.log_data
+            if "CSSetUnorderedAccessViews" in self.log_data[idx]
+            and pose_draw_hash in self.log_data[idx]["CSSetUnorderedAccessViews"].values()
+            and "CSSetShaderResources" in self.log_data[idx]
+            and pose_draw_hash in self.log_data[idx]["CSSetShaderResources"].values()
+        ]
+        if len(ID) == 0:
+            return None
+
+        ID = ID[0]
+
+        pose_cs_hash = self.get_compute_shader_hash(ID)
+        pose_draw_cst_slot = [
+            s for s in self.log_data[ID]["CSSetShaderResources"]
+            if pose_draw_hash == self.log_data[ID]["CSSetShaderResources"][s]
+        ][0]
+        draw_pose_path = self.compile_cs_t_filepath(ID, pose_draw_hash, pose_draw_cst_slot, pose_cs_hash, ext=".buf")
+        component.position_path = draw_pose_path
+
+        # Coping. Haven't found a reliable way to identify the blend slot without hard coding shader hashes
+        # This is likely to fail in batched posing scenarios
+        blend_cst_slot = "1"
+        blend_hash = self.log_data[ID]["CSSetShaderResources"][blend_cst_slot]
+        blend_path = self.compile_cs_t_filepath(ID, blend_hash, blend_cst_slot, pose_cs_hash, ext=".buf")
+        component.blend_path = blend_path
+        component.blend_hash = blend_hash
+
+        return ID
+
+    def collect_shapekey_data(self, component: Component, pose_id: str, pose_draw_hash: str):
+        # iterate from pose_id to root_cs_id to collect all shapekey buffers
+        for ID in reversed(self.log_data):
+            if ID >= pose_id: continue
+            if (
+                    "CSSetUnorderedAccessViews" in self.log_data[ID]
+                    and "CSSetShaderResources" in self.log_data[ID]
+                    and self.log_data[ID]["CSSetUnorderedAccessViews"]["0"] == pose_draw_hash
+            ):
+                cs_hash = self.get_compute_shader_hash(ID)
+                sk_buffer_hash = self.log_data[ID]["CSSetShaderResources"]["0"]
+                sk_buffer_filename = self.compile_cs_t_filepath(ID, sk_buffer_hash, 0, cs_hash, ".buf")
+                sk_buffer_path = self.frame_analysis_path / sk_buffer_filename
+                component.shapekey_buffer_path = sk_buffer_path
+
+                for slot, cb_hash in self.log_data[ID]["CSSetConstantBuffers"].items():
+                    cb_filename_buf = self.compile_cs_cb_filepath(ID, cb_hash, slot, cs_hash, ".buf")
+                    cb_filepath_buf = self.frame_analysis_path / cb_filename_buf
+                    component.shapekey_cb_paths.append(cb_filepath_buf)
 
     def get_cs_pose_id(self, component: Component):
         if not component.draw_vb2_hash:
