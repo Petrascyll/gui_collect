@@ -4,7 +4,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 from pathlib import Path
-from typing import Literal, TypeAlias
+from typing import Literal
 
 
 from gui_collect.frontend.install_connector_window import open_install_connector_window
@@ -114,7 +114,7 @@ class SettingsPage(tk.Frame):
         self.settings_router.grid(row=2, column=0, sticky="nsew")
 
 
-tab_type: TypeAlias = Literal["general", "zzz", "hsr", "gi", "hi3"]
+tab_type = Literal["general", "zzz", "hsr", "gi", "hi3"]
 
 
 class SettingsRouter(ScrollableFrame):

@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field, asdict, is_dataclass, InitVar
 from pathlib import Path
+from typing import Union
 
 default_extract_path = str(Path(".", "_Extracted").absolute())
 
@@ -30,11 +31,11 @@ class _GameConfigOptionData:
 class _MultiTextureSelectOptions:
     only_selected_draw_call: bool
     ignore_texture_bleed: bool
-    min_draw_call_id: int | None
-    max_draw_call_id: int | None
+    min_draw_call_id: Union[int, None]
+    max_draw_call_id: Union[int, None]
 
 
-@dataclass(kw_only=True)
+@dataclass
 class _GameConfigData:
     _game: InitVar[str]
     frame_analysis_parent_path: str = ""
