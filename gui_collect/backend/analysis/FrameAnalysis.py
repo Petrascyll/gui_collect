@@ -265,6 +265,8 @@ class FrameAnalysis:
                             position_size / blend_size
                         ]
                     except KeyError:
+                        logger.error(f'Position size: {position_size}')
+                        logger.error(f'Blend size: {blend_size}')
                         raise Exception(
                             "Unexpected position and blend buffer sizes given known strides"
                         )
