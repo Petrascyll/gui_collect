@@ -40,9 +40,9 @@ class LogAnalysis:
                     component_hash,
                 )
                 raise ZeroDivisionError()
-            if component_hash_type not in [BufferType.IB, BufferType.Draw_VB]:
+            if component_hash_type not in [BufferType.IB, BufferType.Draw_VB, BufferType.Blend_VB]:
                 logger.error(
-                    'ERROR: Hash "%s" is neither an IB nor a Draw hash.', component_hash
+                    'ERROR: Hash "%s" should be an IB, Draw, or Blend hash.', component_hash
                 )
                 raise ZeroDivisionError()
 
@@ -122,6 +122,7 @@ class LogAnalysis:
                 if "IASetVertexBuffers" in self.log_data[id]
                 and "2" in self.log_data[id]["IASetVertexBuffers"]
                 and self.log_data[id]["IASetVertexBuffers"]["2"] == target_hash
+                and "IASetIndexBuffer" in self.log_data[id] # Only match IB DrawIndexed and not the pose draw
             ]
         else:
             raise Exception()
@@ -130,6 +131,7 @@ class LogAnalysis:
         self, component: Component, component_hash, component_hash_type
     ):
         component.ids = self.get_relevant_ids(component_hash, component_hash_type)
+        logger.debug('Relevant IB IDs: {}'.format(component.ids))
         if len(component.ids) == 0:
             raise Exception("Invalid input hash {}".format(component_hash))
 
