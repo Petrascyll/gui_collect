@@ -118,7 +118,7 @@ class App(tk.Tk):
 
 
 def main():
-    version = "1.4.0"
+    version = "1.4.1"
     app_id = f"petrascyll.gui_collect.{version}"
     # https://stackoverflow.com/a/1552105
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
