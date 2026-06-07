@@ -227,14 +227,15 @@ class LogAnalysis:
         draw_pose_hash = draw_copy_path[1]
         position_hash  = draw_copy_path[2]
 
-        component.root_cs_hash = self.get_compute_shader_hash(root_id)
-        component.position_hash = position_hash
-
         pose_id = self.collect_pose_draw_call(component, draw_pose_hash)
         if not pose_id:
             return False
 
         self.collect_shapekey_data(component, pose_id, draw_pose_hash)
+
+        component.root_cs_hash = self.get_compute_shader_hash(root_id)
+        component.position_hash = position_hash
+        component.pre_draw_hash = draw_pose_hash
 
         return True
 
