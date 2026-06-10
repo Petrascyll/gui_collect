@@ -121,7 +121,10 @@ def main():
     version = "1.4.1"
     app_id = f"petrascyll.gui_collect.{version}"
     # https://stackoverflow.com/a/1552105
-    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+    except AttributeError:
+        pass
 
     print("3dmigoto GUI collect script")
     cfg = Config()
@@ -136,7 +139,10 @@ def main():
     with tempfile.TemporaryDirectory() as temp_dir:
         cfg.temp_data["temp_dir"] = temp_dir
         app = App()
-        app.iconbitmap(Path("./resources/images/icons/Fofo.ico"))
+        try:
+            app.iconbitmap(Path("./resources/images/icons/Fofo.ico"))
+        except tk.TclError:
+            pass
         app.title(f"GUI Collect v{version}")
         TextureManager(temp_dir)
 
