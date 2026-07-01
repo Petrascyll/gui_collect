@@ -17,7 +17,7 @@ class Texture:
         self,
         filepath: Path,
         *,
-        texture_slot: str,
+        texture_slot: int,
         texture_hash: str,
         texture_format: str = None,
         contamination: str,
@@ -26,7 +26,7 @@ class Texture:
     ):
         self.path: Path = filepath
 
-        self.slot: str = texture_slot
+        self.slot: int = texture_slot
         self.hash: str = texture_hash
         self.contamination: str = contamination
         self.extension: str = extension
