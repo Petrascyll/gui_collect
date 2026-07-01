@@ -89,7 +89,7 @@ class FrameAnalysis:
             components.append(c)
 
         for c in components:
-            if game != "gi" or (game == "gi" and (len(c.object_indices) > 5 or c.name)):
+            if game != "gi" or (game == "gi" and (len(c.object_indices) > 4 or c.name)):
                 # fmt: off
                 c.object_classification = [
                     "A", "B", "C", "D", "E", "F", "G", "H", "I",
@@ -101,7 +101,7 @@ class FrameAnalysis:
                 ]
                 # fmt: on
             else:
-                c.object_classification = ["Head", "Body", "Dress", "Extra", "Extra2"]
+                c.object_classification = ["Head", "Body", "Dress", "Extra"]
 
         return components
 
