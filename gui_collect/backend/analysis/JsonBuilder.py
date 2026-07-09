@@ -8,6 +8,7 @@ class JsonComponent:
     component_name: str = ""
     root_vs: str = ""
     draw_vb: str = ""
+    pre_draw_vb: str = ""
     position_vb: str = ""
     blend_vb: str = ""
     texcoord_vb: str = ""
@@ -19,13 +20,23 @@ class JsonComponent:
 
     texture_hashes: list[list[list[str]]] = field(default_factory=lambda: [])
 
+def filtered_as_dict(c):
+    # Exclude the pre_draw_vb key from the dict if its blank
+    d = {
+        k: v
+        for k, v in asdict(c).items()
+        if not (k == "pre_draw_vb" and v == "")
+    }
+
+    return d
+
 
 class JsonBuilder:
     def __init__(self):
         self.components = []
 
     def build(self) -> list[dict]:
-        return [asdict(c) for c in self.components]
+        return [filtered_as_dict(c) for c in self.components]
 
     def add_component(self, component: Component, textures=None, game="zzz"):
         j = self.jsonify_component(component, textures, game)
@@ -64,6 +75,7 @@ class JsonBuilder:
             elif component.backup_position_paths:
                 json_component.position_vb = component.draw_hash
 
+            json_component.pre_draw_vb = component.pre_draw_hash
             json_component.texcoord_vb = component.texcoord_hash
             json_component.blend_vb = component.blend_hash
 

@@ -270,6 +270,7 @@ class Component:
     root_vs_hash: str = ""
     draw_hash: str = ""
     position_hash: str = ""
+    pre_draw_hash: str = ""
     blend_hash: str = ""
     texcoord_hash: str = ""
     ib_hash: str = ""
