@@ -637,7 +637,7 @@ class LogAnalysis:
                     [
                         Texture(
                             p,
-                            texture_slot=int(m.group(1)),
+                            texture_slot=m.group(1),
                             texture_hash=m.group(3),
                             texture_format=0,
                             contamination=m.group(2)[:-1] if m.group(2) else "",
