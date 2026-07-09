@@ -588,7 +588,7 @@ class LogAnalysis:
                         ].items()
                         if Path(texture_str_filepath).exists()
                     ],
-                    key=lambda t: int(t.slot),
+                    key=lambda t: t.slot,
                 )
 
                 # User may have dumped the texture as both jpg and dds. Dedupe keeping the dds.
@@ -637,7 +637,7 @@ class LogAnalysis:
                     [
                         Texture(
                             p,
-                            texture_slot=m.group(1),
+                            texture_slot=int(m.group(1)),
                             texture_hash=m.group(3),
                             texture_format=0,
                             contamination=m.group(2)[:-1] if m.group(2) else "",
@@ -648,7 +648,7 @@ class LogAnalysis:
                         and p.suffix in [".dds", ".jpg"]
                         and (m := DIR_TEXTURE_PATTERN.match(p.name))
                     ],
-                    key=lambda t: int(t.slot),
+                    key=lambda t: t.slot,
                 )
 
                 # Preload textures from the id with the most useful textures discovered

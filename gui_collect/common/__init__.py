@@ -1,7 +1,7 @@
 import logging
-
 from collections.abc import Callable
 
+from gui_collect.common.file_explorer import open_folder, reveal_file
 from gui_collect.common.terminal_logging_formatter import TerminalLoggingFormatter
 
 

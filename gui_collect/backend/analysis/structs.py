@@ -17,7 +17,7 @@ class Texture:
         self,
         filepath: Path,
         *,
-        texture_slot: str,
+        texture_slot: int,
         texture_hash: str,
         texture_format: str = None,
         contamination: str,
@@ -26,7 +26,7 @@ class Texture:
     ):
         self.path: Path = filepath
 
-        self.slot: str = texture_slot
+        self.slot: int = int(texture_slot)
         self.hash: str = texture_hash
         self.contamination: str = contamination
         self.extension: str = extension
@@ -45,6 +45,8 @@ class Texture:
 
         self._pow_2 = None
         self._size = None
+        self.async_read_format(blocking=True)
+        self.async_read_width_height(blocking=True)
 
     def async_read_format(self, callback=None, *, blocking=False):
         if not callback and not blocking:

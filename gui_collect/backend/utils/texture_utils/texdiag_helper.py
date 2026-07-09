@@ -2,12 +2,50 @@ import re
 import subprocess
 from pathlib import Path
 
+from PIL import Image
+
+from gui_collect.common.file_explorer import _SYSTEM
 
 # Structure of each line is 'keyword = value'
 LINE_PATTERN = re.compile(r"^(.*?)\s*=\s*(.*?)$")
 
 
 def get_texdiag_info(filepath: str):
+    if _SYSTEM == "Windows":
+        return process_exe(filepath)
+    else:
+        return process_PIL(filepath)
+
+
+def process_PIL(filepath: str):
+    """
+    - Opens the input texture filepath with Pillow and reads its dimensions
+      and pixel format.
+    - Returns a dict with the same shape `texdiag info` output was parsed
+      into, though only the keys actually consumed elsewhere are populated:
+    ### Populated dict keys:
+    * width
+    * height
+    * format
+    """
+    with Image.open(filepath) as img:
+        try:
+            width, height = img.size
+
+            # DdsImageFile exposes ".pixel_format" for compressed DDS data (e.g. "BC7");
+            # fall back to the PIL image mode (e.g. "RGBA") for uncompressed DDS data and other formats like jpg
+            pixel_format = getattr(img, "pixel_format", None) or img.mode
+
+            return {
+                "width" : str(width),
+                "height": str(height),
+                "format": pixel_format,
+            }
+        except Exception as e:
+            raise ZeroDivisionError() from e
+
+
+def process_exe(filepath: str):
     """
     - Executes `texdiag info` on the input texture filepath.
     - Parses the stdout result and returns it as a dict.\n

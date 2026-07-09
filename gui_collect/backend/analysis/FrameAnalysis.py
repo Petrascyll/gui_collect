@@ -1,42 +1,32 @@
-import os
 import json
-import time
-import shutil
 import logging
+import os
+import shutil
+import time
 import traceback
-import subprocess
-
 from pathlib import Path
-from typing import List
-
-from gui_collect.backend.utils.buffer_utils.buffer_reader import get_buffer_elements
-from gui_collect.backend.utils.buffer_utils.buffer_encoder import (
-    merge_buffers,
-    handle_no_weight_blend,
-)
-from gui_collect.backend.utils.buffer_utils.buffer_decoder import (
-    collect_binary_buffer_data,
-)
-from gui_collect.backend.utils.buffer_utils.exceptions import InvalidTextBufferException
-from gui_collect.backend.utils.buffer_utils.structs import (
-    BufferElement,
-    POSITION_FMT,
-    POSITION_EXTRA_TANGENT_FMT,
-    BLEND_4VGX_FMT,
-    BLEND_2VGX_FMT,
-    BLEND_1VGX_FMT,
-)
 
 from gui_collect.backend.config.Config import Config
-
-from .LogAnalysis import LogAnalysis
+from gui_collect.backend.utils.buffer_utils.buffer_decoder import (
+	collect_binary_buffer_data,
+)
+from gui_collect.backend.utils.buffer_utils.buffer_encoder import (
+	merge_buffers,
+)
+from gui_collect.backend.utils.buffer_utils.buffer_reader import get_buffer_elements
+from gui_collect.backend.utils.buffer_utils.exceptions import InvalidTextBufferException
+from gui_collect.backend.utils.buffer_utils.structs import (
+	BLEND_1VGX_FMT,
+	BLEND_2VGX_FMT,
+	BLEND_4VGX_FMT,
+	POSITION_EXTRA_TANGENT_FMT,
+	POSITION_FMT
+)
+from gui_collect.common import open_folder
 from .JsonBuilder import JsonBuilder
+from .LogAnalysis import LogAnalysis
 from .structs import Component
 
-from gui_collect.frontend.state import State
-
-
-FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe")
 logger = logging.getLogger(__name__)
 
 
@@ -61,7 +51,7 @@ class FrameAnalysis:
 
         components: list[Component] = []
         for name, target_hash, options in zip(
-            input_component_names, input_component_hashes, input_components_options
+                input_component_names, input_component_hashes, input_components_options
         ):
             c = Component(name=name, options=options)
 
@@ -89,7 +79,7 @@ class FrameAnalysis:
             components.append(c)
 
         for c in components:
-            if game != "gi" or (game == "gi" and (len(c.object_indices) > 5 or c.name)):
+            if game != "gi" or (game == "gi" and (len(c.object_indices) > 4 or c.name)):
                 # fmt: off
                 c.object_classification = [
                     "A", "B", "C", "D", "E", "F", "G", "H", "I",
@@ -99,9 +89,9 @@ class FrameAnalysis:
                     "J1", "K1", "L1", "M1", "N1", "O1", "P1", "Q1", "R1",
                     "S1", "T1", "U1", "V1", "W1", "X1", "Y1", "Z1",
                 ]
-                # fmt: on
+            # fmt: on
             else:
-                c.object_classification = ["Head", "Body", "Dress", "Extra", "Extra2"]
+                c.object_classification = ["Head", "Body", "Dress", "Extra"]
 
         return components
 
@@ -214,8 +204,8 @@ class FrameAnalysis:
             )
 
             if (
-                component.options["collect_model_hashes"]
-                or component.options["collect_texture_hashes"]
+                    component.options["collect_model_hashes"]
+                    or component.options["collect_texture_hashes"]
             ):
                 json_builder.add_component(
                     component, textures[i] if textures else None, game
@@ -254,16 +244,16 @@ class FrameAnalysis:
                     )
                     position_blend_ratio = {
                         1.25: (40, 32),
-                        2.5: (40, 16),
-                        10: (40, 4),
+                        2.5 : (40, 16),
+                        10  : (40, 4),
                         1.75: (56, 32),
-                        3.5: (56, 16),
-                        14: (56, 4),
+                        3.5 : (56, 16),
+                        14  : (56, 4),
                     }
                     try:
                         position_stride, blend_stride = position_blend_ratio[
                             position_size / blend_size
-                        ]
+                            ]
                     except KeyError:
                         logger.error(f'Position size: {position_size}')
                         logger.error(f'Blend size: {blend_size}')
@@ -281,7 +271,7 @@ class FrameAnalysis:
                     position_stride,
                     {
                         "shapekey_buffer_path": component.shapekey_buffer_path,
-                        "shapekey_cb_paths": component.shapekey_cb_paths,
+                        "shapekey_cb_paths"   : component.shapekey_cb_paths,
                     }
                     if component.shapekey_buffer_path and component.shapekey_cb_paths
                     else {},
@@ -340,7 +330,7 @@ class FrameAnalysis:
             )
 
         if self.cfg.game[game].game_options.open_extract_folder:
-            subprocess.run([FILEBROWSER_PATH, extract_path])
+            open_folder(extract_path)
             logger.info(
                 "Opening <PATH>%s</PATH> with File Explorer", extract_path.absolute()
             )
@@ -386,6 +376,6 @@ def _export_component_textures(
         )
         for texture, texture_type in textures[first_index]:
             texture_file_name = (
-                base_texture_file_name + texture_type + texture.path.suffix
+                    base_texture_file_name + texture_type + texture.path.suffix
             )
             shutil.copyfile(texture.path, (path / texture_file_name))

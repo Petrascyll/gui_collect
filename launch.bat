@@ -27,6 +27,7 @@ for /f "tokens=1,2 delims=." %%A in ("%ver%") do (
 
 if !major! EQU 3 if !minor! GTR 8 (
     %1 --version
+    %1 -m pip install --quiet -r requirements.txt
     %1 ./collect.py
     goto :eof
 ) else (

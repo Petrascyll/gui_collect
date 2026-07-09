@@ -1,23 +1,19 @@
+import ctypes
 import logging
 import tempfile
 import tkinter as tk
 import tkinter.ttk as ttk
-import ctypes
-
 from pathlib import Path
 
-from gui_collect.common import get_terminal_logging_handler
-
-from gui_collect.frontend.style import APP_STYLE
-from gui_collect.frontend.Terminal import Terminal
-from gui_collect.frontend.sidebar import Sidebar
-from gui_collect.frontend.main import Main
-from gui_collect.frontend.state import State
-
-from gui_collect.backend.config.Config import Config
 from gui_collect.backend.analysis import targeted_analysis
+from gui_collect.backend.config.Config import Config
 from gui_collect.backend.utils.texture_utils.TextureManager import TextureManager
-
+from gui_collect.common import get_terminal_logging_handler
+from gui_collect.frontend.Terminal import Terminal
+from gui_collect.frontend.main import Main
+from gui_collect.frontend.sidebar import Sidebar
+from gui_collect.frontend.state import State
+from gui_collect.frontend.style import APP_STYLE
 
 logger = logging.getLogger()
 
@@ -29,7 +25,8 @@ class App(tk.Tk):
         self.config(background=APP_STYLE["app_background"])
         self.state = State()
 
-        version = "1.3.0"
+        # idk if that's needed, seems to be overridden in main()
+        version = "1.4.1"
         self.title(f"GUI Collect v{version}")
         self.geometry("1368x840")
         # self.geometry('1650x800')
@@ -98,7 +95,7 @@ class App(tk.Tk):
                                 {"expand": "1", "sticky": "nswe"},
                             )
                         ],
-                        "sticky": "ns",
+                        "sticky"  : "ns",
                     },
                 )
             ],
@@ -121,7 +118,10 @@ def main():
     version = "1.4.1"
     app_id = f"petrascyll.gui_collect.{version}"
     # https://stackoverflow.com/a/1552105
-    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+    except AttributeError:
+        pass
 
     print("3dmigoto GUI collect script")
     cfg = Config()
@@ -136,7 +136,10 @@ def main():
     with tempfile.TemporaryDirectory() as temp_dir:
         cfg.temp_data["temp_dir"] = temp_dir
         app = App()
-        app.iconbitmap(Path("./resources/images/icons/Fofo.ico"))
+        try:
+            app.iconbitmap(Path("./resources/images/icons/Fofo.ico"))
+        except:
+            pass
         app.title(f"GUI Collect v{version}")
         TextureManager(temp_dir)
 
