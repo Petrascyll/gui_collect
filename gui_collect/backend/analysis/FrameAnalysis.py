@@ -36,7 +36,8 @@ from .structs import Component
 from gui_collect.frontend.state import State
 
 
-FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe")
+WINDIR = os.getenv("WINDIR")
+FILEBROWSER_PATH = os.path.join(WINDIR, "explorer.exe") if WINDIR else "xdg-open"
 logger = logging.getLogger(__name__)
 
 
@@ -340,7 +341,7 @@ class FrameAnalysis:
             )
 
         if self.cfg.game[game].game_options.open_extract_folder:
-            subprocess.run([FILEBROWSER_PATH, extract_path])
+            subprocess.run([FILEBROWSER_PATH, str(extract_path)])
             logger.info(
                 "Opening <PATH>%s</PATH> with File Explorer", extract_path.absolute()
             )

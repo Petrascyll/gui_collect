@@ -17,7 +17,8 @@ from .xtk.EntryWithPlaceholder import EntryWithPlaceholder
 logger = logging.getLogger(__name__)
 
 
-FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe")
+WINDIR = os.getenv("WINDIR")
+FILEBROWSER_PATH = os.path.join(WINDIR, "explorer.exe") if WINDIR else "xdg-open"
 
 
 class TextureGridItem(tk.Canvas):
@@ -135,7 +136,20 @@ class TextureGridItem(tk.Canvas):
             self.clipboard_append(self.texture.hash)
 
         def handle_show():
-            subprocess.Popen(f'{FILEBROWSER_PATH} /select,"{self.texture.path}"')
+            if os.name == "nt":
+                subprocess.Popen(f'{FILEBROWSER_PATH} /select,"{self.texture.path}"')
+            else:
+                try:
+                    abs_path = self.texture.path.absolute().as_uri()
+                    subprocess.Popen([
+                        "dbus-send", "--session", "--print-reply",
+                        "--dest=org.freedesktop.FileManager1",
+                        "/org/freedesktop/FileManager1",
+                        "org.freedesktop.FileManager1.ShowItems",
+                        f"array:string:{abs_path}", "string:"
+                    ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                except Exception:
+                    subprocess.Popen(["xdg-open", str(self.texture.path.parent)])
 
         m.add_command(label="Copy Texture Hash", command=handle_copy)
         m.add_command(label="Show in File Explorer", command=handle_show)

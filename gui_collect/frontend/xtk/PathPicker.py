@@ -14,7 +14,8 @@ from gui_collect.frontend.style import brighter
 
 
 logger = logging.getLogger(__name__)
-FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe")
+WINDIR = os.getenv("WINDIR")
+FILEBROWSER_PATH = os.path.join(WINDIR, "explorer.exe") if WINDIR else "xdg-open"
 
 
 class PathPicker(tk.Frame):
@@ -159,7 +160,7 @@ class PathPicker(tk.Frame):
                 self.label_btn.config(bg=self.default_bg)
 
         if not self.override_open:
-            handle_click = lambda _: subprocess.run([FILEBROWSER_PATH, self.path])
+            handle_click = lambda _: subprocess.run([FILEBROWSER_PATH, str(self.path)])
             img = tk.PhotoImage(
                 file=Path("./resources/images/buttons/open_in_new.32.png").absolute()
             )

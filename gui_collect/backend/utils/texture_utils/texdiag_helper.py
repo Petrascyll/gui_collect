@@ -3,6 +3,8 @@ import subprocess
 from pathlib import Path
 
 
+import os
+
 # Structure of each line is 'keyword = value'
 LINE_PATTERN = re.compile(r"^(.*?)\s*=\s*(.*?)$")
 
@@ -23,14 +25,52 @@ def get_texdiag_info(filepath: str):
     * images
     * pixel size
     """
+    if os.name != "nt":
+        completed_process = subprocess.run(
+            ["file", "-b", filepath],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        if completed_process.returncode != 0:
+            raise ZeroDivisionError()
+
+        out = completed_process.stdout.strip()
+        match = re.search(r"Microsoft DirectDraw Surface \(DDS\):\s*(\d+)\s*x\s*(\d+),\s*(.*)", out)
+        if not match:
+            raise ZeroDivisionError()
+
+        width = match.group(1)
+        height = match.group(2)
+        format_detail = match.group(3)
+
+        fmt = "???"
+        if "DXGI format:" in format_detail:
+            fmt = format_detail.split("DXGI format:", 1)[1].strip()
+        elif "compressed using" in format_detail:
+            fmt = format_detail.split("compressed using", 1)[1].strip()
+        else:
+            fmt = format_detail.strip()
+
+        return {
+            "width": width,
+            "height": height,
+            "format": fmt,
+            "depth": "1",
+            "mipLevels": "1",
+            "arraySize": "1",
+            "dimension": "2D",
+            "alpha mode": "unknown",
+            "images": "1",
+            "pixel size": "unknown"
+        }
+
     completed_process = subprocess.run(
         [str(Path("modules", "texdiag.exe")), "info", "-nologo", filepath],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
-
-    if completed_process.returncode != 0:
-        raise ZeroDivisionError()
 
     out = completed_process.stdout
     try:
