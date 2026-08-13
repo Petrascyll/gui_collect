@@ -39,7 +39,48 @@ from gui_collect.frontend.state import State
 FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe")
 logger = logging.getLogger(__name__)
 
-
+class ObjectClassification:
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            if not isinstance(index.stop, int) or index.stop < 0:
+                raise TypeError('classification slice stop value must be a non-negative integer')
+            if (not isinstance(index.start, int) or index.start < 0) and index.start is not None:
+                raise TypeError('classification slice start value must be a non-negative integer or None')
+            if (not isinstance(index.step, int) or index.step <= 0) and index.step is not None:
+                raise TypeError('classification slice step value must be a positive integer or None')
+            return [self[i] for i in range(index.start if index.start else 0,index.stop,index.step if index.step else 1)]
+        elif isinstance(index, int) and index >= 0:
+            alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+            classification = []
+            while index >= 0:
+                classification.append(alpha[index % 26])
+                if index < 26:
+                    break
+                index = index // 26 - 1
+            classification.reverse()
+            return ''.join(classification)
+        else:
+            raise TypeError(f'classification indices must be positive integers or slices, not {type(index)}')
+        
+class GenshinObjectClassification(ObjectClassification):
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            if not isinstance(index.stop, int) or index.stop < 0:
+                raise TypeError('classification slice stop value must be a non-negative integer')
+            if (not isinstance(index.start, int) or index.start < 0) and index.start is not None:
+                raise TypeError('classification slice start value must be a non-negative integer or None')
+            if (not isinstance(index.step, int) or index.step <= 0) and index.step is not None:
+                raise TypeError('classification slice step value must be a positive integer or None')
+            return [self[i] for i in range(index.start if index.start else 0,index.stop,index.step if index.step else 1)]
+        elif isinstance(index, int) and index >= 0:
+            if index < 4:
+                return ['Head','Body','Dress','Extra'][index]
+            else:
+                return f'Extra{super().__getitem__(index - 4)}'
+            return 
+        else:
+            raise TypeError(f'classification indices must be positive integers or slices, not {type(index)}')
+        
 class FrameAnalysis:
     def __init__(self, frame_analysis_path: Path):
         logger.info("Starting Frame Analysis: <PATH>%s</PATH>\n", frame_analysis_path)
@@ -91,17 +132,10 @@ class FrameAnalysis:
         for c in components:
             if game != "gi" or (game == "gi" and (len(c.object_indices) > 4 or c.name)):
                 # fmt: off
-                c.object_classification = [
-                    "A", "B", "C", "D", "E", "F", "G", "H", "I",
-                    "J", "K", "L", "M", "N", "O", "P", "Q", "R",
-                    "S", "T", "U", "V", "W", "X", "Y", "Z",
-                    "A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1", "I1",
-                    "J1", "K1", "L1", "M1", "N1", "O1", "P1", "Q1", "R1",
-                    "S1", "T1", "U1", "V1", "W1", "X1", "Y1", "Z1",
-                ]
+                c.object_classification = ObjectClassification()
                 # fmt: on
             else:
-                c.object_classification = ["Head", "Body", "Dress", "Extra"]
+                c.object_classification = GenshinObjectClassification()
 
         return components
 
