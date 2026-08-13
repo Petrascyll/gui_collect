@@ -14,7 +14,7 @@ from gui_collect.frontend.style import brighter
 
 
 logger = logging.getLogger(__name__)
-FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe")
+FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe") if os.name == 'nt' else 'xdg-open'
 
 
 class PathPicker(tk.Frame):
@@ -229,12 +229,12 @@ def get_short_path(s: str, max_width: int, font):
     if font_obj.measure(s) <= max_width:
         return s
 
-    prefix = "...\\"
+    prefix = f'...{os.sep}'
     prefix_len = __measure(prefix, font)
 
     while prefix_len + font_obj.measure(s) > max_width:
         try:
-            s = s.split("\\", maxsplit=1)[1]
+            s = s.split(os.sep, maxsplit=1)[1]
         except IndexError:
             break
 

@@ -5,6 +5,7 @@ import tkinter.ttk as ttk
 import ctypes
 
 from pathlib import Path
+from tkinter import PhotoImage
 
 from gui_collect.common import get_terminal_logging_handler
 
@@ -31,7 +32,10 @@ class App(tk.Tk):
 
         version = "1.3.0"
         self.title(f"GUI Collect v{version}")
-        self.geometry("1368x840")
+        icon = PhotoImage(file=str(Path('./resources/images/icons/Sucrose.png').absolute()))
+        self.wm_iconphoto(False,icon)
+        self.geometry('1600x944')
+        # self.geometry("1368x840")
         # self.geometry('1650x800')
         self.configure_style()
         self.configure_grid()
@@ -121,7 +125,7 @@ def main():
     version = "1.4.2"
     app_id = f"petrascyll.gui_collect.{version}"
     # https://stackoverflow.com/a/1552105
-    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+    # ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
 
     print("3dmigoto GUI collect script")
     cfg = Config()
@@ -136,7 +140,7 @@ def main():
     with tempfile.TemporaryDirectory() as temp_dir:
         cfg.temp_data["temp_dir"] = temp_dir
         app = App()
-        app.iconbitmap(Path("./resources/images/icons/Fofo.ico"))
+        # app.iconbitmap(Path("./resources/images/icons/Fofo.ico"))
         app.title(f"GUI Collect v{version}")
         TextureManager(temp_dir)
 

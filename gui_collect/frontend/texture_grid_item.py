@@ -17,7 +17,7 @@ from .xtk.EntryWithPlaceholder import EntryWithPlaceholder
 logger = logging.getLogger(__name__)
 
 
-FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe")
+FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe") if os.name == 'nt' else 'xdg-open'
 
 
 class TextureGridItem(tk.Canvas):
@@ -287,7 +287,7 @@ class TextureGridItem(tk.Canvas):
 TYPE_STYLE = {
     "bg": "#222",
     "fg": "#e8eaed",
-    "font": ("Arial", 18, "bold"),
+    "font": ("Arial", 15, "bold"),
     "justify": "center",
     "cursor": "hand2",
 }

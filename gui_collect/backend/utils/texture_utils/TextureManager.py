@@ -1,6 +1,9 @@
+import os
 import subprocess
 import threading
 
+if os.name != 'nt':
+    from PIL import Image, ImageTk
 from tkinter import PhotoImage
 from pathlib import Path
 
@@ -41,27 +44,41 @@ class TextureManager:
             _width, _height = texture.async_read_width_height(blocking=True)
             width, height = get_max_fit(_width, _height, max_width)
 
-            proc = subprocess.Popen(
-                get_popen_args(
-                    texture.path, self.temp_dir_filepath, max_width, width, height
-                ),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            proc.wait()
-            image = None
-            if proc.returncode == 0:
-                image = PhotoImage(file=str(temp_filepath.absolute()))
-            else:
-                image = self.no_preview_image
-                width, height = 256, 256
+            if os.name == 'nt':
+                proc = subprocess.Popen(
+                    get_popen_args(
+                        texture.path, self.temp_dir_filepath, max_width, width, height
+                    ),
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                proc.wait()
+                image = None
+                if proc.returncode == 0:
+                    image = PhotoImage(file=str(temp_filepath.absolute()))
+                else:
+                    image = self.no_preview_image
+                    width, height = 256, 256
 
-            self.callbacks_lock.acquire(blocking=True)
+                self.callbacks_lock.acquire(blocking=True)
 
-            if proc.returncode == 0:
-                self.cached_images[temp_filepath.name] = (_width, _height, image)
+                if proc.returncode == 0:
+                    self.cached_images[temp_filepath.name] = (_width, _height, image)
+                else:
+                    self.invalid_textures[temp_filepath.name] = (_width, _height)
             else:
-                self.invalid_textures[temp_filepath.name] = (_width, _height)
+                try:
+                    with Image.open(str(texture.path.absolute())) as img:
+                        img.putalpha(255)
+                        image = PhotoImage()
+                        image.copy_replace(ImageTk.PhotoImage(img.resize((width, height))))
+                        self.cached_images[temp_filepath.name] = (_width, _height, image)
+                except:
+                    image = self.no_preview_image
+                    width, height = 256, 256
+                    self.invalid_textures[temp_filepath.name] = (_width, _height)
+
+                self.callbacks_lock.acquire(blocking=True)
 
             callbacks = [*self.callbacks[temp_filepath.name]]
             del self.callbacks[temp_filepath.name]

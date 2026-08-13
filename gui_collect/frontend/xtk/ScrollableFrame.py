@@ -1,8 +1,9 @@
+import os
 import tkinter as tk
 import tkinter.ttk as ttk
 
 # TODO: whole class is scuff
-platform = "Windows"
+platform = 'Windows' if os.name == 'nt' else 'linux'
 
 
 # Tkinter has no elegant way to implement scrollable frames and it obviously isn't built in
@@ -127,7 +128,7 @@ class ScrollableFrame(tk.Frame):
 
         if platform == "linux" or platform == "linux2":
             self._canvas.bind_all(
-                "<MouseWheel>", lambda e: self._on_mousewheel(e, scroll=-1)
+                "<Button-4>", lambda e: self._on_mousewheel(e, scroll=-1)
             )
             self._canvas.bind_all(
                 "<Button-5>", lambda e: self._on_mousewheel(e, scroll=1)

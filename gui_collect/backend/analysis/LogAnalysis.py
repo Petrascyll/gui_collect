@@ -1,3 +1,4 @@
+import os
 import re
 import time
 import logging
@@ -956,7 +957,7 @@ def parse_frame_analysis_log_file(log_path: Path):
                 continue
     logger.info(
         "Read {} in {:.3}s".format(
-            log_path.parent.name + "\\" + log_path.name, time.time() - st
+            log_path.parent.name + os.sep + log_path.name, time.time() - st
         )
     )
 
