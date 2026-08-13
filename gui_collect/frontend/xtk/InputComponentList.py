@@ -96,16 +96,16 @@ class InputComponentFrame(tk.Frame):
             placeholder="IB Hash",
             color="#555",
             width=16,
-            font=("Arial", "20", "bold"),
+            font=("Arial", "15", "bold"),
         )
         self.component_name_entry = EntryWithPlaceholder(
             self,
             placeholder="Component Name",
             color="#555",
             width=16,
-            font=("Arial", "20", "bold"),
+            font=("Arial", "15", "bold"),
         )
-        self.component_options_frame = tk.Frame(self, bg=self["bg"])
+        self.component_options_frame = tk.Frame(self, bg=self["bg"],height=200)
 
         self.remove_button = tk.Label(self, text="   ", bg="#502020", cursor="hand2")
         self.remove_button.bind("<Button-1>", lambda _: self.handle_remove(self))

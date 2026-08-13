@@ -139,8 +139,8 @@ def get_trunc_path(s: str, font: Font, max_width: int):
     # the width of '...\' = font.measure('...\\') = 32px
     while 32 + font.measure(s) > max_width:
         try:
-            s = s.split("\\", maxsplit=1)[1]
+            s = s.split(os.sep, maxsplit=1)[1]
         except IndexError:
             break
 
-    return "...\\" + s
+    return f'...{os.sep}' + s

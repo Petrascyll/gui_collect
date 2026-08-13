@@ -36,7 +36,7 @@ from .structs import Component
 from gui_collect.frontend.state import State
 
 
-FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe")
+FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe") if os.name == 'nt' else 'xdg-open'
 logger = logging.getLogger(__name__)
 
 
