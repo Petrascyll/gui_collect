@@ -54,9 +54,13 @@ class JsonBuilder:
 
         if component.options["collect_texture_hashes"]:
             if textures:
+                for first_index in textures:
+                    for (texture, texture_type) in textures[first_index]:
+                        texture.async_read_format(blocking=True)
+                        
                 json_component.texture_hashes = [
                     [
-                        [texture_type, texture.path.suffix, texture.hash]
+                        [texture_type, texture.path.suffix, texture.hash, texture._format]
                         for (texture, texture_type) in textures[first_index]
                     ]
                     for first_index in textures
