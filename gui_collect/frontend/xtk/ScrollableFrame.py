@@ -108,7 +108,7 @@ class ScrollableFrame(tk.Frame):
         """
         Can handle windows or linux
         """
-        speed = 1 / 6
+        speed = 1 / 30
         if platform == "linux" or platform == "linux2":
             fraction = self._scrollbar.get()[0] + scroll * speed
         else:
