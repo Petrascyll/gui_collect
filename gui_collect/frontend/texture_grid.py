@@ -34,7 +34,7 @@ class TextureGrid(tk.Frame):
 
         self.create_id_picker()
         self.create_header()
-        self.id_picker.grid(row=0, column=0, rowspan=2, padx=(1, 0), sticky="nsew")
+        self.id_picker_container.grid(row=0, column=0, rowspan=2, padx=(1, 0), sticky="nsew")
         self.header.grid(row=0, column=1, sticky="nsew", padx=4, pady=4)
 
         self.multi_mode_enabled = False
@@ -58,8 +58,10 @@ class TextureGrid(tk.Frame):
         self.multi_mode_enabled = False
 
     def create_id_picker(self):
-        self.id_picker = tk.Frame(self, width=74, bg="#333")
-        self.id_picker.pack_propagate(False)
+        self.id_picker_container = tk.Frame(self, width=74, bg="#333")
+        self.id_picker_container.pack_propagate(False)
+        self.id_picker = ScrollableFrame(self.id_picker_container, bg="#333", width=74)
+        self.id_picker.pack(fill="both", expand=True)
 
     def create_header(self):
         self.header = tk.Frame(self, bg="#111")
@@ -259,10 +261,10 @@ class TextureGrid(tk.Frame):
         return filter_mask
 
     def refresh_id_picker(self, component_index: int, first_index: int):
-        for child in self.id_picker.winfo_children():
+        for child in self.id_picker.interior.winfo_children():
             child.destroy()
 
-        header = tk.Label(self.id_picker, text="ID", font=("Arial", "24", "bold"))
+        header = tk.Label(self.id_picker.interior, text="ID", font=("Arial", "24", "bold"))
         header.config(bg="#333", fg="#e8eaed")
         header.pack(side="top", pady="4", anchor="center")
 
@@ -272,7 +274,7 @@ class TextureGrid(tk.Frame):
             active_id = self.frames[component_index][first_index]["active_id"]
 
             id_label = tk.Label(
-                self.id_picker,
+                self.id_picker.interior,
                 text=str(id),
                 cursor="hand2",
                 font=("Arial", "10", "bold"),
