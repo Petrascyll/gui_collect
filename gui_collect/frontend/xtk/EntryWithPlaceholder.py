@@ -4,7 +4,15 @@ import tkinter as tk
 class EntryWithPlaceholder(tk.Entry):
     def __init__(self, parent, placeholder="", color="grey", *args, **kwargs):
         super().__init__(parent)
-        self.config(insertbackground="grey", fg="#e8eaed", bg="#333", relief="flat")
+        # highlightthickness defaults to 1 on X11 (0 on Windows) and draws a light
+        # grey focus ring outside the border, which relief='flat' does not suppress.
+        self.config(
+            insertbackground="grey",
+            fg="#e8eaed",
+            bg="#333",
+            relief="flat",
+            highlightthickness=0,
+        )
         self.config(*args, **kwargs)
 
         self.placeholder = placeholder
