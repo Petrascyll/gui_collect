@@ -21,6 +21,7 @@ from gui_collect.backend.utils.buffer_utils.exceptions import InvalidTextBufferE
 from gui_collect.backend.utils.buffer_utils.structs import (
     BufferElement,
     POSITION_FMT,
+    POSITION_ONLY_FMT,
     POSITION_EXTRA_TANGENT_FMT,
     BLEND_4VGX_FMT,
     BLEND_2VGX_FMT,
@@ -114,7 +115,7 @@ class FrameAnalysis:
         if buffer_stride is None:
             buffer_elements = POSITION_FMT
         else:
-            buffer_elements = {40: POSITION_FMT, 56: POSITION_EXTRA_TANGENT_FMT}[
+            buffer_elements = {24: POSITION_ONLY_FMT, 40: POSITION_FMT, 56: POSITION_EXTRA_TANGENT_FMT}[
                 buffer_stride
             ]
 
@@ -236,7 +237,6 @@ class FrameAnalysis:
                     if component.texcoord_path
                     else component.backup_texcoord_paths
                 )
-
                 # In HSR, the position buffer can either be 56 or 40 stride. In addition, the blend stride can be
                 # strides 32 or 16 or 4 We can infer the correct stride with no ambiguity for each by matching the
                 # position vertex counts to the blend vertex counts computed from the different strides. This works
@@ -258,6 +258,7 @@ class FrameAnalysis:
                         10: (40, 4),
                         1.75: (56, 32),
                         3.5: (56, 16),
+                        6.0: (24, 4),
                         14: (56, 4),
                     }
                     try:

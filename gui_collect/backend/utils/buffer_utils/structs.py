@@ -38,6 +38,23 @@ class BufferElement:
             self.__setattr__(key.replace(" ", ""), value)
 
 
+POSITION_ONLY_FMT = [
+    BufferElement({
+        "Name": "POSITION",
+        "SemanticName": "POSITION",
+        "SemanticIndex": "0",
+        "Format": "R32G32B32_FLOAT",
+        "ByteWidth": 12,
+    }),
+    BufferElement({
+        "Name": "NORMAL",
+        "SemanticName": "NORMAL",
+        "SemanticIndex": "0",
+        "Format": "R32G32B32_FLOAT",
+        "ByteWidth": 12,
+    }),
+]
+
 POSITION_FMT = [
     BufferElement({
         "Name": "POSITION",
