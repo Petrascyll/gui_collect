@@ -26,7 +26,10 @@ class Texture:
     ):
         self.path: Path = filepath
 
-        self.slot: int = int(texture_slot)
+        try:
+            self.slot = int(texture_slot)
+        except:
+            self.slot = None
         self.hash: str = texture_hash
         self.contamination: str = contamination
         self.extension: str = extension
