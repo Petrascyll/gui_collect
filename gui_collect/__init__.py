@@ -115,7 +115,7 @@ class App(tk.Tk):
 
 
 def main():
-    version = "1.4.1"
+    version = "1.4.2"
     app_id = f"petrascyll.gui_collect.{version}"
     # https://stackoverflow.com/a/1552105
     try:
