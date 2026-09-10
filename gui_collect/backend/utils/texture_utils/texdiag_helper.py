@@ -2,8 +2,6 @@ import re
 import subprocess
 from pathlib import Path
 
-from PIL import Image
-
 from gui_collect.common.file_explorer import _SYSTEM
 
 # Structure of each line is 'keyword = value'
@@ -28,6 +26,8 @@ def process_PIL(filepath: str):
     * height
     * format
     """
+    from PIL import Image
+
     with Image.open(filepath) as img:
         try:
             width, height = img.size
