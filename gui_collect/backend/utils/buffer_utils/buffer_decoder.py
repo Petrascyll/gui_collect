@@ -1,9 +1,7 @@
-import re
 import logging
+import re
 import struct
-
 from pathlib import Path
-
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +80,56 @@ def get_decoder(dxgi_format: str):
     if snorm16_pattern.match(dxgi_format):
         unpack_from = struct.Struct(FORMAT("h")).unpack_from
         return lambda buffer, offset: [x / 32767.0 for x in unpack_from(buffer, offset)]
+
+    raise Exception("Unrecognized dxgi format: {}".format(dxgi_format))
+
+
+def get_encoder(dxgi_format: str):
+    matches = re.findall(r"([0-9]+)", dxgi_format.split("_", maxsplit=1)[0])
+    component_count = len(matches)
+
+    FORMAT = lambda x: "<{}".format(x * component_count)
+
+    if f16_pattern.match(dxgi_format):
+        pack = struct.Struct(FORMAT("e")).pack
+        return lambda values: pack(*values)
+    if f32_pattern.match(dxgi_format):
+        pack = struct.Struct(FORMAT("f")).pack
+        return lambda values: pack(*values)
+
+    if u8_pattern.match(dxgi_format):
+        pack = struct.Struct(FORMAT("B")).pack
+        return lambda values: pack(*values)
+    if u16_pattern.match(dxgi_format):
+        pack = struct.Struct(FORMAT("H")).pack
+        return lambda values: pack(*values)
+    if u32_pattern.match(dxgi_format):
+        pack = struct.Struct(FORMAT("L")).pack
+        return lambda values: pack(*values)
+
+    if s8_pattern.match(dxgi_format):
+        pack = struct.Struct(FORMAT("b")).pack
+        return lambda values: pack(*values)
+    if s16_pattern.match(dxgi_format):
+        pack = struct.Struct(FORMAT("h")).pack
+        return lambda values: pack(*values)
+    if s32_pattern.match(dxgi_format):
+        pack = struct.Struct(FORMAT("l")).pack
+        return lambda values: pack(*values)
+
+    if unorm8_pattern.match(dxgi_format):
+        pack = struct.Struct(FORMAT("B")).pack
+        return lambda values: pack(*[round(x * 255.0) for x in values])
+    if unorm16_pattern.match(dxgi_format):
+        pack = struct.Struct(FORMAT("H")).pack
+        return lambda values: pack(*[round(x * 65535.0) for x in values])
+
+    if snorm8_pattern.match(dxgi_format):
+        pack = struct.Struct(FORMAT("b")).pack
+        return lambda values: pack(*[round(x * 127.0) for x in values])
+    if snorm16_pattern.match(dxgi_format):
+        pack = struct.Struct(FORMAT("h")).pack
+        return lambda values: pack(*[round(x * 32767.0) for x in values])
 
     raise Exception("Unrecognized dxgi format: {}".format(dxgi_format))
 

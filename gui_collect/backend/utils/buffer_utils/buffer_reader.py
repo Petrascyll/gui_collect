@@ -1,12 +1,10 @@
-import re
 import logging
-
-from pathlib import Path
+import re
 from io import TextIOWrapper
+from pathlib import Path
 
-from .structs import BufferElement
 from .exceptions import InvalidTextBufferException
-
+from .structs import BufferElement
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +44,31 @@ def read_header(buffer: TextIOWrapper):
         return header, elements, -1
 
     return header, elements, vertex_data_start_pos
+
+
+def read_ib_header(buffer_path: Path):
+    key_value_pattern = re.compile(r"^\s*(.*?): (.*)$")
+
+    header: dict[str, str] = {}
+    header_lines: list[str] = []
+    index_data_start_pos = -1
+
+    with open(buffer_path, "r") as buffer:
+        pos = buffer.tell()
+        while line := buffer.readline():
+            if key_value_match := key_value_pattern.match(line):
+                key, value = key_value_match.groups()
+                header[key] = value
+                header_lines.append(line.rstrip("\n"))
+                pos = buffer.tell()
+
+            else:
+                if line.strip() in ("", "index-data:"):
+                    pos = buffer.tell()
+                index_data_start_pos = pos
+                break
+
+    return "\n".join([*header_lines, ""]), header, index_data_start_pos
 
 
 def read_active_element_names(buffer: TextIOWrapper, vertex_data_start_pos: int):

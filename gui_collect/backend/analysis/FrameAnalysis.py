@@ -8,19 +8,24 @@ from pathlib import Path
 
 from gui_collect.backend.config.Config import Config
 from gui_collect.backend.utils.buffer_utils.buffer_decoder import (
-	collect_binary_buffer_data,
+    collect_binary_buffer_data,
 )
 from gui_collect.backend.utils.buffer_utils.buffer_encoder import (
-	merge_buffers,
+    construct_ib_binary,
+    merge_buffers,
+    merge_buffers_binary,
 )
-from gui_collect.backend.utils.buffer_utils.buffer_reader import get_buffer_elements
+from gui_collect.backend.utils.buffer_utils.buffer_reader import (
+    get_buffer_elements,
+    read_ib_header,
+)
 from gui_collect.backend.utils.buffer_utils.exceptions import InvalidTextBufferException
 from gui_collect.backend.utils.buffer_utils.structs import (
-	BLEND_1VGX_FMT,
-	BLEND_2VGX_FMT,
-	BLEND_4VGX_FMT,
-	POSITION_EXTRA_TANGENT_FMT,
-	POSITION_FMT
+    BLEND_1VGX_FMT,
+    BLEND_2VGX_FMT,
+    BLEND_4VGX_FMT,
+    POSITION_EXTRA_TANGENT_FMT,
+    POSITION_FMT
 )
 from gui_collect.common import open_folder
 from .JsonBuilder import JsonBuilder
@@ -184,6 +189,12 @@ class FrameAnalysis:
                 shutil.rmtree(extract_path)
         extract_path.mkdir(parents=True, exist_ok=True)
 
+        binary_export = self.cfg.export_binary_buffers
+        if binary_export:
+            logger.info(
+                "Exporting index and vertex data as binary .buf files"
+            )
+
         st = time.time()
 
         for i, component in enumerate(components):
@@ -211,6 +222,7 @@ class FrameAnalysis:
                     component, textures[i] if textures else None, game
                 )
 
+            vb_merged, vb_binary = None, None
             if component.options["collect_model_data"]:
                 buffers = []
                 elements = []
@@ -307,7 +319,11 @@ class FrameAnalysis:
                 logger.info(
                     f"Constructing combined buffer for [{component.ib_hash}] - {component.name}"
                 )
-                vb_merged = merge_buffers(buffers, elements) if buffers else None
+                if buffers:
+                    if binary_export:
+                        vb_merged, vb_binary = merge_buffers_binary(buffers, elements)
+                    else:
+                        vb_merged = merge_buffers(buffers, elements)
 
             if component.options["collect_texture_data"] and textures:
                 _export_component_textures(
@@ -315,7 +331,7 @@ class FrameAnalysis:
                 )
             if component.options["collect_model_data"] and vb_merged:
                 _export_component_buffers(
-                    export_name, extract_path, component, vb_merged
+                    export_name, extract_path, component, vb_merged, vb_binary
                 )
 
         json_out = json.dumps(json_builder.build(), indent=4)
@@ -337,7 +353,7 @@ class FrameAnalysis:
 
 
 def _export_component_buffers(
-    export_name: str, path: Path, component: Component, vb_merged
+    export_name: str, path: Path, component: Component, vb_merged, vb_binary=None
 ):
     object_classification = component.object_classification
 
@@ -346,24 +362,53 @@ def _export_component_buffers(
     # the rest of the component's parts. Copying seems faster
     # than writing
     main_vb0_file_path = None
+    main_vb0_buf_file_path = None
 
     for i, ib_path in enumerate(component.ib_paths):
         prefix = export_name + component.name + object_classification[i]
-        vb0_file_name = "{}-vb0={}.txt".format(
+        vb0_file_name = "{}-vb0={}".format(
             prefix,
             component.position_hash if component.position_hash else component.draw_hash,
         )
-        ib_file_name = "{}-ib={}.txt".format(prefix, component.ib_hash)
+        ib_file_name = "{}-ib={}".format(prefix, component.ib_hash)
 
-        vb0_file_path = path / vb0_file_name
+        vb0_file_path = path / (vb0_file_name + ".txt")
         if not main_vb0_file_path:
             vb0_file_path.write_text(vb_merged)
             main_vb0_file_path = vb0_file_path
         else:
             shutil.copyfile(main_vb0_file_path, vb0_file_path)
 
-        ib_file_path = path / ib_file_name
-        shutil.copyfile(ib_path, ib_file_path)
+        ib_file_path = path / (ib_file_name + ".txt")
+        if vb_binary is None:
+            shutil.copyfile(ib_path, ib_file_path)
+            continue
+
+        vb0_buf_file_path = path / (vb0_file_name + ".buf")
+        if not main_vb0_buf_file_path:
+            vb0_buf_file_path.write_bytes(vb_binary)
+            main_vb0_buf_file_path = vb0_buf_file_path
+        else:
+            shutil.copyfile(main_vb0_buf_file_path, vb0_buf_file_path)
+
+        ib_header, header_data, index_data_start_pos = read_ib_header(ib_path)
+        ib_file_path.write_text(ib_header)
+
+        ib_buf_file_path = path / (ib_file_name + ".buf")
+        if (dumped_ib_buf_path := ib_path.with_suffix(".buf")).exists():
+            shutil.copyfile(dumped_ib_buf_path, ib_buf_file_path)
+        else:
+            logger.warning(
+                "<PATH>%s</PATH> does not exist in the frame analysis folder. "
+                "Reconstructing it from the index data of <PATH>%s</PATH> instead.",
+                dumped_ib_buf_path.name,
+                ib_path.name,
+            )
+            ib_buf_file_path.write_bytes(
+                construct_ib_binary(
+                    ib_path, index_data_start_pos, header_data.get("format")
+                )
+            )
 
 
 def _export_component_textures(

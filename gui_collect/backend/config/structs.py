@@ -73,6 +73,7 @@ class ConfigData:
     active_game: str = "zzz"
     debugging: str = False
     targeted_analysis_enabled: bool = False
+    export_binary_buffers: bool = False
     reverse_shapekeys_hsr: bool = True
     reverse_shapekeys_zzz: bool = False
     game: dict[str, _GameConfigData] = field(
@@ -107,6 +108,7 @@ class ConfigData:
                 "active_game",
                 "debugging",
                 "targeted_analysis_enabled",
+                "export_binary_buffers",
                 "reverse_shapekeys_hsr",
                 "reverse_shapekeys_zzz",
                 "game",
