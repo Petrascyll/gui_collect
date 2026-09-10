@@ -1,23 +1,15 @@
-import os
 import logging
-import subprocess
 import tkinter as tk
 from functools import partial
 
-from gui_collect.backend.utils.texture_utils.TextureManager import TextureManager
-from gui_collect.backend.config.Config import Config
 from gui_collect.backend.analysis.structs import Texture
-
-from gui_collect.frontend.state import State
-
-from .xtk.ScrollableFrame import ScrollableFrame
+from gui_collect.backend.config.Config import Config
+from gui_collect.backend.utils.texture_utils.TextureManager import TextureManager
+from gui_collect.common import reveal_file
 from .xtk.EntryWithPlaceholder import EntryWithPlaceholder
-
+from .xtk.ScrollableFrame import ScrollableFrame
 
 logger = logging.getLogger(__name__)
-
-
-FILEBROWSER_PATH = os.path.join(os.getenv("WINDIR"), "explorer.exe")
 
 
 class TextureGridItem(tk.Canvas):
@@ -135,7 +127,7 @@ class TextureGridItem(tk.Canvas):
             self.clipboard_append(self.texture.hash)
 
         def handle_show():
-            subprocess.Popen(f'{FILEBROWSER_PATH} /select,"{self.texture.path}"')
+            reveal_file(self.texture.path)
 
         m.add_command(label="Copy Texture Hash", command=handle_copy)
         m.add_command(label="Show in File Explorer", command=handle_show)
@@ -244,8 +236,8 @@ class TextureGridItem(tk.Canvas):
             for component_index, component in enumerate(self._texture_grid.components):
                 for first_index in component.object_indices:
                     if (
-                        component_index == self.component_index
-                        and first_index == self.first_index
+                            component_index == self.component_index
+                            and first_index == self.first_index
                     ):
                         continue
 
@@ -260,13 +252,13 @@ class TextureGridItem(tk.Canvas):
 
                     for draw_call_id in draw_call_ids:
                         if (
-                            max_draw_call_id is not None
-                            and int(draw_call_id) > max_draw_call_id
+                                max_draw_call_id is not None
+                                and int(draw_call_id) > max_draw_call_id
                         ):
                             continue
                         if (
-                            min_draw_call_id is not None
-                            and int(draw_call_id) < min_draw_call_id
+                                min_draw_call_id is not None
+                                and int(draw_call_id) < min_draw_call_id
                         ):
                             continue
 
@@ -285,11 +277,11 @@ class TextureGridItem(tk.Canvas):
 
 
 TYPE_STYLE = {
-    "bg": "#222",
-    "fg": "#e8eaed",
-    "font": ("Arial", 18, "bold"),
+    "bg"     : "#222",
+    "fg"     : "#e8eaed",
+    "font"   : ("Arial", 18, "bold"),
     "justify": "center",
-    "cursor": "hand2",
+    "cursor" : "hand2",
 }
 
 

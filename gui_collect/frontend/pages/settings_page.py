@@ -1,20 +1,15 @@
-import re
+import logging
 import logging
 import tkinter as tk
-import tkinter.ttk as ttk
-
-from pathlib import Path
 from typing import Literal
 
-
-from gui_collect.frontend.install_connector_window import open_install_connector_window
 from gui_collect.backend.config.Config import Config
+from gui_collect.frontend.install_connector_window import open_install_connector_window
 from ..state import State
-from ..xtk.ScrollableFrame import ScrollableFrame
+from ..style import darker, GAME_ACCENT_MAPPING
 from ..xtk.CompactCheckbox import CompactCheckbox
 from ..xtk.FlatButton import FlatButton
-from ..xtk.PathPicker import PathPicker
-from ..style import brighter, darker, GAME_ACCENT_MAPPING
+from ..xtk.ScrollableFrame import ScrollableFrame
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +167,11 @@ class SettingsRouter(ScrollableFrame):
             "Enable Targeted Frame Analysis",
             cfg_key_path=["targeted_analysis_enabled"],
             callback=lambda _: self.state.refresh_all_extract_forms(),
+            pady=(0, 8),
+        )
+        self.create_checkbox(
+            "Export buffers as binary. Data goes in .buf files; .txt files keep only the format header.",
+            cfg_key_path=["export_binary_buffers"],
             pady=(0, 8),
         )
 

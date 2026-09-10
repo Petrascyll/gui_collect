@@ -1,8 +1,9 @@
 import subprocess
 import threading
-
-from tkinter import PhotoImage
 from pathlib import Path
+from tkinter import PhotoImage
+
+from gui_collect.common.file_explorer import _SYSTEM
 
 from ...analysis.structs import Texture
 
@@ -23,7 +24,6 @@ class TextureManager:
             raise Exception("TextureManager already created.")
         TextureManager.__instance = self
         self.temp_dir_filepath = Path(temp_dir)
-        # subprocess.run([FILEBROWSER_PATH, Path(temp_dir)])
 
         self.no_preview_image = PhotoImage(
             file=str(Path("./resources/images/textures/NoPreview.256.png").absolute())
@@ -41,16 +41,11 @@ class TextureManager:
             _width, _height = texture.async_read_width_height(blocking=True)
             width, height = get_max_fit(_width, _height, max_width)
 
-            proc = subprocess.Popen(
-                get_popen_args(
-                    texture.path, self.temp_dir_filepath, max_width, width, height
-                ),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+            is_generated = generate_thumbnail(
+                texture.path, temp_filepath, width, height, max_width
             )
-            proc.wait()
             image = None
-            if proc.returncode == 0:
+            if is_generated:
                 image = PhotoImage(file=str(temp_filepath.absolute()))
             else:
                 image = self.no_preview_image
@@ -58,7 +53,7 @@ class TextureManager:
 
             self.callbacks_lock.acquire(blocking=True)
 
-            if proc.returncode == 0:
+            if is_generated:
                 self.cached_images[temp_filepath.name] = (_width, _height, image)
             else:
                 self.invalid_textures[temp_filepath.name] = (_width, _height)
@@ -120,7 +115,45 @@ class TextureManager:
         return
 
 
-def get_popen_args(texture_filepath, temp_dir_filepath, max_width, width, height):
+def generate_thumbnail(texture_filepath: Path, dest_filepath: Path, width: int, height: int, max_width: int) -> bool:
+    try:
+        dest_filepath.parent.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        return False
+
+    if _SYSTEM == "Windows":
+        return generate_thumbnail_exe(texture_filepath, dest_filepath, width, height, max_width)
+    else:
+        return generate_thumbnail_PIL(texture_filepath, dest_filepath, width, height)
+
+
+def generate_thumbnail_PIL(texture_filepath: Path, dest_filepath: Path, width: int, height: int) -> bool:
+    from PIL import Image
+
+    try:
+        with Image.open(texture_filepath) as img:
+            img = img.convert("RGB")
+            if img.size != (width, height):
+                img = img.resize((width, height), Image.Resampling.NEAREST)
+            img.save(dest_filepath, format="PNG")
+        return True
+    except Exception:
+        return False
+
+
+def generate_thumbnail_exe(texture_filepath: Path, dest_filepath: Path, width: int, height: int, max_width: int) -> bool:
+    try:
+        completed_process = subprocess.run(
+            get_run_args(texture_filepath, dest_filepath.parent, max_width, width, height),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        return False
+    return completed_process.returncode == 0
+
+
+def get_run_args(texture_filepath: Path, temp_dir_filepath: Path, max_width: int, width: int, height: int):
     return [
         str(Path("modules", "texconv.exe").absolute()),
         str(texture_filepath.absolute()),

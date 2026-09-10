@@ -1,16 +1,14 @@
-import os
 import logging
-from pathlib import Path
-
+import os
 import tkinter as tk
+from pathlib import Path
 from tkinter import filedialog
 from tkinter.font import Font
 
 from gui_collect.backend.config.Config import Config
-
+from gui_collect.common.file_explorer import _SYSTEM
 from .data import Page
 from .xtk.FlatImageButton import FlatImageButton
-
 
 logger = logging.getLogger(__name__)
 
@@ -137,10 +135,11 @@ def get_trunc_path(s: str, font: Font, max_width: int):
 
     # The font isnt changing so I can just hard code
     # the width of '...\' = font.measure('...\\') = 32px
+    slash = "\\" if _SYSTEM == "Windows" else "/"
     while 32 + font.measure(s) > max_width:
         try:
-            s = s.split("\\", maxsplit=1)[1]
+            s = s.split(slash, maxsplit=1)[1]
         except IndexError:
             break
 
-    return "...\\" + s
+    return f"...{slash}" + s

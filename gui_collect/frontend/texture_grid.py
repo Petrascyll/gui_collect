@@ -352,7 +352,7 @@ class TextureGrid(tk.Frame):
         self.frames = {}
         self.components = None
 
-    def create_widgets(self, scrollable_frame, textures, component_index, first_index):
+    def create_widgets(self, scrollable_frame, textures: list[Texture], component_index, first_index):
         for texture in textures:
             TextureGridItem(
                 scrollable_frame.interior,

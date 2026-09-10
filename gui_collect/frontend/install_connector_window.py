@@ -166,6 +166,7 @@ def open_install_connector_window(root):
 
     top_window.update_idletasks()
     top_window.wait_visibility()
+    top_window.grab_set()
 
     # 0 Installed
     # 1 Failed
@@ -198,7 +199,8 @@ def __create_top_window(root):
     top_window.protocol("WM_DELETE_WINDOW", handle_window_delete)
 
     top_window.transient(root)
-    top_window.grab_set()
+    # grab_set() is deferred until the window is actually mapped. On X11/Wayland
+    # mapping is asynchronous, so grabbing here fails with "window not viewable".
     return top_window
 
 

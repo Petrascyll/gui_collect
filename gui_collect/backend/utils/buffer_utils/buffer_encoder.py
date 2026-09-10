@@ -1,13 +1,27 @@
-import re
 import logging
+import re
+from pathlib import Path
 
+from .buffer_decoder import get_encoder
 from .structs import BufferElement
-
 
 logger = logging.getLogger(__name__)
 
 
 def merge_buffers(buffers, buffer_formats: list[list[BufferElement]]):
+    merged_data, merged_format = _merge_buffer_data(buffers, buffer_formats)
+    return construct_combined_buffer(merged_data, merged_format)
+
+
+def merge_buffers_binary(buffers, buffer_formats: list[list[BufferElement]]):
+    merged_data, merged_format = _merge_buffer_data(buffers, buffer_formats)
+    return (
+        construct_combined_buffer_header(merged_data, merged_format),
+        construct_combined_buffer_binary(merged_data, merged_format),
+    )
+
+
+def _merge_buffer_data(buffers, buffer_formats: list[list[BufferElement]]):
     vertex_counts = [len(buffer) for buffer in buffers]
     if len(set(vertex_counts)) != 1:
         raise Exception(f"Buffer vertex count mismatch: {vertex_counts}")
@@ -24,12 +38,10 @@ def merge_buffers(buffers, buffer_formats: list[list[BufferElement]]):
     for buffer_format in buffer_formats:
         merged_format.extend(buffer_format)
 
-    return construct_combined_buffer(merged_data, merged_format)
+    return merged_data, merged_format
 
 
-# Constructs the output file that will be loaded into 3dmigoto
-def construct_combined_buffer(buffer_data, buffer_elements: list[BufferElement]):
-
+def construct_combined_buffer_header(buffer_data, buffer_elements: list[BufferElement]):
     stride = sum([element.ByteWidth for element in buffer_elements])
 
     vb_merged = "\n".join([
@@ -41,11 +53,7 @@ def construct_combined_buffer(buffer_data, buffer_elements: list[BufferElement])
     ])
 
     byte_offset = 0
-    byte_offsets, element_names = [], []
     for i, element in enumerate(buffer_elements):
-        byte_offsets.append(f"{str(byte_offset).zfill(3)}")
-        element_names.append(element.Name)
-
         vb_merged += "\n".join([
             f"element[{i}]:",
             f"  SemanticName: {element.SemanticName}",
@@ -65,6 +73,33 @@ def construct_combined_buffer(buffer_data, buffer_elements: list[BufferElement])
         )
 
     logger.info(f"Total Stride: %s\n", stride, extra={"TIMESTAMP": False})
+
+    return vb_merged
+
+
+def construct_combined_buffer_binary(
+    buffer_data, buffer_elements: list[BufferElement]
+):
+    encoders = [get_encoder(element.Format) for element in buffer_elements]
+
+    return b"".join([
+        b"".join([
+            encoder(vertex_data[j]) for j, encoder in enumerate(encoders)
+        ])
+        for vertex_data in buffer_data
+    ])
+
+
+def construct_combined_buffer(buffer_data, buffer_elements: list[BufferElement]):
+
+    vb_merged = construct_combined_buffer_header(buffer_data, buffer_elements)
+
+    byte_offset = 0
+    byte_offsets, element_names = [], []
+    for element in buffer_elements:
+        byte_offsets.append(f"{str(byte_offset).zfill(3)}")
+        element_names.append(element.Name)
+        byte_offset += element.ByteWidth
 
     vb_merged += "\nvertex-data:\n\n"
 
@@ -86,6 +121,23 @@ def construct_combined_buffer(buffer_data, buffer_elements: list[BufferElement])
     #     vb_merged += "\n"
 
     return vb_merged
+
+
+# Fallback for frame analysis dumps which are missing the ib .buf file:
+# repacks the index data of the ib .txt into its binary representation.
+def construct_ib_binary(ib_path: Path, index_data_start_pos: int, dxgi_format: str):
+    if index_data_start_pos < 0:
+        raise Exception(f"{ib_path.name} has no index data")
+    if not dxgi_format:
+        raise Exception(f"{ib_path.name} has no index format")
+
+    encoder = get_encoder(dxgi_format.removeprefix("DXGI_FORMAT_"))
+
+    with open(ib_path, "r") as ib:
+        ib.seek(index_data_start_pos)
+        return b"".join([
+            encoder((int(index),)) for line in ib for index in line.split()
+        ])
 
 
 def handle_no_weight_blend(blend, blend_elements: list[BufferElement]):
