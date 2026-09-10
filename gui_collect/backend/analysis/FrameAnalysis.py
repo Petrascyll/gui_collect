@@ -192,7 +192,8 @@ class FrameAnalysis:
         binary_export = self.cfg.export_binary_buffers
         if binary_export:
             logger.info(
-                "Exporting index and vertex data as binary .buf files"
+                "Exporting index and vertex data as binary .buf files, "
+                "with format headers merged into a single .fmt file"
             )
 
         st = time.time()
@@ -372,15 +373,15 @@ def _export_component_buffers(
         )
         ib_file_name = "{}-ib={}".format(prefix, component.ib_hash)
 
-        vb0_file_path = path / (vb0_file_name + ".txt")
-        if not main_vb0_file_path:
-            vb0_file_path.write_text(vb_merged)
-            main_vb0_file_path = vb0_file_path
-        else:
-            shutil.copyfile(main_vb0_file_path, vb0_file_path)
-
-        ib_file_path = path / (ib_file_name + ".txt")
         if vb_binary is None:
+            vb0_file_path = path / (vb0_file_name + ".txt")
+            if not main_vb0_file_path:
+                vb0_file_path.write_text(vb_merged)
+                main_vb0_file_path = vb0_file_path
+            else:
+                shutil.copyfile(main_vb0_file_path, vb0_file_path)
+
+            ib_file_path = path / (ib_file_name + ".txt")
             shutil.copyfile(ib_path, ib_file_path)
             continue
 
@@ -392,7 +393,6 @@ def _export_component_buffers(
             shutil.copyfile(main_vb0_buf_file_path, vb0_buf_file_path)
 
         ib_header, header_data, index_data_start_pos = read_ib_header(ib_path)
-        ib_file_path.write_text(ib_header)
 
         ib_buf_file_path = path / (ib_file_name + ".buf")
         if (dumped_ib_buf_path := ib_path.with_suffix(".buf")).exists():
@@ -409,6 +409,9 @@ def _export_component_buffers(
                     ib_path, index_data_start_pos, header_data.get("format")
                 )
             )
+
+        fmt_file_path = path / (vb0_file_name + ".fmt")
+        fmt_file_path.write_text(ib_header + vb_merged)
 
 
 def _export_component_textures(

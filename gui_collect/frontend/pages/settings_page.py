@@ -170,7 +170,7 @@ class SettingsRouter(ScrollableFrame):
             pady=(0, 8),
         )
         self.create_checkbox(
-            "Export buffers as binary. Data goes in .buf files; .txt files keep only the format header.",
+            "Export buffers as binary. Data goes in .buf files; format headers are merged into a single .fmt file.",
             cfg_key_path=["export_binary_buffers"],
             pady=(0, 8),
         )
